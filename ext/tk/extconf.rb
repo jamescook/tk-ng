@@ -12,12 +12,14 @@ TkLib_Config['search_versions'] =
   # %w[8.9 8.8 8.7 8.6 8.5 8.4 8.3 8.2 8.1 8.0 7.6 4.2]
   # %w[8.7 8.6 8.5 8.4 8.3 8.2 8.1 8.0]
   # %w[8.7 8.6 8.5 8.4 8.0] # to shorten search steps
-  %w[8.6 8.5 8.4]
+  # Tcl/Tk 9.x support added - search newest versions first
+  %w[9.0 8.6 8.5 8.4]
 
 TkLib_Config['unsupported_versions'] =
+  # Note: 8.7/8.8 were never released; 9.0 is the successor to 8.6
   %w[8.8 8.7]
 
-TkLib_Config['major_nums'] = '87'
+TkLib_Config['major_nums'] = '987'  # Search for tcl9*, tcl8*, tcl7* patterns
 
 
 ##############################################################
@@ -179,14 +181,20 @@ def check_tcltk_version(version)
   [tclver, tkver]
 end
 
-def get_shlib_versions(major = 8, minor_max = 9, minor_min = 0, ext = "")
+def get_shlib_versions(major = 9, minor_max = 0, minor_min = 0, ext = "")
   if tclcfg = TkLib_Config["tclConfig_info"]
     major = tclcfg['TCL_MAJOR_VERSION'].to_i
     minor_min = tclcfg['TCL_MINOR_VERSION'].to_i
 
   elsif TkLib_Config["tcltkversion"]
     tclver, tkver = TkLib_Config["tcltkversion"]
-    if tclver =~ /8\.?(\d)(.*)/
+    # Support both Tcl 9.x and 8.x version patterns
+    if tclver =~ /9\.?(\d)(.*)/
+      major = 9
+      minor_min = $1.to_i
+      ext = $2
+    elsif tclver =~ /8\.?(\d)(.*)/
+      major = 8
       minor_min = $1.to_i
       ext = $2
     else
@@ -199,10 +207,20 @@ def get_shlib_versions(major = 8, minor_max = 9, minor_min = 0, ext = "")
   minor_max = minor_min unless TkLib_Config["tcltk-stubs"]
 
   vers = []
-  minor_max.downto(minor_min){|minor|
-    vers << "#{major}.#{minor}#{ext}" unless ext.empty?
-    vers << "#{major}.#{minor}"
-  }
+  # For Tcl 9, include 9.x versions first, then fall back to 8.6
+  if major >= 9
+    minor_max.downto(minor_min){|minor|
+      vers << "#{major}.#{minor}#{ext}" unless ext.empty?
+      vers << "#{major}.#{minor}"
+    }
+    # Also try Tcl 8.6 as fallback for stubs compatibility
+    vers << "8.6" if TkLib_Config["tcltk-stubs"]
+  else
+    minor_max.downto(minor_min){|minor|
+      vers << "#{major}.#{minor}#{ext}" unless ext.empty?
+      vers << "#{major}.#{minor}"
+    }
+  end
 
   vers << ""
 end
@@ -240,6 +258,31 @@ def get_shlib_path_head
     path_dirs |= ENV['PATH'].split(';').find_all{|dir| File.directory? dir}.map{|dir| File.expand_path(dir)} if ENV['PATH']
 
   else
+    # TODO: Verify
+    # Check for Homebrew installations first (highest priority for modern macOS)
+    if is_macosx?
+      homebrew_paths = []
+      # Apple Silicon Homebrew
+      if File.directory?('/opt/homebrew/opt/tcl-tk')
+        homebrew_paths << '/opt/homebrew/opt/tcl-tk'
+      end
+      # Intel Homebrew
+      if File.directory?('/usr/local/opt/tcl-tk')
+        homebrew_paths << '/usr/local/opt/tcl-tk'
+      end
+      # Try to detect Homebrew prefix dynamically
+      homebrew_prefix = ENV['HOMEBREW_PREFIX'] || `brew --prefix 2>/dev/null`.chomp rescue nil
+      if homebrew_prefix && !homebrew_prefix.empty?
+        tcltk_path = File.join(homebrew_prefix, 'opt', 'tcl-tk')
+        homebrew_paths << tcltk_path if File.directory?(tcltk_path)
+      end
+      homebrew_paths.uniq.each do |hb_path|
+        path_dirs << File.join(hb_path, 'lib')
+        path_dirs << hb_path
+        path_head << hb_path
+      end
+    end
+
     [
       '/opt', '/pkg', '/share',
       '/usr/local/opt', '/usr/local/pkg', '/usr/local/share', '/usr/local',
@@ -259,7 +302,8 @@ def get_shlib_path_head
 
       dirnames.each{|name|
         path_dirs << "#{dir}/#{name}" if File.directory?("#{dir}/#{name}")
-        path_head << "#{dir}/#{name}" unless Dir.glob("#{dir}/#{name}[-89_]*", File::FNM_CASEFOLD).empty?
+        # Updated pattern to include Tcl 9.x versions
+        path_head << "#{dir}/#{name}" unless Dir.glob("#{dir}/#{name}[-789_]*", File::FNM_CASEFOLD).empty?
       }
     }
   end
@@ -614,11 +658,20 @@ def libcheck_for_tclConfig(tcldir, tkdir, tclconf, tkconf)
     tcl_regexp = /^.*(tcl#{stub}#{tclconf['TCL_MAJOR_VERSION']}(?:\.|)#{tclconf['TCL_MINOR_VERSION']}.*)\.(#{exts}).*$/
   end
   if tkver
-    tk_glob = "*tk#{stub}#{tkver}.*"
-    tk_regexp = /^.*(tk#{stub}#{tkver}.*)\.(#{exts}).*$/
+    # Tcl 9.x uses "tcl9tk" prefix (TIP 628), Tcl 8.x uses "tk" prefix
+    tk_glob = "{*tcl9tk#{stub}#{tkver}.*,*tk#{stub}#{tkver}.*}"
+    tk_regexp = /^.*((?:tcl9)?tk#{stub}#{tkver}.*)\.(#{exts}).*$/
   elsif tkconf
-    tk_glob = "*tk#{stub}#{tkconf['TK_MAJOR_VERSION']}{.,}#{tkconf['TK_MINOR_VERSION']}*.*"
-    tk_regexp = /^.*(tk#{stub}#{tkconf['TK_MAJOR_VERSION']}(?:\.|)#{tkconf['TK_MINOR_VERSION']}.*)\.#{exts}.*$/
+    # Tcl 9.x uses "tcl9tk" prefix (TIP 628), Tcl 8.x uses "tk" prefix
+    major = tkconf['TK_MAJOR_VERSION']
+    minor = tkconf['TK_MINOR_VERSION']
+    if major.to_i >= 9
+      tk_glob = "*tcl9tk#{stub}#{major}{.,}#{minor}*.*"
+      tk_regexp = /^.*(tcl9tk#{stub}#{major}(?:\.|)#{minor}.*)\.#{exts}.*$/
+    else
+      tk_glob = "*tk#{stub}#{major}{.,}#{minor}*.*"
+      tk_regexp = /^.*(tk#{stub}#{major}(?:\.|)#{minor}.*)\.#{exts}.*$/
+    end
   end
 
   tcllib_ok ||= !tclconf || Dir.glob(File.join(tcldir, tcl_glob), File::FNM_CASEFOLD).find{|file|

@@ -2,6 +2,8 @@
 
   stubs.c - Tcl/Tk stubs support
 
+  Updated for Tcl/Tk 9.x compatibility
+
 ************************************************/
 
 #include "ruby.h"
@@ -14,6 +16,7 @@
 
 #include <tcl.h>
 #include <tk.h>
+#include "tcl9compat.h"
 
 /*------------------------------*/
 
@@ -80,25 +83,39 @@ _nativethread_consistency_check(Tcl_Interp *ip)
   typedef HINSTANCE DL_HANDLE;
 # define DL_OPEN LoadLibrary
 # define DL_SYM GetProcAddress
-# define TCL_INDEX 4
-# define TK_INDEX 3
-# define TCL_NAME "tcl89"
-# define TK_NAME "tk89"
 # undef DLEXT
 # define DLEXT ".dll"
+  /*
+   * Tcl 9.x library naming convention (see TIP 628):
+   * https://core.tcl-lang.org/tips/doc/trunk/tip/628.md
+   *
+   * Tcl 9.x: tcl90.dll, tcl9tk90.dll (Tk uses "tcl9tk" prefix)
+   * Tcl 8.x: tcl86.dll, tk86.dll
+   */
+  static const char *tcl9_names[] = {"tcl90" DLEXT, "tcl91" DLEXT, NULL};
+  static const char *tk9_names[] = {"tcl9tk90" DLEXT, "tcl9tk91" DLEXT, NULL};
+  static const char *tcl8_names[] = {"tcl86" DLEXT, "tcl85" DLEXT, "tcl84" DLEXT, NULL};
+  static const char *tk8_names[] = {"tk86" DLEXT, "tk85" DLEXT, "tk84" DLEXT, NULL};
 #elif defined HAVE_DLOPEN
 # include <dlfcn.h>
   typedef void *DL_HANDLE;
 # define DL_OPEN(file) dlopen(file, RTLD_LAZY|RTLD_GLOBAL)
 # define DL_SYM dlsym
-# define TCL_INDEX 8
-# define TK_INDEX 7
-# define TCL_NAME "libtcl8.9"
-# define TK_NAME "libtk8.9"
 # ifdef __APPLE__
 #  undef DLEXT
 #  define DLEXT ".dylib"
 # endif
+  /*
+   * Tcl 9.x library naming convention (see TIP 628):
+   * https://core.tcl-lang.org/tips/doc/trunk/tip/628.md
+   *
+   * Tcl 9.x: libtcl9.0.dylib, libtcl9tk9.0.dylib (Tk uses "libtcl9tk" prefix)
+   * Tcl 8.x: libtcl8.6.dylib, libtk8.6.dylib
+   */
+  static const char *tcl9_names[] = {"libtcl9.0" DLEXT, "libtcl9.1" DLEXT, NULL};
+  static const char *tk9_names[] = {"libtcl9tk9.0" DLEXT, "libtcl9tk9.1" DLEXT, NULL};
+  static const char *tcl8_names[] = {"libtcl8.6" DLEXT, "libtcl8.5" DLEXT, "libtcl8.4" DLEXT, NULL};
+  static const char *tk8_names[] = {"libtk8.6" DLEXT, "libtk8.5" DLEXT, "libtk8.4" DLEXT, NULL};
 #endif
 
 static DL_HANDLE tcl_dll = (DL_HANDLE)0;
@@ -113,7 +130,7 @@ ruby_open_tcl_dll(appname)
 #endif
 {
     void (*p_Tcl_FindExecutable)(const char *);
-    int n;
+    const char **names;
     char *ruby_tcl_dll = 0;
 
     if (tcl_dll) return TCLTK_STUBS_OK;
@@ -125,13 +142,14 @@ ruby_open_tcl_dll(appname)
     if (ruby_tcl_dll) {
         tcl_dll = (DL_HANDLE)DL_OPEN(ruby_tcl_dll);
     } else {
-	char tcl_name[] = TCL_NAME DLEXT;
-        /* examine from 8.9 to 8.1 */
-        for (n = '9'; n > '0'; n--) {
-            tcl_name[TCL_INDEX] = n;
-            tcl_dll = (DL_HANDLE)DL_OPEN(tcl_name);
-            if (tcl_dll)
-                break;
+        /* Try Tcl 9.x first, then fall back to 8.x */
+        for (names = tcl9_names; *names && !tcl_dll; names++) {
+            tcl_dll = (DL_HANDLE)DL_OPEN(*names);
+        }
+        if (!tcl_dll) {
+            for (names = tcl8_names; *names && !tcl_dll; names++) {
+                tcl_dll = (DL_HANDLE)DL_OPEN(*names);
+            }
         }
     }
 
@@ -158,7 +176,7 @@ ruby_open_tcl_dll(appname)
 int
 ruby_open_tk_dll(void)
 {
-    int n;
+    const char **names;
     char *ruby_tk_dll = 0;
 
     if (!tcl_dll) {
@@ -173,13 +191,14 @@ ruby_open_tk_dll(void)
     if (ruby_tk_dll) {
         tk_dll = (DL_HANDLE)DL_OPEN(ruby_tk_dll);
     } else {
-	char tk_name[] = TK_NAME DLEXT;
-        /* examine from 8.9 to 8.1 */
-        for (n = '9'; n > '0'; n--) {
-            tk_name[TK_INDEX] = n;
-            tk_dll = (DL_HANDLE)DL_OPEN(tk_name);
-            if (tk_dll)
-                break;
+        /* Try Tk 9.x first, then fall back to 8.x */
+        for (names = tk9_names; *names && !tk_dll; names++) {
+            tk_dll = (DL_HANDLE)DL_OPEN(*names);
+        }
+        if (!tk_dll) {
+            for (names = tk8_names; *names && !tk_dll; names++) {
+                tk_dll = (DL_HANDLE)DL_OPEN(*names);
+            }
         }
     }
 
@@ -271,7 +290,7 @@ ruby_tcl_create_ip_and_stubs_init(st)
             return (Tcl_Interp*)NULL;
         }
 
-        if (!Tcl_InitStubs(tcl_ip, "8.1", 0)) {
+        if (!Tcl_InitStubs(tcl_ip, RBTK_TCL_STUBS_VERSION, 0)) {
             if (st) *st = FAIL_Tcl_InitStubs;
             (*p_Tcl_DeleteInterp)(tcl_ip);
             return (Tcl_Interp*)NULL;
@@ -345,7 +364,7 @@ ruby_tk_stubs_init(tcl_ip)
         if ((*p_Tk_Init)(tcl_ip) == TCL_ERROR)
             return FAIL_Tk_Init;
 
-        if (!Tk_InitStubs(tcl_ip, (char *)"8.1", 0))
+        if (!Tk_InitStubs(tcl_ip, RBTK_TK_STUBS_VERSION, 0))
             return FAIL_Tk_InitStubs;
 
 #ifdef __MACOS__
@@ -384,7 +403,7 @@ ruby_tk_stubs_safeinit(tcl_ip)
         if ((*p_Tk_SafeInit)(tcl_ip) == TCL_ERROR)
             return FAIL_Tk_Init;
 
-        if (!Tk_InitStubs(tcl_ip, (char *)"8.1", 0))
+        if (!Tk_InitStubs(tcl_ip, RBTK_TK_STUBS_VERSION, 0))
             return FAIL_Tk_InitStubs;
 
 #ifdef __MACOS__

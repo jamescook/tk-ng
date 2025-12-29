@@ -1,0 +1,28 @@
+# frozen_string_literal: true
+
+# Ensure local lib takes precedence over any installed gem
+$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
+
+require 'minitest/autorun'
+require_relative 'visual_regression/runner'
+
+class TestVisualRegression < Minitest::Test
+  def test_widget_screenshots_match_blessed_baselines
+    runner = VisualRegression::Runner.new(threshold: 100)
+
+    runner.setup_directories
+    runner.generate_screenshots
+    runner.compare_screenshots
+    runner.report_results
+
+    failures = runner.results.select { |r| r[:status] == :fail }
+    missing = runner.results.select { |r| r[:status] == :missing }
+
+    assert_empty missing, "Missing blessed baselines:\n" +
+      missing.map { |r| "  #{r[:name]}" }.join("\n") +
+      "\n\nTo create baselines: cp screenshots/unverified/*.png screenshots/blessed/"
+
+    assert_empty failures, "Visual regression failures:\n" +
+      failures.map { |r| "  #{r[:name]}: #{r[:pixel_diff]} pixels differ" }.join("\n")
+  end
+end
