@@ -10,3 +10,5 @@
 /lib/*.so
 /*.gem
 *.bundle
+*.dSYM/
+ext/**/Makefile
