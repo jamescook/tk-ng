@@ -131,21 +131,17 @@ jobs:
     - name: Install build and runtime dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
+        # imagemagick-6.q16 explicitly listed because the caching action doesn't
+        # properly restore this dependency of imagemagick (contains /usr/bin/import)
         packages: libx11-dev libxft-dev libxss-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
         execute_install_scripts: true
 
-    - name: Verify screenshot tools
+    # The caching action doesn't run post-install scripts that create symlinks
+    # See: https://github.com/awalsh128/cache-apt-pkgs-action/issues/110
+    - name: Symlink ImageMagick commands
       run: |
-        if ! which import; then
-          echo "ERROR: 'import' command not found"
-          echo "--- ImageMagick package info ---"
-          dpkg -l | grep -i magick || echo "No imagemagick packages installed"
-          echo "--- Available magick binaries ---"
-          dpkg -L imagemagick 2>/dev/null | grep bin || echo "imagemagick package not installed"
-          which magick && magick --version || echo "magick command not found"
-          exit 1
-        fi
-        which perceptualdiff || (echo "ERROR: perceptualdiff not found" && exit 1)
+        sudo ln -sf /usr/bin/import-im6.q16 /usr/bin/import
+        sudo ln -sf /usr/bin/composite-im6.q16 /usr/bin/composite
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -230,20 +226,16 @@ jobs:
     - name: Install system dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
+        # imagemagick-6.q16 explicitly listed because the caching action doesn't
+        # properly restore this dependency of imagemagick (contains /usr/bin/import)
         packages: tcl-dev tk-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
         execute_install_scripts: true
-    - name: Verify screenshot tools
+    # The caching action doesn't run post-install scripts that create symlinks
+    # See: https://github.com/awalsh128/cache-apt-pkgs-action/issues/110
+    - name: Symlink ImageMagick commands
       run: |
-        if ! which import; then
-          echo "ERROR: 'import' command not found"
-          echo "--- ImageMagick package info ---"
-          dpkg -l | grep -i magick || echo "No imagemagick packages installed"
-          echo "--- Available magick binaries ---"
-          dpkg -L imagemagick 2>/dev/null | grep bin || echo "imagemagick package not installed"
-          which magick && magick --version || echo "magick command not found"
-          exit 1
-        fi
-        which perceptualdiff || (echo "ERROR: perceptualdiff not found" && exit 1)
+        sudo ln -sf /usr/bin/import-im6.q16 /usr/bin/import
+        sudo ln -sf /usr/bin/composite-im6.q16 /usr/bin/composite
     - name: Install gem dependencies
       run: |
         gem install bundler --no-document
