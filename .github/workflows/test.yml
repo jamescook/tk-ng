@@ -230,7 +230,7 @@ jobs:
     - name: Install system dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: tcl-dev tk-dev xvfb imagemagick perceptualdiff
+        packages: tcl-dev tk-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
         execute_install_scripts: true
     - name: Verify screenshot tools
       run: |
