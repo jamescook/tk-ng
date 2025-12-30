@@ -12,11 +12,11 @@ cd "$(dirname "$0")/.."
 GENERATE_CMD="Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 rake screenshots:generate"
 
 echo "=== Building Tcl/Tk 9.0 image ==="
-docker build -f Dockerfile.ci-test -t tk-ci-test-9 .
+docker build --no-cache -f Dockerfile.ci-test -t tk-ci-test-9 .
 
 echo ""
 echo "=== Building Tcl/Tk 8.6 image ==="
-docker build -f Dockerfile.ci-test --build-arg TCL_VERSION=8.6 -t tk-ci-test-8 .
+docker build --no-cache -f Dockerfile.ci-test --build-arg TCL_VERSION=8.6 -t tk-ci-test-8 .
 
 echo ""
 echo "=== Generating Tcl/Tk 9.0 screenshots ==="
