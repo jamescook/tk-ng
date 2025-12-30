@@ -1163,7 +1163,11 @@ module TkCore
     end
 
     unless self.const_defined? :RUN_EVENTLOOP_ON_MAIN_THREAD
-      if defined? ::IRB
+      if RUBY_PLATFORM =~ /darwin/
+        # macOS requires all UI operations on the main thread (AppKit limitation).
+        # This cannot be worked around - Tk must run on main thread.
+        RUN_EVENTLOOP_ON_MAIN_THREAD = true
+      elsif defined? ::IRB
         RUN_EVENTLOOP_ON_MAIN_THREAD = false
       else
         RUN_EVENTLOOP_ON_MAIN_THREAD = WITH_RUBY_VM
@@ -1171,6 +1175,13 @@ module TkCore
     end
 
     if !WITH_RUBY_VM || RUN_EVENTLOOP_ON_MAIN_THREAD ### check Ruby 1.9 !!!!!!!
+      # On macOS, check we're on main thread before initializing Tk
+      if RUBY_PLATFORM =~ /darwin/ && Thread.current != Thread.main
+        raise RuntimeError,
+          "Tk on macOS requires the main thread. " \
+          "IRB and other REPLs that evaluate code in background threads are not supported. " \
+          "Run your Tk code in a script instead."
+      end
       INTERP = TclTkIp.new(name, opts) unless self.const_defined? :INTERP
     else
       INTERP_MUTEX = Mutex.new
