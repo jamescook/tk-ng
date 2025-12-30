@@ -626,13 +626,30 @@ module VisualRegression
     # Linux: Uses ImageMagick's import command. Requires imagemagick package.
     # For headless CI, run under xvfb-run.
     def capture_screen_region(x, y, w, h, file)
-      success = if RUBY_PLATFORM =~ /darwin/
-        system("screencapture", "-R#{x},#{y},#{w},#{h}", file)
+      $stderr.puts "  DEBUG: capture_screen_region(#{x}, #{y}, #{w}, #{h}, #{file})"
+      $stderr.flush
+
+      if RUBY_PLATFORM =~ /darwin/
+        success = system("screencapture", "-R#{x},#{y},#{w},#{h}", file)
       else
-        system("import", "-window", "root", "-crop", "#{w}x#{h}+#{x}+#{y}", "+repage", file)
+        cmd = "import -window root -crop #{w}x#{h}+#{x}+#{y} +repage #{file}"
+        $stderr.puts "  DEBUG: running: #{cmd}"
+        $stderr.flush
+        output = `#{cmd} 2>&1`
+        success = $?.success?
+        unless success
+          $stderr.puts "  DEBUG: import failed with status #{$?.exitstatus}: #{output}"
+          $stderr.flush
+        end
       end
 
-      raise "Screenshot capture failed: #{file}" unless success && File.exist?(file)
+      unless success && File.exist?(file)
+        msg = "Screenshot capture failed: #{file}"
+        $stderr.puts "ERROR: #{msg}"
+        $stderr.flush
+        @root.destroy
+        exit 1
+      end
     end
   end
 end
