@@ -259,13 +259,7 @@ static CONST86 Tcl_ObjType *Tcl_ObjType_String;
 
 /* safe Tcl_Eval and Tcl_GlobalEval */
 static int
-#ifdef HAVE_PROTOTYPES
 tcl_eval(Tcl_Interp *interp, const char *cmd)
-#else
-tcl_eval(interp, cmd)
-    Tcl_Interp *interp;
-    const char *cmd; /* don't have to be writable */
-#endif
 {
     char *buf = strdup(cmd);
     int ret;
@@ -280,13 +274,7 @@ tcl_eval(interp, cmd)
 #define Tcl_Eval tcl_eval
 
 static int
-#ifdef HAVE_PROTOTYPES
 tcl_global_eval(Tcl_Interp *interp, const char *cmd)
-#else
-tcl_global_eval(interp, cmd)
-    Tcl_Interp *interp;
-    const char *cmd; /* don't have to be writable */
-#endif
 {
     char *buf = strdup(cmd);
     int ret;
@@ -1985,12 +1973,7 @@ call_DoOneEvent(VALUE flag_val)
 
 #if 0
 static VALUE
-#ifdef HAVE_PROTOTYPES
 eventloop_sleep(VALUE dummy)
-#else
-eventloop_sleep(dummy)
-    VALUE dummy;
-#endif
 {
     struct timeval t;
 
@@ -8006,12 +7989,7 @@ struct invoke_info {
 };
 
 static VALUE
-#ifdef HAVE_PROTOTYPES
 invoke_tcl_proc(VALUE arg)
-#else
-invoke_tcl_proc(arg)
-    VALUE arg;
-#endif
 {
     struct invoke_info *inf = (struct invoke_info *)arg;
 #if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 6
