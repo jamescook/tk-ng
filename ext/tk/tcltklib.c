@@ -3896,20 +3896,6 @@ ip_rbVwaitObjCmd(
         return TCL_ERROR;
     }
 
-#if 0
-    if (!rb_thread_alone()
-	&& eventloop_thread != Qnil
-	&& eventloop_thread != rb_thread_current()) {
-#if TCL_MAJOR_VERSION >= 8
-        DUMP1("call ip_rb_threadVwaitObjCmd");
-        return ip_rb_threadVwaitObjCmd(clientData, interp, objc, objv);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("call ip_rb_threadVwaitCommand");
-        return ip_rb_threadVwaitCommand(clientData, interp, objc, objv);
-#endif
-    }
-#endif
-
     Tcl_Preserve(interp);
 #ifdef HAVE_NATIVETHREAD
 #ifndef RUBY_USE_NATIVE_THREAD
@@ -4121,20 +4107,6 @@ ip_rbTkWaitObjCmd(
                                              "IP is deleted");
         return TCL_ERROR;
     }
-
-#if 0
-    if (!rb_thread_alone()
-	&& eventloop_thread != Qnil
-	&& eventloop_thread != rb_thread_current()) {
-#if TCL_MAJOR_VERSION >= 8
-        DUMP1("call ip_rb_threadTkWaitObjCmd");
-        return ip_rb_threadTkWaitObjCmd((ClientData)tkwin, interp, objc, objv);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("call ip_rb_threadTkWaitCommand");
-        return ip_rb_threadTkWwaitCommand((ClientData)tkwin, interp, objc, objv);
-#endif
-    }
-#endif
 
     Tcl_Preserve(interp);
     Tcl_ResetResult(interp);
