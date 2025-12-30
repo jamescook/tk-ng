@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     git \
     xvfb \
     imagemagick \
+    fonts-noto-color-emoji \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Tcl/Tk based on version

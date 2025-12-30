@@ -9,7 +9,8 @@ runs:
       with:
         # imagemagick-6.q16 explicitly listed because the caching action doesn't
         # properly restore this dependency of imagemagick (contains /usr/bin/import)
-        packages: xvfb imagemagick imagemagick-6.q16 perceptualdiff
+        # fonts-noto-* for i18n screenshot testing (emoji, CJK characters)
+        packages: xvfb imagemagick imagemagick-6.q16 perceptualdiff fonts-noto-color-emoji fonts-noto-cjk
         execute_install_scripts: true
 
     # The caching action doesn't run post-install scripts that create symlinks

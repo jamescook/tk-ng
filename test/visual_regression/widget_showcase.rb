@@ -55,12 +55,13 @@ module VisualRegression
         { tab_index: 6, name: '07_scrolling_top' },
         { tab_index: 6, name: '07_scrolling_bottom', setup: -> { scroll_to_bottom } },
         { tab_index: 7, name: '08_menus_misc' },
+        { tab_index: 8, name: '09_i18n' },
       ]
     end
 
     def build_ui
       @root = TkRoot.new { title "Tk Widget Showcase" }
-      @root.geometry("750x550+100+100")
+      @root.geometry("850x550+100+100")
 
       @root.raise
       @root.focus(true)
@@ -79,10 +80,7 @@ module VisualRegression
       # Add a menubar to the root window
       build_menubar
 
-      Ttk::Label.new(@root) {
-        text "Tk/Ttk Widget Showcase"
-        font 'Helvetica 14 bold'
-      }.pack(pady: 10)
+      Ttk::Label.new(@root, text: "Tk/Ttk Widget Showcase (#{@tk_version})", font: 'Helvetica 14 bold').pack(pady: 10)
 
       @notebook = Ttk::Notebook.new(@root)
       @notebook.pack(fill: 'both', expand: true, padx: 10, pady: 5)
@@ -95,6 +93,7 @@ module VisualRegression
       build_panes_frames_tab    # 5
       build_scrolling_tab       # 6
       build_menus_misc_tab      # 7
+      build_i18n_tab            # 8
     end
 
     def build_menubar
@@ -567,6 +566,75 @@ module VisualRegression
       grip_frame.pack(fill: 'both', expand: true, padx: 5, pady: 5)
       Ttk::Label.new(grip_frame, text: '(corner grip →)').pack(expand: true)
       Ttk::Sizegrip.new(grip_frame).pack(side: 'right', anchor: 'se')
+    end
+
+    ###########################################
+    # Tab 8: Internationalization / Encoding
+    ###########################################
+    def build_i18n_tab
+      tab = Ttk::Frame.new(@notebook)
+      @notebook.add(tab, text: 'i18n')
+
+      container = Ttk::Frame.new(tab)
+      container.pack(fill: 'both', expand: true, padx: 10, pady: 5)
+
+      # CJK Languages
+      lf = Ttk::Labelframe.new(container, text: 'CJK (Chinese/Japanese/Korean)')
+      lf.pack(side: 'left', fill: 'both', expand: true, padx: 5)
+
+      # Japanese
+      Ttk::Label.new(lf, text: '日本語:').pack(anchor: 'w', padx: 5)
+      Ttk::Label.new(lf, text: '  ひらがな カタカナ 漢字').pack(anchor: 'w', padx: 10)
+      Ttk::Label.new(lf, text: '  こんにちは世界').pack(anchor: 'w', padx: 10)
+
+      # Chinese
+      Ttk::Label.new(lf, text: '中文:').pack(anchor: 'w', padx: 5, pady: [5, 0])
+      Ttk::Label.new(lf, text: '  简体中文 繁體中文').pack(anchor: 'w', padx: 10)
+      Ttk::Label.new(lf, text: '  你好世界').pack(anchor: 'w', padx: 10)
+
+      # Korean
+      Ttk::Label.new(lf, text: '한국어:').pack(anchor: 'w', padx: 5, pady: [5, 0])
+      Ttk::Label.new(lf, text: '  안녕하세요 세계').pack(anchor: 'w', padx: 10)
+
+      # Other scripts and symbols
+      lf2 = Ttk::Labelframe.new(container, text: 'Other Scripts & Symbols')
+      lf2.pack(side: 'left', fill: 'both', expand: true, padx: 5)
+
+      # Cyrillic
+      Ttk::Label.new(lf2, text: 'Кириллица: Привет мир').pack(anchor: 'w', padx: 5)
+
+      # Greek
+      Ttk::Label.new(lf2, text: 'Ελληνικά: Γειά σου κόσμε').pack(anchor: 'w', padx: 5, pady: [5, 0])
+
+      # Arabic (RTL)
+      Ttk::Label.new(lf2, text: 'العربية: مرحبا بالعالم').pack(anchor: 'w', padx: 5, pady: [5, 0])
+
+      # Hebrew (RTL)
+      Ttk::Label.new(lf2, text: 'עברית: שלום עולם').pack(anchor: 'w', padx: 5, pady: [5, 0])
+
+      # Emoji
+      Ttk::Label.new(lf2, text: 'Emoji: 🎉 🚀 ❤️ 🌍 ☀️ 🎸').pack(anchor: 'w', padx: 5, pady: [10, 0])
+
+      # Math/symbols
+      Ttk::Label.new(lf2, text: 'Math: ∑ ∏ √ ∞ ≠ ≤ ≥ ± ×').pack(anchor: 'w', padx: 5, pady: [5, 0])
+
+      # Currency
+      Ttk::Label.new(lf2, text: 'Currency: $ € £ ¥ ₹ ₽ ฿').pack(anchor: 'w', padx: 5, pady: [5, 0])
+
+      # Entry widget with i18n text
+      lf3 = Ttk::Labelframe.new(tab, text: 'Entry with Unicode')
+      lf3.pack(fill: 'x', padx: 10, pady: 5)
+
+      entry_frame = Ttk::Frame.new(lf3)
+      entry_frame.pack(fill: 'x', padx: 5, pady: 5)
+
+      e1 = Ttk::Entry.new(entry_frame, width: 30)
+      e1.pack(side: 'left', padx: 2)
+      e1.insert(0, '日本語テスト 🎌')
+
+      e2 = Ttk::Entry.new(entry_frame, width: 30)
+      e2.pack(side: 'left', padx: 2)
+      e2.insert(0, 'Ελληνικά → العربية')
     end
 
     ###########################################
