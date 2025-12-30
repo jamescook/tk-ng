@@ -559,7 +559,7 @@ module VisualRegression
     # Screenshot Capture
     ###########################################
     def schedule_captures
-      Tk.after(2000) do
+      Tk.after(500) do
         run_captures(0)
       end
     end
@@ -573,7 +573,7 @@ module VisualRegression
         @notebook.select(capture[:tab_index])
 
         # Wait for render
-        Tk.after(500) do
+        Tk.after(250) do
           # Run optional setup (e.g., scroll to bottom)
           capture[:setup]&.call
 
@@ -585,7 +585,7 @@ module VisualRegression
         end
       else
         puts "Screenshots saved to: #{output_dir}/"
-        Tk.after(500) { @root.destroy }
+        Tk.after(200) { @root.destroy }
       end
     end
 
@@ -625,11 +625,13 @@ module VisualRegression
     # Linux: Uses ImageMagick's import command. Requires imagemagick package.
     # For headless CI, run under xvfb-run.
     def capture_screen_region(x, y, w, h, file)
-      if RUBY_PLATFORM =~ /darwin/
+      success = if RUBY_PLATFORM =~ /darwin/
         system("screencapture", "-R#{x},#{y},#{w},#{h}", file)
       else
         system("import", "-window", "root", "-crop", "#{w}x#{h}+#{x}+#{y}", "+repage", file)
       end
+
+      raise "Screenshot capture failed: #{file}" unless success && File.exist?(file)
     end
   end
 end

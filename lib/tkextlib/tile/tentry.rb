@@ -48,16 +48,31 @@ class Tk::Tile::TEntry < Tk::Entry
   end
   private :__strval_optkeys
 
-  # Warn if Tcl 9 options used on Tcl 8.x
-  def configure(slot, value=TkComm::None)
-    if Tk::TCL_MAJOR_VERSION < 9 && slot.is_a?(Hash)
-      TCL9_OPTIONS.each do |opt|
-        if slot.key?(opt) || slot.key?(opt.to_sym)
-          warn "Warning: '#{opt}' option requires Tcl/Tk 9.0+ (you have #{Tk::TCL_VERSION})"
-          slot.delete(opt)
-          slot.delete(opt.to_sym)
-        end
+  # Filter out Tcl 9 options on Tcl 8.x
+  def self.filter_tcl9_options(keys)
+    return keys unless keys.is_a?(Hash) && Tk::TCL_MAJOR_VERSION < 9
+    TCL9_OPTIONS.each do |opt|
+      if keys.key?(opt) || keys.key?(opt.to_sym)
+        warn "Warning: '#{opt}' option requires Tcl/Tk 9.0+ (you have #{Tk::TCL_VERSION})"
+        keys.delete(opt)
+        keys.delete(opt.to_sym)
       end
+    end
+    keys
+  end
+
+  def initialize(parent=nil, keys=nil)
+    if parent.is_a?(Hash)
+      self.class.filter_tcl9_options(parent)
+    elsif keys.is_a?(Hash)
+      self.class.filter_tcl9_options(keys)
+    end
+    super
+  end
+
+  def configure(slot, value=TkComm::None)
+    if slot.is_a?(Hash)
+      self.class.filter_tcl9_options(slot)
     elsif Tk::TCL_MAJOR_VERSION < 9 && TCL9_OPTIONS.include?(slot.to_s)
       warn "Warning: '#{slot}' option requires Tcl/Tk 9.0+ (you have #{Tk::TCL_VERSION})"
       return self
