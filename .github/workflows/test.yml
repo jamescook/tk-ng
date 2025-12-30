@@ -128,20 +128,14 @@ jobs:
         path: /opt/tcltk9
         key: tcltk-${{ env.TCL_VERSION }}-${{ env.TK_VERSION }}-ubuntu2404
 
-    - name: Install build and runtime dependencies
+    - name: Install build dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        # imagemagick-6.q16 explicitly listed because the caching action doesn't
-        # properly restore this dependency of imagemagick (contains /usr/bin/import)
-        packages: libx11-dev libxft-dev libxss-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
+        packages: libx11-dev libxft-dev libxss-dev
         execute_install_scripts: true
 
-    # The caching action doesn't run post-install scripts that create symlinks
-    # See: https://github.com/awalsh128/cache-apt-pkgs-action/issues/110
-    - name: Symlink ImageMagick commands
-      run: |
-        sudo ln -sf /usr/bin/import-im6.q16 /usr/bin/import
-        sudo ln -sf /usr/bin/composite-im6.q16 /usr/bin/composite
+    - name: Setup screenshot tools
+      uses: ./.github/actions/setup-screenshot-tools
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -226,16 +220,10 @@ jobs:
     - name: Install system dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        # imagemagick-6.q16 explicitly listed because the caching action doesn't
-        # properly restore this dependency of imagemagick (contains /usr/bin/import)
-        packages: tcl-dev tk-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
+        packages: tcl-dev tk-dev
         execute_install_scripts: true
-    # The caching action doesn't run post-install scripts that create symlinks
-    # See: https://github.com/awalsh128/cache-apt-pkgs-action/issues/110
-    - name: Symlink ImageMagick commands
-      run: |
-        sudo ln -sf /usr/bin/import-im6.q16 /usr/bin/import
-        sudo ln -sf /usr/bin/composite-im6.q16 /usr/bin/composite
+    - name: Setup screenshot tools
+      uses: ./.github/actions/setup-screenshot-tools
     - name: Install gem dependencies
       run: |
         gem install bundler --no-document
