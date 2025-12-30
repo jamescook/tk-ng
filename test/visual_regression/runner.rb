@@ -46,6 +46,10 @@ module VisualRegression
       File.join(SCREENSHOTS_DIR, 'diffs', platform, tcl_version)
     end
 
+    def logs_dir
+      File.join(SCREENSHOTS_DIR, 'logs', platform, tcl_version)
+    end
+
     def self.call(threshold: Perceptualdiff::DEFAULT_THRESHOLD)
       runner = new(threshold: threshold)
       runner.setup_directories
@@ -59,7 +63,9 @@ module VisualRegression
       FileUtils.mkdir_p(blessed_dir)
       FileUtils.mkdir_p(unverified_dir)
       FileUtils.mkdir_p(diffs_dir)
+      FileUtils.mkdir_p(logs_dir)
       FileUtils.rm_f(Dir.glob(File.join(diffs_dir, '*.png')))
+      FileUtils.rm_f(Dir.glob(File.join(logs_dir, '*.log')))
     end
 
     def generate_screenshots
@@ -97,12 +103,17 @@ module VisualRegression
 
       result = diff_tool.compare(expected: blessed, actual: unverified, diff_output: diff)
 
+      # Write perceptualdiff output to log file
+      log_file = File.join(logs_dir, "#{File.basename(name, '.png')}.log")
+      File.write(log_file, "Comparing: #{blessed} vs #{unverified}\n\n#{result.output}\n")
+
       if result.passed?
         puts "  #{name}: PASS"
         FileUtils.rm_f(diff) # Remove diff file for passing tests
         { name: name, status: :pass, pixel_diff: result.pixel_diff }
       else
         puts "  #{name}: FAIL (#{result.pixel_diff} pixels differ)"
+        puts "    Log: #{log_file}"
         # Create overlay showing diff on top of blessed image
         overlay = File.join(diffs_dir, "overlay_#{name}")
         if Perceptualdiff.create_overlay(blessed: blessed, diff: diff, output: overlay)

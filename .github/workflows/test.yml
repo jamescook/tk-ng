@@ -170,6 +170,7 @@ jobs:
         path: |
           screenshots/unverified/
           screenshots/diffs/
+          screenshots/logs/
         retention-days: 7
 
   # Tcl 8.6 builds only run after all Tcl 9.x jobs pass
@@ -246,4 +247,5 @@ jobs:
         path: |
           screenshots/unverified/
           screenshots/diffs/
+          screenshots/logs/
         retention-days: 7
