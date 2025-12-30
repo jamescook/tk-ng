@@ -31,13 +31,7 @@ class Tk::BWidget::PanedWindow
 
   def get_frame(idx, &b)
     win = window(tk_send_without_enc('getframe', idx))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 end

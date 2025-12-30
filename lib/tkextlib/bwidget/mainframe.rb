@@ -42,73 +42,37 @@ class Tk::BWidget::MainFrame
 
   def add_indicator(keys={}, &b)
     win = window(tk_send('addindicator', *hash_kv(keys)))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
   def add_toolbar(&b)
     win = window(tk_send('addtoolbar'))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
   def get_frame(&b)
     win = window(tk_send('getframe'))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
   def get_indicator(idx, &b)
     win = window(tk_send('getindicator', idx))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
   def get_menu(menu_id, &b)
     win = window(tk_send('getmenu', menu_id))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
   def get_toolbar(idx, &b)
     win = window(tk_send('gettoolbar', idx))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 

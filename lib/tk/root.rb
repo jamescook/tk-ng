@@ -42,13 +42,7 @@ class Tk::Root<TkWindow
       }
     end
 
-    if block_given?
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        root.instance_exec(root, &b)
-      else
-        root.instance_eval(&b)
-      end
-    end
+    root.instance_exec(root, &b) if block_given?
     root
   end
 

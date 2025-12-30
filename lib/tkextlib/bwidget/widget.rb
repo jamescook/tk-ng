@@ -51,13 +51,7 @@ module Tk::BWidget::Widget
 
   def self.create(klass, path, rename=None, &b)
     win = window(tk_call('Widget::create', klass, path, rename))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 

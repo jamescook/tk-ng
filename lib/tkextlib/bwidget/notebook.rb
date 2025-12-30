@@ -82,13 +82,7 @@ class Tk::BWidget::NoteBook
 
   def add(page, &b)
     win = window(tk_send('add', tagid(page)))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
@@ -104,13 +98,7 @@ class Tk::BWidget::NoteBook
 
   def get_frame(page, &b)
     win = window(tk_send('getframe', tagid(page)))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 
@@ -120,13 +108,7 @@ class Tk::BWidget::NoteBook
 
   def insert(index, page, keys={}, &b)
     win = window(tk_send('insert', index, tagid(page), *hash_kv(keys)))
-    if b
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        win.instance_exec(self, &b)
-      else
-        win.instance_eval(&b)
-      end
-    end
+    win.instance_exec(self, &b) if b
     win
   end
 

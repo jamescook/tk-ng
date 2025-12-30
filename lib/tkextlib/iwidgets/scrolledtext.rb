@@ -347,29 +347,10 @@ class Tk::Iwidgets::Scrolledtext
   end
 
 
+  # Legacy wrapper - previously handled Ruby 1.8 $KCODE multi-byte hacks.
+  # Kept to avoid changing callsites; could be inlined in future cleanup.
   def _ktext_length(txt)
-    if TkCore::WITH_ENCODING ### Ruby 1.9 !!!!!!!!!!!!!
-      return txt.length
-    end
-    ###########################
-
-    if $KCODE !~ /n/i
-      return txt.gsub(/[^\Wa-zA-Z_\d]/, ' ').length
-    end
-
-    # $KCODE == 'NONE'
-    if JAPANIZED_TK
-      tk_call_without_enc('kstring', 'length',
-                          _get_eval_enc_str(txt)).to_i
-    else
-      begin
-        tk_call_without_enc('encoding', 'convertto', 'ascii',
-                            _get_eval_enc_str(txt)).length
-      rescue StandardError, NameError
-        # sorry, I have no plan
-        txt.length
-      end
-    end
+    txt.length
   end
   private :_ktext_length
 
