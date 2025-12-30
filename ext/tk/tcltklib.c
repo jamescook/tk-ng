@@ -46,15 +46,6 @@ int rb_thread_check_trap_pending(void);
 #define RARRAY_AREF(a, i) RARRAY_CONST_PTR(a)[i]
 #endif
 
-#ifdef NO_TAINT
-#define RbTk_OBJ_UNTRUST(x)  do {} while (0)
-#else
-#ifdef OBJ_UNTRUST
-#define RbTk_OBJ_UNTRUST(x)  do {OBJ_TAINT(x); OBJ_UNTRUST(x);} while (0)
-#else
-#define RbTk_OBJ_UNTRUST(x)  OBJ_TAINT(x)
-#endif
-#endif
 #define RbTk_ALLOC_N(type, n) (type *)ckalloc((int)(sizeof(type) * (n)))
 
 #if defined(HAVE_RB_PROC_NEW) && !defined(RUBY_VM)
@@ -6619,7 +6610,6 @@ ip_get_result_string_obj(Tcl_Interp *interp)
     retObj = Tcl_GetObjResult(interp);
     Tcl_IncrRefCount(retObj);
     strval = get_str_from_obj(retObj);
-    RbTk_OBJ_UNTRUST(strval);
     Tcl_ResetResult(interp);
     Tcl_DecrRefCount(retObj);
     return strval;
@@ -8814,7 +8804,6 @@ ip_get_variable2_core(VALUE interp, int argc, VALUE *argv)
 
         Tcl_IncrRefCount(ret);
         strval = get_str_from_obj(ret);
-        RbTk_OBJ_UNTRUST(strval);
         Tcl_DecrRefCount(ret);
 
         /* Tcl_Release(ptr->ip); */
@@ -8943,7 +8932,6 @@ ip_set_variable2_core(VALUE interp, int argc, VALUE *argv)
 
         Tcl_IncrRefCount(ret);
         strval = get_str_from_obj(ret);
-        RbTk_OBJ_UNTRUST(strval);
         Tcl_DecrRefCount(ret);
 
         /* Tcl_Release(ptr->ip); */
@@ -10387,7 +10375,6 @@ Init_tcltklib(void)
 #define DEFAULT_EVENTLOOP_DEPTH 7
 #endif
     eventloop_stack = rb_ary_new2(DEFAULT_EVENTLOOP_DEPTH);
-    RbTk_OBJ_UNTRUST(eventloop_stack);
 
     watchdog_thread  = Qnil;
 
