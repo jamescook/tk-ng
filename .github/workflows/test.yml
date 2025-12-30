@@ -131,7 +131,7 @@ jobs:
     - name: Install build and runtime dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: libx11-dev libxft-dev libxss-dev xvfb imagemagick perceptualdiff
+        packages: libx11-dev libxft-dev libxss-dev xvfb imagemagick imagemagick-6.q16 perceptualdiff
         execute_install_scripts: true
 
     - name: Verify screenshot tools
