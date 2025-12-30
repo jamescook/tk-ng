@@ -1734,6 +1734,26 @@ def pthread_check()
   tcl_major_ver = nil
   tcl_minor_ver = nil
 
+  # Check for unsupported --disable-tcl-thread with Tcl 9.x
+  # Tcl 9.0+ always has threads enabled, there is no --disable-threads build option
+  tclver, _ = TkLib_Config["tcltkversion"]
+  if tclver
+    major = tclver.to_s.split('.')[0].to_i
+    if major >= 9 && enable_config("tcl-thread") == false
+      puts("")
+      puts("=" * 72)
+      puts("ERROR: --disable-tcl-thread is not supported with Tcl 9.x")
+      puts("")
+      puts("Tcl 9.0 and later always have threading enabled. The --disable-threads")
+      puts("configure option was removed in Tcl 9.0.")
+      puts("")
+      puts("Remove the --disable-tcl-thread option and try again.")
+      puts("=" * 72)
+      puts("")
+      exit 1
+    end
+  end
+
   # Is tcl-thread given by user ?
   case enable_config("tcl-thread")
   when true
