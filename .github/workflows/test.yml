@@ -1,6 +1,18 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # Build and cache Tcl/Tk 9.0 first (single job, no matrix)
@@ -69,9 +81,10 @@ jobs:
         key: tcltk-${{ env.TCL_VERSION }}-${{ env.TK_VERSION }}-ubuntu2404
 
     - name: Install build and runtime dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libx11-dev libxft-dev libxss-dev xvfb
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: libx11-dev libxft-dev libxss-dev xvfb
+        execute_install_scripts: true
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -116,9 +129,10 @@ jobs:
         key: tcltk-${{ env.TCL_VERSION }}-${{ env.TK_VERSION }}-ubuntu2404
 
     - name: Install build and runtime dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libx11-dev libxft-dev libxss-dev xvfb imagemagick perceptualdiff
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: libx11-dev libxft-dev libxss-dev xvfb imagemagick perceptualdiff
+        execute_install_scripts: true
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -161,9 +175,10 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby }}
     - name: Install Tcl/Tk
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y tk-dev xvfb
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: tcl-dev tk-dev xvfb
+        execute_install_scripts: true
     - name: Install gem dependencies
       run: |
         gem install bundler --no-document
@@ -190,9 +205,10 @@ jobs:
       with:
         ruby-version: '3.4'
     - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y tk-dev xvfb imagemagick perceptualdiff
+      uses: awalsh128/cache-apt-pkgs-action@latest
+      with:
+        packages: tcl-dev tk-dev xvfb imagemagick perceptualdiff
+        execute_install_scripts: true
     - name: Install gem dependencies
       run: |
         gem install bundler --no-document
