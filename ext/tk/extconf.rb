@@ -25,15 +25,6 @@ TkLib_Config['enable-shared'] = enable_config("shared")
 
 
 ##############################################################
-# use old extconf.rb ?
-##############################################################
-if with_config('tk-old-extconf')
-  require File.join(File.dirname(__FILE__), 'old-extconf.rb')
-  exit
-end
-
-
-##############################################################
 # check configs
 ##############################################################
 ($cleanfiles ||= "") << 'config_list'
