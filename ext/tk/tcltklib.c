@@ -13,9 +13,6 @@
 #include "ruby/version.h"
 #endif
 
-#undef RUBY_UNTYPED_DATA_WARNING
-#define RUBY_UNTYPED_DATA_WARNING 0
-
 int rb_thread_check_trap_pending(void);
 
 #if !defined(RSTRING_PTR)

@@ -17,9 +17,6 @@
 #include "st.h"
 #endif
 
-#undef RUBY_UNTYPED_DATA_WARNING
-#define RUBY_UNTYPED_DATA_WARNING 1
-
 #if !defined(RHASH_TBL)
 #define RHASH_TBL(h) (RHASH(h)->tbl)
 #endif
