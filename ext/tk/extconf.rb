@@ -6,18 +6,17 @@
 require 'mkmf'
 
 TkLib_Config = {}
-TkLib_Config['search_versions'] =
-  # %w[8.9 8.8 8.7 8.6 8.5 8.4 8.3 8.2 8.1 8.0 7.6 4.2]
-  # %w[8.7 8.6 8.5 8.4 8.3 8.2 8.1 8.0]
-  # %w[8.7 8.6 8.5 8.4 8.0] # to shorten search steps
-  # Tcl/Tk 9.x support added - search newest versions first
-  %w[9.0 8.6 8.5 8.4]
 
-TkLib_Config['unsupported_versions'] =
-  # Note: 8.7/8.8 were never released; 9.0 is the successor to 8.6
-  %w[8.8 8.7]
+# Tcl/Tk versions to search for, newest first.
+# Note: Tcl/Tk 8.6+ is required. Older versions are not supported.
+TkLib_Config['search_versions'] = %w[9.0 8.6]
 
-TkLib_Config['major_nums'] = '987'  # Search for tcl9*, tcl8*, tcl7* patterns
+# Versions that exist in the version numbering but were never released
+# Note: 8.7/8.8 were never released; 9.0 is the successor to 8.6
+TkLib_Config['unsupported_versions'] = %w[8.8 8.7]
+
+# Major version numbers to search for (tcl9*, tcl8* library patterns)
+TkLib_Config['major_nums'] = '98'
 
 
 ##############################################################
@@ -1732,11 +1731,30 @@ def pthread_check()
   tcl_major_ver = nil
   tcl_minor_ver = nil
 
-  # Check for unsupported --disable-tcl-thread with Tcl 9.x
-  # Tcl 9.0+ always has threads enabled, there is no --disable-threads build option
+  # Check Tcl version requirements
   tclver, _ = TkLib_Config["tcltkversion"]
   if tclver
-    major = tclver.to_s.split('.')[0].to_i
+    parts = tclver.to_s.split('.')
+    major = parts[0].to_i
+    minor = parts[1].to_i
+
+    # Require Tcl 8.6 or later
+    if major < 8 || (major == 8 && minor < 6)
+      puts("")
+      puts("=" * 72)
+      puts("ERROR: Tcl #{tclver} is too old. Tcl 8.6 or later is required.")
+      puts("")
+      puts("This version of Ruby/Tk requires Tcl/Tk 8.6 or later.")
+      puts("Tcl 8.6 was released in 2012 and is still actively maintained.")
+      puts("")
+      puts("Please install a newer version of Tcl/Tk and try again.")
+      puts("=" * 72)
+      puts("")
+      exit 1
+    end
+
+    # Check for unsupported --disable-tcl-thread with Tcl 9.x
+    # Tcl 9.0+ always has threads enabled, there is no --disable-threads build option
     if major >= 9 && enable_config("tcl-thread") == false
       puts("")
       puts("=" * 72)
