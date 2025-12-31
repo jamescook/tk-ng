@@ -98,27 +98,15 @@ set_tcltk_version(void)
 }
 
 /*
- * CONST84/CONST86 macros - now handled by tcl9compat.h for Tcl 9 support.
- * Keeping fallback definitions for compatibility with older Tcl headers.
+ * CONST84/CONST86 macros - fallback definitions if not provided by Tcl headers.
+ * These are always 'const' for Tcl 8.6+.
  */
 #ifndef CONST84
-# if TCL_MAJOR_VERSION >= 9
 #  define CONST84 const
-# elif TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 4
-#  define CONST84
-# else
-#  define CONST84 const
-# endif
 #endif
 
 #ifndef CONST86
-# if TCL_MAJOR_VERSION >= 9
 #  define CONST86 const
-# elif TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
-#  define CONST86
-# else
-#  define CONST86 const
-# endif
 #endif
 
 /* copied from eval.c */
@@ -219,19 +207,15 @@ static VALUE ip_invoke_with_position (int, VALUE*, VALUE, Tcl_QueuePosition);
 static VALUE tk_funcall (VALUE(*)(VALUE, int, VALUE *), int, VALUE*, VALUE);
 
 /* Tcl's object type */
-#if TCL_MAJOR_VERSION >= 8
 static const char Tcl_ObjTypeName_ByteArray[] = "bytearray";
 static CONST86 Tcl_ObjType *Tcl_ObjType_ByteArray;
 
 static const char Tcl_ObjTypeName_String[]    = "string";
 static CONST86 Tcl_ObjType *Tcl_ObjType_String;
 
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 1)
 #define IS_TCL_BYTEARRAY(obj)    ((obj)->typePtr == Tcl_ObjType_ByteArray)
 #define IS_TCL_STRING(obj)       ((obj)->typePtr == Tcl_ObjType_String)
 #define IS_TCL_VALID_STRING(obj) ((obj)->bytes != (char*)NULL)
-#endif
-#endif
 
 #ifndef HAVE_RB_HASH_LOOKUP
 #define rb_hash_lookup rb_hash_aref
@@ -272,101 +256,14 @@ tcl_global_eval(Tcl_Interp *interp, const char *cmd)
 #undef Tcl_GlobalEval
 #define Tcl_GlobalEval tcl_global_eval
 
-/* Tcl_{Incr|Decr}RefCount for tcl7.x or earlier */
-#if TCL_MAJOR_VERSION < 8
-#define Tcl_IncrRefCount(obj) (1)
-#define Tcl_DecrRefCount(obj) (1)
-#endif
 
-/* Tcl_GetStringResult for tcl7.x or earlier */
-#if TCL_MAJOR_VERSION < 8
-#define Tcl_GetStringResult(interp) ((interp)->result)
-#endif
-
-/* Tcl_[GS]etVar2Ex for tcl8.0 */
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 0
-static Tcl_Obj *
-Tcl_GetVar2Ex(interp, name1, name2, flags)
-    Tcl_Interp *interp;
-    CONST char *name1;
-    CONST char *name2;
-    int flags;
-{
-    Tcl_Obj *nameObj1, *nameObj2 = NULL, *retObj;
-
-    nameObj1 = Tcl_NewStringObj((char*)name1, -1);
-    Tcl_IncrRefCount(nameObj1);
-
-    if (name2) {
-        nameObj2 = Tcl_NewStringObj((char*)name2, -1);
-        Tcl_IncrRefCount(nameObj2);
-    }
-
-    retObj = Tcl_ObjGetVar2(interp, nameObj1, nameObj2, flags);
-
-    if (name2) {
-        Tcl_DecrRefCount(nameObj2);
-    }
-
-    Tcl_DecrRefCount(nameObj1);
-
-    return retObj;
-}
-
-static Tcl_Obj *
-Tcl_SetVar2Ex(interp, name1, name2, newValObj, flags)
-    Tcl_Interp *interp;
-    CONST char *name1;
-    CONST char *name2;
-    Tcl_Obj *newValObj;
-    int flags;
-{
-    Tcl_Obj *nameObj1, *nameObj2 = NULL, *retObj;
-
-    nameObj1 = Tcl_NewStringObj((char*)name1, -1);
-    Tcl_IncrRefCount(nameObj1);
-
-    if (name2) {
-        nameObj2 = Tcl_NewStringObj((char*)name2, -1);
-        Tcl_IncrRefCount(nameObj2);
-    }
-
-    retObj = Tcl_ObjSetVar2(interp, nameObj1, nameObj2, newValObj, flags);
-
-    if (name2) {
-        Tcl_DecrRefCount(nameObj2);
-    }
-
-    Tcl_DecrRefCount(nameObj1);
-
-    return retObj;
-}
-#endif
-
-/* from tkAppInit.c */
-
-#if TCL_MAJOR_VERSION < 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 4)
-#  if !defined __MINGW32__
-/*
- * The following variable is a special hack that is needed in order for
- * Sun shared libraries to be used for Tcl.
- */
-
-extern int matherr();
-int *tclDummyMathPtr = (int *) matherr;
-#  endif
-#endif
 
 /*---- module TclTkLib ----*/
 
 struct invoke_queue {
     Tcl_Event ev;
     int argc;
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj **argv;
-#else /* TCL_MAJOR_VERSION < 8 */
-    char **argv;
-#endif
     VALUE interp;
     int *done;
     VALUE result;
@@ -497,13 +394,8 @@ static int check_rootwidget_flag = 0;
 
 
 /* call ruby interpreter */
-#if TCL_MAJOR_VERSION >= 8
 static int ip_ruby_eval (ClientData, Tcl_Interp *, int, Tcl_Obj *CONST*);
 static int ip_ruby_cmd (ClientData, Tcl_Interp *, int, Tcl_Obj *CONST*);
-#else /* TCL_MAJOR_VERSION < 8 */
-static int ip_ruby_eval (ClientData, Tcl_Interp *, int, char **);
-static int ip_ruby_cmd (ClientData, Tcl_Interp *, int, char **);
-#endif
 
 struct cmd_body_arg {
     VALUE receiver;
@@ -520,55 +412,19 @@ struct cmd_body_arg {
 
 #if TCL_NAMESPACE_DEBUG
 
-#if TCL_MAJOR_VERSION >= 8
 EXTERN struct TclIntStubs *tclIntStubsPtr;
-#endif
-
-/*-- Tcl_GetCurrentNamespace --*/
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 5
-/* Tcl7.x doesn't have namespace support.                            */
-/* Tcl8.5+ has definition of Tcl_GetCurrentNamespace() in tclDecls.h */
-#  ifndef Tcl_GetCurrentNamespace
-EXTERN Tcl_Namespace *  Tcl_GetCurrentNamespace (Tcl_Interp *);
-#  endif
-#  if defined(USE_TCL_STUBS) && !defined(USE_TCL_STUB_PROCS)
-#    ifndef Tcl_GetCurrentNamespace
-#      ifndef FunctionNum_of_GetCurrentNamespace
-#define FunctionNum_of_GetCurrentNamespace 124
-#      endif
-struct DummyTclIntStubs_for_GetCurrentNamespace {
-    int magic;
-    struct TclIntStubHooks *hooks;
-    void (*func[FunctionNum_of_GetCurrentNamespace])();
-    Tcl_Namespace * (*tcl_GetCurrentNamespace) (Tcl_Interp *);
-};
-
-#define Tcl_GetCurrentNamespace \
-   (((struct DummyTclIntStubs_for_GetCurrentNamespace *)tclIntStubsPtr)->tcl_GetCurrentNamespace)
-#    endif
-#  endif
-#endif
 
 /* namespace check */
 /* ip_null_namespace(Tcl_Interp *interp) */
-#if TCL_MAJOR_VERSION < 8
-#define ip_null_namespace(interp) (0)
-#else /* support namespace */
 #define ip_null_namespace(interp) \
     (Tcl_GetCurrentNamespace(interp) == (Tcl_Namespace *)NULL)
-#endif
 
 /* rbtk_invalid_namespace(tcltkip *ptr) */
-#if TCL_MAJOR_VERSION < 8
-#define rbtk_invalid_namespace(ptr) (0)
-#else /* support namespace */
 #define rbtk_invalid_namespace(ptr) \
     ((ptr)->default_ns == (Tcl_Namespace*)NULL || Tcl_GetCurrentNamespace((ptr)->ip) != (ptr)->default_ns)
-#endif
 
 /*-- Tcl_PopCallFrame & Tcl_PushCallFrame --*/
-#if TCL_MAJOR_VERSION >= 8
-#  ifndef CallFrame
+#ifndef CallFrame
 typedef struct CallFrame {
     Tcl_Namespace *nsPtr;
     int dummy1;
@@ -582,16 +438,16 @@ typedef struct CallFrame {
     int dummy9;
     char* dummy10;
 } CallFrame;
-#  endif
+#endif
 
-#  if !defined(TclGetFrame) && !defined(TclGetFrame_TCL_DECLARED)
+#if !defined(TclGetFrame) && !defined(TclGetFrame_TCL_DECLARED)
 EXTERN int  TclGetFrame (Tcl_Interp *, CONST char *, CallFrame **);
-#  endif
-#  if defined(USE_TCL_STUBS) && !defined(USE_TCL_STUB_PROCS)
-#    ifndef TclGetFrame
-#      ifndef FunctionNum_of_GetFrame
+#endif
+#if defined(USE_TCL_STUBS) && !defined(USE_TCL_STUB_PROCS)
+#  ifndef TclGetFrame
+#    ifndef FunctionNum_of_GetFrame
 #define FunctionNum_of_GetFrame 32
-#      endif
+#    endif
 struct DummyTclIntStubs_for_GetFrame {
     int magic;
     struct TclIntStubHooks *hooks;
@@ -600,18 +456,18 @@ struct DummyTclIntStubs_for_GetFrame {
 };
 #define TclGetFrame \
    (((struct DummyTclIntStubs_for_GetFrame *)tclIntStubsPtr)->tclGetFrame)
-#    endif
 #  endif
+#endif
 
-#  if !defined(Tcl_PopCallFrame) && !defined(Tcl_PopCallFrame_TCL_DECLARED)
+#if !defined(Tcl_PopCallFrame) && !defined(Tcl_PopCallFrame_TCL_DECLARED)
 EXTERN void Tcl_PopCallFrame (Tcl_Interp *);
 EXTERN int  Tcl_PushCallFrame (Tcl_Interp *, Tcl_CallFrame *, Tcl_Namespace *, int);
-#  endif
-#  if defined(USE_TCL_STUBS) && !defined(USE_TCL_STUB_PROCS)
-#    ifndef Tcl_PopCallFrame
-#      ifndef FunctionNum_of_PopCallFrame
+#endif
+#if defined(USE_TCL_STUBS) && !defined(USE_TCL_STUB_PROCS)
+#  ifndef Tcl_PopCallFrame
+#    ifndef FunctionNum_of_PopCallFrame
 #define FunctionNum_of_PopCallFrame 128
-#      endif
+#    endif
 struct DummyTclIntStubs_for_PopCallFrame {
     int magic;
     struct TclIntStubHooks *hooks;
@@ -624,85 +480,7 @@ struct DummyTclIntStubs_for_PopCallFrame {
    (((struct DummyTclIntStubs_for_PopCallFrame *)tclIntStubsPtr)->tcl_PopCallFrame)
 #define Tcl_PushCallFrame \
    (((struct DummyTclIntStubs_for_PopCallFrame *)tclIntStubsPtr)->tcl_PushCallFrame)
-#    endif
 #  endif
-
-#else /* Tcl7.x */
-#  ifndef CallFrame
-typedef struct CallFrame {
-    Tcl_HashTable varTable;
-    int level;
-    int argc;
-    char **argv;
-    struct CallFrame *callerPtr;
-    struct CallFrame *callerVarPtr;
-} CallFrame;
-#  endif
-#  ifndef Tcl_CallFrame
-#define Tcl_CallFrame CallFrame
-#  endif
-
-#  if !defined(TclGetFrame) && !defined(TclGetFrame_TCL_DECLARED)
-EXTERN int  TclGetFrame (Tcl_Interp *, CONST char *, CallFrame **);
-#  endif
-
-#  if !defined(Tcl_PopCallFrame) && !defined(Tcl_PopCallFrame_TCL_DECLARED)
-typedef struct DummyInterp {
-    char *dummy1;
-    char *dummy2;
-    int  dummy3;
-    Tcl_HashTable dummy4;
-    Tcl_HashTable dummy5;
-    Tcl_HashTable dummy6;
-    int numLevels;
-    int maxNestingDepth;
-    CallFrame *framePtr;
-    CallFrame *varFramePtr;
-} DummyInterp;
-
-static void
-Tcl_PopCallFrame(interp)
-    Tcl_Interp *interp;
-{
-    DummyInterp *iPtr = (DummyInterp*)interp;
-    CallFrame *frame = iPtr->varFramePtr;
-
-    /* **** DUMMY **** */
-    iPtr->framePtr = frame.callerPtr;
-    iPtr->varFramePtr = frame.callerVarPtr;
-
-    return TCL_OK;
-}
-
-/* dummy */
-#define Tcl_Namespace char
-
-static int
-Tcl_PushCallFrame(interp, framePtr, nsPtr, isProcCallFrame)
-    Tcl_Interp *interp;
-    Tcl_CallFrame *framePtr;
-    Tcl_Namespace *nsPtr;
-    int isProcCallFrame;
-{
-    DummyInterp *iPtr = (DummyInterp*)interp;
-    CallFrame *frame = (CallFrame *)framePtr;
-
-    /* **** DUMMY **** */
-    Tcl_InitHashTable(&frame.varTable, TCL_STRING_KEYS);
-    if (iPtr->varFramePtr != NULL) {
-        frame.level = iPtr->varFramePtr->level + 1;
-    } else {
-        frame.level = 1;
-    }
-    frame.callerPtr = iPtr->framePtr;
-    frame.callerVarPtr = iPtr->varFramePtr;
-    iPtr->framePtr = &frame;
-    iPtr->varFramePtr = &frame;
-
-    return TCL_OK;
-}
-#  endif
-
 #endif
 
 #endif /* TCL_NAMESPACE_DEBUG */
@@ -820,13 +598,13 @@ create_ip_exc(interp, exc, fmt, va_alist)
 
 
 /*####################################################################*/
+/* TODO: DELETE THIS ENTIRE SECTION - Ruby/Tk-Kit was an experimental
+ * feature from 2010 that was never completed. The commit (eb456d60) says
+ * "It's still experimental, because ext/tk/extconf.rb can't make a Makefile
+ * for Ruby/Tk-Kit." These defines are never set anywhere in the build system.
+ * This is ~500 lines of dead code for Tclkit/Metakit/VFS integration.
+ */
 #if defined CREATE_RUBYTK_KIT || defined CREATE_RUBYKIT
-
-/*--------------------------------------------------------*/
-
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION < 84
-#error Ruby/Tk-Kit requires Tcl/Tk8.4 or later.
-#endif
 
 /*--------------------------------------------------------*/
 
@@ -850,11 +628,7 @@ Software used in Tclkit, which each have very liberal BSD/MIT-like licenses:
 #endif
 
 #ifndef KIT_INCLUDES_ZLIB
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION < 86
-#define KIT_INCLUDES_ZLIB 1
-#else
 #define KIT_INCLUDES_ZLIB 0
-#endif
 #endif
 
 #ifdef _WIN32
@@ -863,12 +637,6 @@ Software used in Tclkit, which each have very liberal BSD/MIT-like licenses:
 #undef WIN32_LEAN_AND_MEAN
 #endif
 
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION < 86
-EXTERN Tcl_Obj* TclGetStartupScriptPath();
-EXTERN void TclSetStartupScriptPath (Tcl_Obj*);
-#define Tcl_GetStartupScript(encPtr) TclGetStartupScriptPath()
-#define Tcl_SetStartupScript(path,enc) TclSetStartupScriptPath(path)
-#endif
 #if !defined(TclSetPreInitScript) && !defined(TclSetPreInitScript_TCL_DECLARED)
 EXTERN char* TclSetPreInitScript (char *);
 #endif
@@ -880,9 +648,6 @@ EXTERN char* TclSetPreInitScript (char *);
 /* #define KIT_INCLUDES_THREAD  1 */
 
 Tcl_AppInitProc Vfs_Init, Rechan_Init;
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION < 85
-Tcl_AppInitProc Pwb_Init;
-#endif
 
 #ifdef KIT_LITE
 Tcl_AppInitProc Vlerq_Init, Vlerq_SafeInit;
@@ -1110,9 +875,6 @@ init_static_tcltk_packages(void)
 #else
     Tcl_StaticPackage(0, "Mk4tcl", Mk4tcl_Init, NULL);
 #endif
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION < 85
-    Tcl_StaticPackage(0, "pwb", Pwb_Init, NULL);
-#endif
     Tcl_StaticPackage(0, "rubytk_kitpath", rubytk_kitpath_init, NULL);
     Tcl_StaticPackage(0, "rechan", Rechan_Init, NULL);
     Tcl_StaticPackage(0, "vfs", Vfs_Init, NULL);
@@ -1123,11 +885,7 @@ init_static_tcltk_packages(void)
     Tcl_StaticPackage(0, "Thread", Thread_Init, Thread_SafeInit);
 #endif
 #ifdef _WIN32
-#if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION > 84
     Tcl_StaticPackage(0, "dde", Dde_Init, Dde_SafeInit);
-#else
-    Tcl_StaticPackage(0, "dde", Dde_Init, NULL);
-#endif
     Tcl_StaticPackage(0, "registry", Registry_Init, NULL);
 #endif
 #ifdef KIT_INCLUDES_TK
@@ -1273,7 +1031,6 @@ tcltkip_init_tk(VALUE interp)
 {
     struct tcltkip *ptr = get_ip(interp);
 
-#if TCL_MAJOR_VERSION >= 8
     int  st;
 
     if (Tcl_IsSafe(ptr->ip)) {
@@ -1319,13 +1076,6 @@ tcltkip_init_tk(VALUE interp)
                                  "tcltklib: unknown error(%d) on ruby_tk_stubs_init", st);
         }
     }
-
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tk_Init");
-    if (ruby_tk_stubs_init(ptr->ip) != TCLTK_STUBS_OK) {
-        return rb_exc_new2(rb_eRuntimeError, ptr->ip->result);
-    }
-#endif
 
 #ifdef RUBY_USE_NATIVE_THREAD
     ptr->tk_thread_id = Tcl_GetCurrentThread();
@@ -1436,10 +1186,8 @@ static void
 call_original_exit(struct tcltkip *ptr, int state)
 {
     Tcl_CmdInfo *info;
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj *cmd_obj;
     Tcl_Obj *state_obj;
-#endif
     DUMP1("original_exit is called");
 
     if (!(ptr->has_orig_exit)) return;
@@ -1449,7 +1197,6 @@ call_original_exit(struct tcltkip *ptr, int state)
     info = &(ptr->orig_exit_info);
 
     /* memory allocation for arguments of this command */
-#if TCL_MAJOR_VERSION >= 8
     state_obj = Tcl_NewIntObj(state);
     Tcl_IncrRefCount(state_obj);
 
@@ -1530,43 +1277,6 @@ call_original_exit(struct tcltkip *ptr, int state)
 
     Tcl_DecrRefCount(state_obj);
 
-#else /* TCL_MAJOR_VERSION < 8 */
-    {
-        /* string interface */
-        char **argv;
-#define USE_RUBY_ALLOC 0
-#if USE_RUBY_ALLOC
-        argv = (char **)ALLOC_N(char *, 3);
-#else /* not USE_RUBY_ALLOC */
-        argv = RbTk_ALLOC_N(char *, 3);
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
-#endif
-        argv[0] = "exit";
-        argv[1] = RSTRING_PTR(rb_fix2str(INT2NUM(state), 10));
-        argv[2] = (char *)NULL;
-
-        ptr->return_value = (*(info->proc))(info->clientData, ptr->ip,
-                                            2, argv);
-
-#if USE_RUBY_ALLOC
-        xfree(argv);
-#else /* not USE_RUBY_ALLOC */
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
-        ckfree(argv);
-#endif
-#endif
-#endif
-#undef USE_RUBY_ALLOC
-    }
-#endif
     DUMP1("complete original_exit");
 }
 
@@ -2917,16 +2627,12 @@ ip_set_exc_message(Tcl_Interp *interp, VALUE exc)
     char *buf;
     Tcl_DString dstr;
     volatile VALUE msg;
-
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
     volatile VALUE enc;
     Tcl_Encoding encoding;
-#endif
 
     msg = rb_funcallv(exc, ID_message, 0, 0);
     StringValue(msg);
 
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
     enc = rb_attr_get(exc, ID_at_enc);
     if (NIL_P(enc)) {
         enc = rb_attr_get(msg, ID_at_enc);
@@ -2960,10 +2666,6 @@ ip_set_exc_message(Tcl_Interp *interp, VALUE exc)
     Tcl_DStringFree(&dstr);
     xfree(buf);
     /* ckfree(buf); */
-
-#else /* TCL_VERSION <= 8.0 */
-    Tcl_AppendResult(interp, RSTRING_PTR(msg), (char*)NULL);
-#endif
 }
 
 static VALUE
@@ -3183,12 +2885,7 @@ ip_ruby_eval(
     ClientData clientData,
     Tcl_Interp *interp,
     int argc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST argv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *argv[]
-#endif
-)
+    Tcl_Obj *CONST argv[])
 {
     char *arg;
     int code;
@@ -3217,7 +2914,6 @@ ip_ruby_eval(
     }
 
     /* get C string from Tcl object */
-#if TCL_MAJOR_VERSION >= 8
     {
       char *str;
       Tcl_Size len;  /* Tcl 9 uses Tcl_Size for string lengths */
@@ -3228,19 +2924,14 @@ ip_ruby_eval(
       memcpy(arg, str, len);
       arg[len] = 0;
     }
-#else /* TCL_MAJOR_VERSION < 8 */
-    arg = argv[1];
-#endif
 
     /* evaluate the argument string by ruby */
     DUMP2("rb_eval_string(%s)", arg);
 
     code = tcl_protect(interp, (VALUE (*)(VALUE))rb_eval_string, (VALUE)arg);
 
-#if TCL_MAJOR_VERSION >= 8
     xfree(arg);
     /* ckfree(arg); */
-#endif
 
     return code;
 }
@@ -3306,12 +2997,7 @@ ip_ruby_cmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int argc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST argv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *argv[]
-#endif
-)
+    Tcl_Obj *CONST argv[])
 {
     volatile VALUE receiver;
     volatile ID method;
@@ -3345,11 +3031,7 @@ ip_ruby_cmd(
     old_gc = rb_gc_disable();
 
     /* get receiver */
-#if TCL_MAJOR_VERSION >= 8
     str = Tcl_GetStringFromObj(argv[1], &len);
-#else /* TCL_MAJOR_VERSION < 8 */
-    str = argv[1];
-#endif
     DUMP2("receiver:%s",str);
     /* receiver = rb_protect(ip_ruby_cmd_receiver_get, (VALUE)str, &code); */
     receiver = ip_ruby_cmd_receiver_get(str);
@@ -3369,24 +3051,15 @@ ip_ruby_cmd(
     }
 
     /* get metrhod */
-#if TCL_MAJOR_VERSION >= 8
     str = Tcl_GetStringFromObj(argv[2], &len);
-#else /* TCL_MAJOR_VERSION < 8 */
-    str = argv[2];
-#endif
     method = rb_intern(str);
 
     /* get args */
     args = rb_ary_new2(argc - 2);
     for(i = 3; i < argc; i++) {
         VALUE s;
-#if TCL_MAJOR_VERSION >= 8
         str = Tcl_GetStringFromObj(argv[i], &len);
         s = rb_str_new(str, len);
-#else /* TCL_MAJOR_VERSION < 8 */
-        str = argv[i];
-        s = rb_str_new2(str);
-#endif
         DUMP2("arg:%s",str);
         rb_ary_push(args, s);
     }
@@ -3419,12 +3092,7 @@ ip_InterpExitObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int argc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST argv[]
-#else
-    char *argv[]
-#endif
-)
+    Tcl_Obj *CONST argv[])
 {
     DUMP1("start ip_InterpExitCommand");
     if (interp != (Tcl_Interp*)NULL
@@ -3451,26 +3119,15 @@ ip_RubyExitObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int argc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST argv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *argv[]
-#endif
-)
+    Tcl_Obj *CONST argv[])
 {
     int state;
     char *cmd, *param;
-#if TCL_MAJOR_VERSION < 8
-    char *endptr;
-    cmd = argv[0];
-#endif
 
     DUMP1("start ip_RubyExitCommand");
 
-#if TCL_MAJOR_VERSION >= 8
     /* cmd = Tcl_GetString(argv[0]); */
     cmd = Tcl_GetStringFromObj(argv[0], TCL_SIZE_NULL);
-#endif
 
     if (argc < 1 || argc > 2) {
         /* argument error */
@@ -3507,22 +3164,11 @@ ip_RubyExitObjCmd(
         return TCL_RETURN;
 
     case 2:
-#if TCL_MAJOR_VERSION >= 8
         if (Tcl_GetIntFromObj(interp, argv[1], &state) == TCL_ERROR) {
             return TCL_ERROR;
         }
         /* param = Tcl_GetString(argv[1]); */
         param = Tcl_GetStringFromObj(argv[1], TCL_SIZE_NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        state = (int)strtol(argv[1], &endptr, 0);
-        if (*endptr) {
-            Tcl_AppendResult(interp,
-                             "expected integer but got \"",
-                             argv[1], "\"", (char *)NULL);
-            return TCL_ERROR;
-        }
-        param = argv[1];
-#endif
         /* rb_exit(state); */ /* not return if succeed */
 
         Tcl_AppendResult(interp, "fail to call \"", cmd, " ",
@@ -3556,12 +3202,7 @@ ip_rbUpdateObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     int  flags = 0;
     static CONST char *updateOptions[] = {"idletasks", (char *) NULL};
@@ -3587,7 +3228,6 @@ ip_rbUpdateObjCmd(
         flags = TCL_DONT_WAIT;
 
     } else if (objc == 2) {
-#if TCL_MAJOR_VERSION >= 8
         int  optionIndex;
         if (Tcl_GetIndexFromObj(interp, objv[1], (CONST84 char **)updateOptions,
                 "option", 0, &optionIndex) != TCL_OK) {
@@ -3602,27 +3242,14 @@ ip_rbUpdateObjCmd(
                 rb_bug("ip_rbUpdateObjCmd: bad option index to UpdateOptions");
             }
         }
-#else
-        if (strncmp(objv[1], "idletasks", strlen(objv[1])) != 0) {
-            Tcl_AppendResult(interp, "bad option \"", objv[1],
-                    "\": must be idletasks", (char *) NULL);
-            return TCL_ERROR;
-        }
-        flags = TCL_IDLE_EVENTS;
-#endif
     } else {
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "[ idletasks ]");
 #else
-# if TCL_MAJOR_VERSION >= 8
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          Tcl_GetStringFromObj(objv[0], TCL_SIZE_NULL),
                          " [ idletasks ]\"",
                          (char *) NULL);
-# else /* TCL_MAJOR_VERSION < 8 */
-        Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
-                         objv[0], " [ idletasks ]\"", (char *) NULL);
-# endif
 #endif
         return TCL_ERROR;
     }
@@ -3696,12 +3323,7 @@ ip_rb_threadUpdateObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
 # if 0
     int  flags = 0;
@@ -3728,13 +3350,8 @@ ip_rb_threadUpdateObjCmd(
 
     if (rb_thread_alone()
         || NIL_P(eventloop_thread) || eventloop_thread == current_thread) {
-#if TCL_MAJOR_VERSION >= 8
         DUMP1("call ip_rbUpdateObjCmd");
         return ip_rbUpdateObjCmd(clientData, interp, objc, objv);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("call ip_rbUpdateCommand");
-        return ip_rbUpdateCommand(clientData, interp, objc, objv);
-#endif
     }
 
     DUMP1("start Ruby's 'thread_update' body");
@@ -3746,7 +3363,6 @@ ip_rb_threadUpdateObjCmd(
         flags = TCL_DONT_WAIT;
 # endif
     } else if (objc == 2) {
-#if TCL_MAJOR_VERSION >= 8
         int  optionIndex;
         if (Tcl_GetIndexFromObj(interp, objv[1], (CONST84 char **)updateOptions,
                 "option", 0, &optionIndex) != TCL_OK) {
@@ -3763,29 +3379,14 @@ ip_rb_threadUpdateObjCmd(
                 rb_bug("ip_rb_threadUpdateObjCmd: bad option index to UpdateOptions");
             }
         }
-#else
-        if (strncmp(objv[1], "idletasks", strlen(objv[1])) != 0) {
-            Tcl_AppendResult(interp, "bad option \"", objv[1],
-                    "\": must be idletasks", (char *) NULL);
-            return TCL_ERROR;
-        }
-# if 0
-        flags = TCL_IDLE_EVENTS;
-# endif
-#endif
     } else {
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "[ idletasks ]");
 #else
-# if TCL_MAJOR_VERSION >= 8
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          Tcl_GetStringFromObj(objv[0], TCL_SIZE_NULL),
                          " [ idletasks ]\"",
                          (char *) NULL);
-# else /* TCL_MAJOR_VERSION < 8 */
-        Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
-                         objv[0], " [ idletasks ]\"", (char *) NULL);
-# endif
 #endif
         return TCL_ERROR;
     }
@@ -3835,7 +3436,6 @@ ip_rb_threadUpdateObjCmd(
 /***************************/
 /* replace of vwait/tkwait */
 /***************************/
-#if TCL_MAJOR_VERSION >= 8
 static int ip_rbVwaitObjCmd (ClientData, Tcl_Interp *, int,
                                Tcl_Obj *CONST []);
 static int ip_rb_threadVwaitObjCmd (ClientData, Tcl_Interp *, int,
@@ -3844,26 +3444,13 @@ static int ip_rbTkWaitObjCmd (ClientData, Tcl_Interp *, int,
                                 Tcl_Obj *CONST []);
 static int ip_rb_threadTkWaitObjCmd (ClientData, Tcl_Interp *, int,
                                        Tcl_Obj *CONST []);
-#else
-static int ip_rbVwaitCommand (ClientData, Tcl_Interp *, int, char *[]);
-static int ip_rb_threadVwaitCommand (ClientData, Tcl_Interp *, int,
-                                       char *[]);
-static int ip_rbTkWaitCommand (ClientData, Tcl_Interp *, int, char *[]);
-static int ip_rb_threadTkWaitCommand (ClientData, Tcl_Interp *, int,
-                                        char *[]);
-#endif
 
 static char *
 VwaitVarProc(
     ClientData clientData,      /* Pointer to integer to set to 1. */
     Tcl_Interp *interp,         /* Interpreter containing variable. */
-#if TCL_MAJOR_VERSION >= 8
     CONST84 char *name1,        /* Name of variable. */
     CONST84 char *name2,        /* Second part of variable name. */
-#else
-    char *name1,                /* Name of variable. */
-    char *name2,                /* Second part of variable name. */
-#endif
     int flags                  /* Information about what happened. */
 )
 {
@@ -3878,12 +3465,7 @@ ip_rbVwaitObjCmd(
     ClientData clientData, /* Not used */
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     int  ret, done, foundEvent;
     char *nameString;
@@ -3911,12 +3493,8 @@ ip_rbVwaitObjCmd(
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "name");
 #else
-#if TCL_MAJOR_VERSION >= 8
         /* nameString = Tcl_GetString(objv[0]); */
         nameString = Tcl_GetStringFromObj(objv[0], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-        nameString = objv[0];
-#endif
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          nameString, " name\"", (char *) NULL);
 #endif
@@ -3925,13 +3503,9 @@ ip_rbVwaitObjCmd(
         return TCL_ERROR;
     }
 
-#if TCL_MAJOR_VERSION >= 8
     Tcl_IncrRefCount(objv[1]);
     /* nameString = Tcl_GetString(objv[1]); */
     nameString = Tcl_GetStringFromObj(objv[1], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-    nameString = objv[1];
-#endif
 
     /*
     if (Tcl_TraceVar(interp, nameString,
@@ -3945,9 +3519,7 @@ ip_rbVwaitObjCmd(
                        VwaitVarProc, (ClientData) &done);
 
     if (ret != TCL_OK) {
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[1]);
-#endif
         Tcl_Release(interp);
         return TCL_ERROR;
     }
@@ -3963,9 +3535,7 @@ ip_rbVwaitObjCmd(
 
     /* exception check */
     if (!NIL_P(rbtk_pending_exception)) {
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[1]);
-#endif
         Tcl_Release(interp);
 
 /*
@@ -3981,9 +3551,7 @@ ip_rbVwaitObjCmd(
 
     /* trap check */
     if (rb_thread_check_trap_pending()) {
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[1]);
-#endif
         Tcl_Release(interp);
 
         return TCL_RETURN;
@@ -3999,16 +3567,12 @@ ip_rbVwaitObjCmd(
         Tcl_AppendResult(interp, "can't wait for variable \"", nameString,
                          "\":  would wait forever", (char *) NULL);
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[1]);
-#endif
         Tcl_Release(interp);
         return TCL_ERROR;
     }
 
-#if TCL_MAJOR_VERSION >= 8
     Tcl_DecrRefCount(objv[1]);
-#endif
     Tcl_Release(interp);
     return TCL_OK;
 }
@@ -4021,13 +3585,8 @@ static char *
 WaitVariableProc(
     ClientData clientData,      /* Pointer to integer to set to 1. */
     Tcl_Interp *interp,         /* Interpreter containing variable. */
-#if TCL_MAJOR_VERSION >= 8
     CONST84 char *name1,        /* Name of variable. */
     CONST84 char *name2,        /* Second part of variable name. */
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *name1,                /* Name of variable. */
-    char *name2,                /* Second part of variable name. */
-#endif
     int flags                  /* Information about what happened. */
 )
 {
@@ -4084,12 +3643,7 @@ ip_rbTkWaitObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     Tk_Window tkwin = (Tk_Window) clientData;
     Tk_Window window;
@@ -4115,23 +3669,16 @@ ip_rbTkWaitObjCmd(
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "variable|visibility|window name");
 #else
-#if TCL_MAJOR_VERSION >= 8
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          Tcl_GetStringFromObj(objv[0], &dummy),
                          " variable|visibility|window name\"",
                          (char *) NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
-                         objv[0], " variable|visibility|window name\"",
-                         (char *) NULL);
-#endif
 #endif
 
         Tcl_Release(interp);
         return TCL_ERROR;
     }
 
-#if TCL_MAJOR_VERSION >= 8
     ret = Tcl_GetIndexFromObj(interp, objv[1],
                               (CONST84 char **)optionStrings,
                               "option", 0, &index);
@@ -4140,36 +3687,10 @@ ip_rbTkWaitObjCmd(
         Tcl_Release(interp);
         return TCL_ERROR;
     }
-#else /* TCL_MAJOR_VERSION < 8 */
-    {
-        int c = objv[1][0];
-        size_t length = strlen(objv[1]);
 
-        if ((c == 'v') && (strncmp(objv[1], "variable", length) == 0)
-            && (length >= 2)) {
-            index = TKWAIT_VARIABLE;
-        } else if ((c == 'v') && (strncmp(objv[1], "visibility", length) == 0)
-                   && (length >= 2)) {
-            index = TKWAIT_VISIBILITY;
-        } else if ((c == 'w') && (strncmp(objv[1], "window", length) == 0)) {
-            index = TKWAIT_WINDOW;
-        } else {
-            Tcl_AppendResult(interp, "bad option \"", objv[1],
-                             "\": must be variable, visibility, or window",
-                             (char *) NULL);
-            Tcl_Release(interp);
-            return TCL_ERROR;
-        }
-    }
-#endif
-
-#if TCL_MAJOR_VERSION >= 8
     Tcl_IncrRefCount(objv[2]);
     /* nameString = Tcl_GetString(objv[2]); */
     nameString = Tcl_GetStringFromObj(objv[2], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-    nameString = objv[2];
-#endif
 
     switch ((enum options) index) {
     case TKWAIT_VARIABLE:
@@ -4178,9 +3699,7 @@ ip_rbTkWaitObjCmd(
                            WaitVariableProc, (ClientData) &done);
 
         if (ret != TCL_OK) {
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(interp);
             return TCL_ERROR;
         }
@@ -4192,9 +3711,7 @@ ip_rbTkWaitObjCmd(
                        TCL_GLOBAL_ONLY|TCL_TRACE_WRITES|TCL_TRACE_UNSETS,
                        WaitVariableProc, (ClientData) &done);
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         /* exception check */
         if (!NIL_P(rbtk_pending_exception)) {
@@ -4232,9 +3749,7 @@ ip_rbTkWaitObjCmd(
             Tcl_AppendResult(interp, ": tkwait: ",
                              "no main-window (not Tk application?)",
                              (char*)NULL);
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(interp);
             return TCL_ERROR;
         }
@@ -4249,9 +3764,7 @@ ip_rbTkWaitObjCmd(
 
         /* exception check */
         if (!NIL_P(rbtk_pending_exception)) {
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(interp);
 
             /*
@@ -4267,9 +3780,7 @@ ip_rbTkWaitObjCmd(
 
         /* trap check */
 	if (rb_thread_check_trap_pending()) {
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(interp);
 
             return TCL_RETURN;
@@ -4285,16 +3796,12 @@ ip_rbTkWaitObjCmd(
                              "\" was deleted before its visibility changed",
                              (char *) NULL);
 
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(interp);
             return TCL_ERROR;
         }
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         Tk_DeleteEventHandler(window,
                               VisibilityChangeMask|StructureNotifyMask,
@@ -4310,9 +3817,7 @@ ip_rbTkWaitObjCmd(
             window = Tk_NameToWindow(interp, nameString, tkwin);
         }
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         if (window == NULL) {
             Tcl_AppendResult(interp, ": tkwait: ",
@@ -4379,13 +3884,8 @@ static char *
 rb_threadVwaitProc(
     ClientData clientData,      /* Pointer to integer to set to 1. */
     Tcl_Interp *interp,         /* Interpreter containing variable. */
-#if TCL_MAJOR_VERSION >= 8
     CONST84 char *name1,        /* Name of variable. */
     CONST84 char *name2,        /* Second part of variable name. */
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *name1,                /* Name of variable. */
-    char *name2,                /* Second part of variable name. */
-#endif
     int flags                  /* Information about what happened. */
 )
 {
@@ -4440,12 +3940,7 @@ ip_rb_threadVwaitObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     struct th_vwait_param *param;
     char *nameString;
@@ -4462,13 +3957,8 @@ ip_rb_threadVwaitObjCmd(
     }
 
     if (rb_thread_alone() || eventloop_thread == current_thread) {
-#if TCL_MAJOR_VERSION >= 8
         DUMP1("call ip_rbVwaitObjCmd");
         return ip_rbVwaitObjCmd(clientData, interp, objc, objv);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("call ip_rbVwaitCommand");
-        return ip_rbVwaitCommand(clientData, interp, objc, objv);
-#endif
     }
 
     Tcl_Preserve(interp);
@@ -4478,12 +3968,8 @@ ip_rb_threadVwaitObjCmd(
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "name");
 #else
-#if TCL_MAJOR_VERSION >= 8
         /* nameString = Tcl_GetString(objv[0]); */
         nameString = Tcl_GetStringFromObj(objv[0], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-        nameString = objv[0];
-#endif
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          nameString, " name\"", (char *) NULL);
 #endif
@@ -4492,13 +3978,9 @@ ip_rb_threadVwaitObjCmd(
         return TCL_ERROR;
     }
 
-#if TCL_MAJOR_VERSION >= 8
     Tcl_IncrRefCount(objv[1]);
     /* nameString = Tcl_GetString(objv[1]); */
     nameString = Tcl_GetStringFromObj(objv[1], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-    nameString = objv[1];
-#endif
 
     /* param = (struct th_vwait_param *)Tcl_Alloc(sizeof(struct th_vwait_param)); */
     param = RbTk_ALLOC_N(struct th_vwait_param, 1);
@@ -4531,9 +4013,7 @@ ip_rb_threadVwaitObjCmd(
 #endif
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[1]);
-#endif
         Tcl_Release(interp);
         return TCL_ERROR;
     }
@@ -4567,9 +4047,7 @@ ip_rb_threadVwaitObjCmd(
 #endif
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
     Tcl_DecrRefCount(objv[1]);
-#endif
     Tcl_Release(interp);
     return TCL_OK;
 }
@@ -4579,12 +4057,7 @@ ip_rb_threadTkWaitObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     struct th_vwait_param *param;
     Tk_Window tkwin = (Tk_Window) clientData;
@@ -4607,15 +4080,10 @@ ip_rb_threadTkWaitObjCmd(
     }
 
     if (rb_thread_alone() || eventloop_thread == current_thread) {
-#if TCL_MAJOR_VERSION >= 8
         DUMP1("call ip_rbTkWaitObjCmd");
         DUMP2("eventloop_thread %"PRIxVALUE, eventloop_thread);
         DUMP2("current_thread %"PRIxVALUE, current_thread);
         return ip_rbTkWaitObjCmd(clientData, interp, objc, objv);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("call rb_VwaitCommand");
-        return ip_rbTkWaitCommand(clientData, interp, objc, objv);
-#endif
     }
 
     Tcl_Preserve(interp);
@@ -4627,16 +4095,10 @@ ip_rb_threadTkWaitObjCmd(
 #ifdef Tcl_WrongNumArgs
         Tcl_WrongNumArgs(interp, 1, objv, "variable|visibility|window name");
 #else
-#if TCL_MAJOR_VERSION >= 8
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          Tcl_GetStringFromObj(objv[0], &dummy),
                          " variable|visibility|window name\"",
                          (char *) NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
-                         objv[0], " variable|visibility|window name\"",
-                         (char *) NULL);
-#endif
 #endif
 
         Tcl_Release(tkwin);
@@ -4644,7 +4106,6 @@ ip_rb_threadTkWaitObjCmd(
         return TCL_ERROR;
     }
 
-#if TCL_MAJOR_VERSION >= 8
     /*
     if (Tcl_GetIndexFromObj(interp, objv[1],
                             (CONST84 char **)optionStrings,
@@ -4661,37 +4122,10 @@ ip_rb_threadTkWaitObjCmd(
         Tcl_Release(interp);
         return TCL_ERROR;
     }
-#else /* TCL_MAJOR_VERSION < 8 */
-    {
-        int c = objv[1][0];
-        size_t length = strlen(objv[1]);
 
-        if ((c == 'v') && (strncmp(objv[1], "variable", length) == 0)
-            && (length >= 2)) {
-            index = TKWAIT_VARIABLE;
-        } else if ((c == 'v') && (strncmp(objv[1], "visibility", length) == 0)
-                   && (length >= 2)) {
-            index = TKWAIT_VISIBILITY;
-        } else if ((c == 'w') && (strncmp(objv[1], "window", length) == 0)) {
-            index = TKWAIT_WINDOW;
-        } else {
-            Tcl_AppendResult(interp, "bad option \"", objv[1],
-                             "\": must be variable, visibility, or window",
-                             (char *) NULL);
-            Tcl_Release(tkwin);
-            Tcl_Release(interp);
-            return TCL_ERROR;
-        }
-    }
-#endif
-
-#if TCL_MAJOR_VERSION >= 8
     Tcl_IncrRefCount(objv[2]);
     /* nameString = Tcl_GetString(objv[2]); */
     nameString = Tcl_GetStringFromObj(objv[2], &dummy);
-#else /* TCL_MAJOR_VERSION < 8 */
-    nameString = objv[2];
-#endif
 
     /* param = (struct th_vwait_param *)Tcl_Alloc(sizeof(struct th_vwait_param)); */
     param = RbTk_ALLOC_N(struct th_vwait_param, 1);
@@ -4726,9 +4160,7 @@ ip_rb_threadTkWaitObjCmd(
 #endif
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
 
             Tcl_Release(tkwin);
             Tcl_Release(interp);
@@ -4753,9 +4185,7 @@ ip_rb_threadTkWaitObjCmd(
                            rb_threadVwaitProc, (ClientData) param);
         }
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         break;
 
@@ -4796,9 +4226,7 @@ ip_rb_threadTkWaitObjCmd(
 #endif
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
             Tcl_Release(tkwin);
             Tcl_Release(interp);
             return TCL_ERROR;
@@ -4849,9 +4277,7 @@ ip_rb_threadTkWaitObjCmd(
 #endif
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
             Tcl_DecrRefCount(objv[2]);
-#endif
 
             Tcl_Release(tkwin);
             Tcl_Release(interp);
@@ -4860,9 +4286,7 @@ ip_rb_threadTkWaitObjCmd(
 
         Tcl_Release(window);
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         break;
 
@@ -4887,9 +4311,7 @@ ip_rb_threadTkWaitObjCmd(
 	}
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[2]);
-#endif
 
         if (window == NULL) {
             Tcl_AppendResult(interp, ": thread_tkwait: ",
@@ -4995,7 +4417,6 @@ ip_thread_tkwait(VALUE self, VALUE mode, VALUE target)
  * Tested by: Interpreter destruction is tested implicitly by all tests
  *            that call root.destroy
  */
-#if TCL_MAJOR_VERSION >= 8
 static void
 delete_slaves(Tcl_Interp *ip)
 {
@@ -5041,42 +4462,6 @@ delete_slaves(Tcl_Interp *ip)
         Tcl_DecrRefCount(slave_list);
     }
 }
-#else /* TCL_MAJOR_VERSION < 8 */
-static void
-delete_slaves(Tcl_Interp *ip)
-{
-    Tcl_Interp *slave;
-    int argc;
-    char **argv;
-    char *slave_list;
-    char *slave_name;
-    int i, len;
-
-    DUMP1("delete slaves");
-
-    if (!Tcl_InterpDeleted(ip) && Tcl_Eval(ip, "interp slaves") == TCL_OK) {
-        slave_list = ip->result;
-        if (Tcl_SplitList((Tcl_Interp*)NULL,
-                          slave_list, &argc, &argv) == TCL_OK) {
-            for(i = 0; i < argc; i++) {
-                slave_name = argv[i];
-
-                DUMP2("delete slave:'%s'", slave_name);
-
-                slave = Tcl_GetSlave(ip, slave_name);
-                if (slave == (Tcl_Interp*)NULL) continue;
-
-		if (!Tcl_InterpDeleted(slave)) {
-		  /* call ip_finalize */
-		  ip_finalize(slave);
-
-		  Tcl_DeleteInterp(slave);
-		}
-            }
-        }
-    }
-}
-#endif
 
 
 /* finalize operation */
@@ -5087,12 +4472,8 @@ lib_mark_at_exit(VALUE self)
 }
 
 static int
-#if TCL_MAJOR_VERSION >= 8
 ip_null_proc(ClientData clientData, Tcl_Interp *interp,
 	     int argc, Tcl_Obj *CONST argv[])
-#else /* TCL_MAJOR_VERSION < 8 */
-ip_null_proc(ClientData clientData, Tcl_Interp *interp, int argc, char *argv[])
-#endif
 {
     Tcl_ResetResult(interp);
     return TCL_OK;
@@ -5151,21 +4532,12 @@ ip_finalize(Tcl_Interp *ip)
 	   Because, ruby removes objects, which depends on the deleted
 	   interpreter, on some callback operations.
 	   It is important for GC. */
-#if TCL_MAJOR_VERSION >= 8
 	Tcl_CreateObjCommand(ip, "ruby", ip_null_proc,
 			     (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 	Tcl_CreateObjCommand(ip, "ruby_eval", ip_null_proc,
 			     (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
 	Tcl_CreateObjCommand(ip, "ruby_cmd", ip_null_proc,
 			     (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-	Tcl_CreateCommand(ip, "ruby", ip_null_proc,
-			  (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-	Tcl_CreateCommand(ip, "ruby_eval", ip_null_proc,
-			  (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-	Tcl_CreateCommand(ip, "ruby_cmd", ip_null_proc,
-			  (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#endif
     }
 
     /* delete root widget */
@@ -5294,70 +4666,34 @@ static void
 ip_replace_wait_commands(Tcl_Interp *interp, Tk_Window mainWin)
 {
     /* replace 'vwait' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"vwait\")");
     Tcl_CreateObjCommand(interp, "vwait", ip_rbVwaitObjCmd,
                          (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"vwait\")");
-    Tcl_CreateCommand(interp, "vwait", ip_rbVwaitCommand,
-                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* replace 'tkwait' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"tkwait\")");
     Tcl_CreateObjCommand(interp, "tkwait", ip_rbTkWaitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"tkwait\")");
-    Tcl_CreateCommand(interp, "tkwait", ip_rbTkWaitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* add 'thread_vwait' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"thread_vwait\")");
     Tcl_CreateObjCommand(interp, "thread_vwait", ip_rb_threadVwaitObjCmd,
                          (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"thread_vwait\")");
-    Tcl_CreateCommand(interp, "thread_vwait", ip_rb_threadVwaitCommand,
-                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* add 'thread_tkwait' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"thread_tkwait\")");
     Tcl_CreateObjCommand(interp, "thread_tkwait", ip_rb_threadTkWaitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"thread_tkwait\")");
-    Tcl_CreateCommand(interp, "thread_tkwait", ip_rb_threadTkWaitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* replace 'update' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"update\")");
     Tcl_CreateObjCommand(interp, "update", ip_rbUpdateObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"update\")");
-    Tcl_CreateCommand(interp, "update", ip_rbUpdateCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* add 'thread_update' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"thread_update\")");
     Tcl_CreateObjCommand(interp, "thread_update", ip_rb_threadUpdateObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"thread_update\")");
-    Tcl_CreateCommand(interp, "thread_update", ip_rb_threadUpdateCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 }
 
 
@@ -5366,12 +4702,7 @@ ip_rb_replaceSlaveTkCmdsObjCmd(
     ClientData clientData,
     Tcl_Interp *interp,
     int objc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj *CONST objv[]
-#else /* TCL_MAJOR_VERSION < 8 */
-    char *objv[]
-#endif
-)
+    Tcl_Obj *CONST objv[])
 {
     char *slave_name;
     Tcl_Interp *slave;
@@ -5382,21 +4713,13 @@ ip_rb_replaceSlaveTkCmdsObjCmd(
         Tcl_WrongNumArgs(interp, 1, objv, "slave_name");
 #else
 	char *nameString;
-#if TCL_MAJOR_VERSION >= 8
         nameString = Tcl_GetStringFromObj(objv[0], TCL_SIZE_NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        nameString = objv[0];
-#endif
         Tcl_AppendResult(interp, "wrong number of arguments: should be \"",
                          nameString, " slave_name\"", (char *) NULL);
 #endif
     }
 
-#if TCL_MAJOR_VERSION >= 8
     slave_name = Tcl_GetStringFromObj(objv[1], TCL_SIZE_NULL);
-#else
-    slave_name = objv[1];
-#endif
 
     slave = Tcl_GetSlave(interp, slave_name);
     if (slave == NULL) {
@@ -5407,15 +4730,9 @@ ip_rb_replaceSlaveTkCmdsObjCmd(
     mainWin = Tk_MainWindow(slave);
 
     /* replace 'exit' command --> 'interp_exit' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"interp_exit\"");
     Tcl_CreateObjCommand(slave, "exit", ip_InterpExitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"exit\") --> \"interp_exit\"");
-    Tcl_CreateCommand(slave, "exit", ip_InterpExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* replace vwait and tkwait */
     ip_replace_wait_commands(slave, mainWin);
@@ -5427,7 +4744,6 @@ ip_rb_replaceSlaveTkCmdsObjCmd(
 #define ORIG_NAMESPACE_CMD "__orig_namespace_command__"
 #endif
 
-#if TCL_MAJOR_VERSION >= 8
 static int
 ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Obj *CONST objv[])
 {
@@ -5450,10 +4766,6 @@ ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
     DUMP2("namespace wrapper enter depth == %d", rbtk_eventloop_depth);
 
     if (info.isNativeObjectProc) {
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 6
-        DUMP1("call a native-object-proc");
-        ret = (*(info.objProc))(info.objClientData, interp, objc, objv);
-#else
         /* Tcl8.6 or later */
         int i;
         Tcl_Obj **cp_objv;
@@ -5472,7 +4784,6 @@ ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
         ret = Tcl_EvalObjv(interp, objc, cp_objv, 0);
 
         ckfree((char*)cp_objv);
-#endif
     } else {
         /* string interface */
         int i;
@@ -5512,38 +4823,15 @@ ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
     DUMP1("end of ip_rbNamespaceObjCmd");
     return ret;
 }
-#endif
 
 static void
 ip_wrap_namespace_command(Tcl_Interp *interp)
 {
-#if TCL_MAJOR_VERSION >= 8
-
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 6
-    Tcl_CmdInfo orig_info;
-
-    if (!Tcl_GetCommandInfo(interp, "namespace", &(orig_info))) {
-        return;
-    }
-
-    if (orig_info.isNativeObjectProc) {
-        Tcl_CreateObjCommand(interp, ORIG_NAMESPACE_CMD,
-                             orig_info.objProc, orig_info.objClientData,
-                             orig_info.deleteProc);
-    } else {
-        Tcl_CreateCommand(interp, ORIG_NAMESPACE_CMD,
-                          orig_info.proc, orig_info.clientData,
-                          orig_info.deleteProc);
-    }
-
-#else /* tcl8.6 or later */
+    /* tcl8.6 or later */
     Tcl_Eval(interp, "rename namespace "ORIG_NAMESPACE_CMD);
-
-#endif
 
     Tcl_CreateObjCommand(interp, "namespace", ip_rbNamespaceObjCmd,
                          (ClientData) 0, (Tcl_CmdDeleteProc *)NULL);
-#endif
 }
 
 
@@ -5617,14 +4905,12 @@ ip_init(int argc, VALUE *argv, VALUE self)
         }
     }
 
-#if TCL_MAJOR_VERSION >= 8
 #if TCL_NAMESPACE_DEBUG
     DUMP1("get current namespace");
     if ((ptr->default_ns = Tcl_GetCurrentNamespace(ptr->ip))
         == (Tcl_Namespace*)NULL) {
       rb_raise(rb_eRuntimeError, "a new Tk interpreter has a NULL namespace");
     }
-#endif
 #endif
 
     rbtk_preserve_ip(ptr);
@@ -5637,7 +4923,6 @@ ip_init(int argc, VALUE *argv, VALUE self)
 #if defined CREATE_RUBYTK_KIT || defined CREATE_RUBYKIT
     call_tclkit_init_script(current_interp);
 
-# if 10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION > 84
     {
       Tcl_DString encodingName;
       Tcl_GetEncodingNameFromEnvironment(&encodingName);
@@ -5648,7 +4933,6 @@ ip_init(int argc, VALUE *argv, VALUE self)
       Tcl_SetVar(current_interp, "tclkit_system_encoding", Tcl_DStringValue(&encodingName), 0);
       Tcl_DStringFree(&encodingName);
     }
-# endif
 #endif
 
     /* set variables */
@@ -5687,23 +4971,9 @@ ip_init(int argc, VALUE *argv, VALUE self)
 
     /* from Tcl_AppInit() */
     DUMP1("Tcl_Init");
-#if (defined CREATE_RUBYTK_KIT || defined CREATE_RUBYKIT) && (!defined KIT_LITE) && (10 * TCL_MAJOR_VERSION + TCL_MINOR_VERSION == 85)
-    /*************************************************************************/
-    /*  FIX ME (2010/06/28)                                                  */
-    /*    Don't use ::chan command for Mk4tcl + tclvfs-1.4 on Tcl8.5.        */
-    /*    It fails to access VFS files because of vfs::zstream.              */
-    /*    So, force to use ::rechan by temporarily hiding ::chan.            */
-    /*************************************************************************/
-    Tcl_Eval(ptr->ip, "catch {rename ::chan ::_tmp_chan}");
     if (Tcl_Init(ptr->ip) == TCL_ERROR) {
         rb_raise(rb_eRuntimeError, "%s", Tcl_GetStringResult(ptr->ip));
     }
-    Tcl_Eval(ptr->ip, "catch {rename ::_tmp_chan ::chan}");
-#else
-    if (Tcl_Init(ptr->ip) == TCL_ERROR) {
-        rb_raise(rb_eRuntimeError, "%s", Tcl_GetStringResult(ptr->ip));
-    }
-#endif
 
     st = ruby_tcl_stubs_init();
     /* from Tcl_AppInit() */
@@ -5732,12 +5002,7 @@ ip_init(int argc, VALUE *argv, VALUE self)
         }
 
         DUMP1("Tcl_StaticPackage(\"Tk\")");
-#if TCL_MAJOR_VERSION >= 8
         Tcl_StaticPackage(ptr->ip, "Tk", Tk_Init, Tk_SafeInit);
-#else /* TCL_MAJOR_VERSION < 8 */
-        Tcl_StaticPackage(ptr->ip, "Tk", Tk_Init,
-                          (Tcl_PackageInitProc *) NULL);
-#endif
 
 #ifdef RUBY_USE_NATIVE_THREAD
         /* set Tk thread ID */
@@ -5749,7 +5014,6 @@ ip_init(int argc, VALUE *argv, VALUE self)
     }
 
     /* add ruby command to the interpreter */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"ruby\")");
     Tcl_CreateObjCommand(ptr->ip, "ruby", ip_ruby_eval, (ClientData)NULL,
                          (Tcl_CmdDeleteProc *)NULL);
@@ -5759,20 +5023,8 @@ ip_init(int argc, VALUE *argv, VALUE self)
     DUMP1("Tcl_CreateObjCommand(\"ruby_cmd\")");
     Tcl_CreateObjCommand(ptr->ip, "ruby_cmd", ip_ruby_cmd, (ClientData)NULL,
                          (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"ruby\")");
-    Tcl_CreateCommand(ptr->ip, "ruby", ip_ruby_eval, (ClientData)NULL,
-                      (Tcl_CmdDeleteProc *)NULL);
-    DUMP1("Tcl_CreateCommand(\"ruby_eval\")");
-    Tcl_CreateCommand(ptr->ip, "ruby_eval", ip_ruby_eval, (ClientData)NULL,
-                      (Tcl_CmdDeleteProc *)NULL);
-    DUMP1("Tcl_CreateCommand(\"ruby_cmd\")");
-    Tcl_CreateCommand(ptr->ip, "ruby_cmd", ip_ruby_cmd, (ClientData)NULL,
-                      (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* add 'interp_exit', 'ruby_exit' and replace 'exit' command */
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"interp_exit\")");
     Tcl_CreateObjCommand(ptr->ip, "interp_exit", ip_InterpExitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
@@ -5782,17 +5034,6 @@ ip_init(int argc, VALUE *argv, VALUE self)
     DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"ruby_exit\"");
     Tcl_CreateObjCommand(ptr->ip, "exit", ip_RubyExitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"interp_exit\")");
-    Tcl_CreateCommand(ptr->ip, "interp_exit", ip_InterpExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-    DUMP1("Tcl_CreateCommand(\"ruby_exit\")");
-    Tcl_CreateCommand(ptr->ip, "ruby_exit", ip_RubyExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-    DUMP1("Tcl_CreateCommand(\"exit\") --> \"ruby_exit\"");
-    Tcl_CreateCommand(ptr->ip, "exit", ip_RubyExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* replace vwait and tkwait */
     ip_replace_wait_commands(ptr->ip, mainWin);
@@ -5801,15 +5042,9 @@ ip_init(int argc, VALUE *argv, VALUE self)
     ip_wrap_namespace_command(ptr->ip);
 
     /* define command to replace commands which depend on slave's MainWindow */
-#if TCL_MAJOR_VERSION >= 8
     Tcl_CreateObjCommand(ptr->ip, "__replace_slave_tk_commands__",
 			 ip_rb_replaceSlaveTkCmdsObjCmd,
                          (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    Tcl_CreateCommand(ptr->ip, "__replace_slave_tk_commands__",
-		      ip_rb_replaceSlaveTkCmdsCommand,
-                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* set finalizer */
     Tcl_CallWhenDeleted(ptr->ip, ip_CallWhenDeleted, (ClientData)mainWin);
@@ -5884,10 +5119,8 @@ ip_create_slave_core(VALUE interp, int argc, VALUE *argv)
         return rb_exc_new2(rb_eRuntimeError,
                            "fail to create the new slave interpreter");
     }
-#if TCL_MAJOR_VERSION >= 8
 #if TCL_NAMESPACE_DEBUG
     slave->default_ns = Tcl_GetCurrentNamespace(slave->ip);
-#endif
 #endif
     rbtk_preserve_ip(slave);
 
@@ -5896,15 +5129,9 @@ ip_create_slave_core(VALUE interp, int argc, VALUE *argv)
 
     /* replace 'exit' command --> 'interp_exit' command */
     mainWin = (tk_stubs_init_p())? Tk_MainWindow(slave->ip): (Tk_Window)NULL;
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"interp_exit\"");
     Tcl_CreateObjCommand(slave->ip, "exit", ip_InterpExitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"exit\") --> \"interp_exit\"");
-    Tcl_CreateCommand(slave->ip, "exit", ip_InterpExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* replace vwait and tkwait */
     ip_replace_wait_commands(slave->ip, mainWin);
@@ -5913,15 +5140,9 @@ ip_create_slave_core(VALUE interp, int argc, VALUE *argv)
     ip_wrap_namespace_command(slave->ip);
 
     /* define command to replace cmds which depend on slave-slave's MainWin */
-#if TCL_MAJOR_VERSION >= 8
     Tcl_CreateObjCommand(slave->ip, "__replace_slave_tk_commands__",
 			 ip_rb_replaceSlaveTkCmdsObjCmd,
                          (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    Tcl_CreateCommand(slave->ip, "__replace_slave_tk_commands__",
-		      ip_rb_replaceSlaveTkCmdsCommand,
-                      (ClientData)NULL, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     /* set finalizer */
     Tcl_CallWhenDeleted(slave->ip, ip_CallWhenDeleted, (ClientData)mainWin);
@@ -5976,23 +5197,6 @@ ip_is_slave_of_p(VALUE self, VALUE master)
 
 
 /* create console (if supported) */
-#if defined(MAC_TCL) || defined(__WIN32__)
-#if TCL_MAJOR_VERSION < 8 \
-    || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 0) \
-    || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 1 \
-        && (TCL_RELEASE_LEVEL == TCL_ALPHA_RELEASE \
-           || (TCL_RELEASE_LEVEL == TCL_BETA_RELEASE \
-               && TCL_RELEASE_SERIAL < 2) ) )
-EXTERN void TkConsoleCreate (void);
-#endif
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 1 \
-    && ( (TCL_RELEASE_LEVEL == TCL_FINAL_RELEASE \
-          && TCL_RELEASE_SERIAL == 0) \
-       || (TCL_RELEASE_LEVEL == TCL_BETA_RELEASE \
-           && TCL_RELEASE_SERIAL >= 2) )
-EXTERN void TkConsoleCreate_ (void);
-#endif
-#endif
 static VALUE
 ip_create_console_core(VALUE interp, int argc /* dummy */, VALUE *argv /* dummy */)
 {
@@ -6006,34 +5210,11 @@ ip_create_console_core(VALUE interp, int argc /* dummy */, VALUE *argv /* dummy 
         Tcl_SetVar(ptr->ip, "tcl_interactive", "0", TCL_GLOBAL_ONLY);
     }
 
-#if TCL_MAJOR_VERSION > 8 \
-    || (TCL_MAJOR_VERSION == 8 \
-        && (TCL_MINOR_VERSION > 1 \
-            || (TCL_MINOR_VERSION == 1 \
-                 && TCL_RELEASE_LEVEL == TCL_FINAL_RELEASE \
-                 && TCL_RELEASE_SERIAL >= 1) ) )
     Tk_InitConsoleChannels(ptr->ip);
 
     if (Tk_CreateConsoleWindow(ptr->ip) != TCL_OK) {
         rb_raise(rb_eRuntimeError, "fail to create console-window");
     }
-#else
-#if defined(MAC_TCL) || defined(__WIN32__)
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 1 \
-    && ( (TCL_RELEASE_LEVEL == TCL_FINAL_RELEASE && TCL_RELEASE_SERIAL == 0) \
-        || (TCL_RELEASE_LEVEL == TCL_BETA_RELEASE && TCL_RELEASE_SERIAL >= 2) )
-    TkConsoleCreate_();
-#else
-    TkConsoleCreate();
-#endif
-
-    if (TkConsoleInit(ptr->ip) != TCL_OK) {
-        rb_raise(rb_eRuntimeError, "fail to create console-window");
-    }
-#else
-    rb_notimplement();
-#endif
-#endif
 
     return interp;
 }
@@ -6074,15 +5255,9 @@ ip_make_safe_core(VALUE interp, int argc /* dummy */, VALUE *argv /* dummy */)
 
     /* replace 'exit' command --> 'interp_exit' command */
     mainWin = (tk_stubs_init_p())? Tk_MainWindow(ptr->ip): (Tk_Window)NULL;
-#if TCL_MAJOR_VERSION >= 8
     DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"interp_exit\"");
     Tcl_CreateObjCommand(ptr->ip, "exit", ip_InterpExitObjCmd,
                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP1("Tcl_CreateCommand(\"exit\") --> \"interp_exit\"");
-    Tcl_CreateCommand(ptr->ip, "exit", ip_InterpExitCommand,
-                      (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
 
     return interp;
 }
@@ -6164,28 +5339,16 @@ ip_allow_ruby_exit_set(VALUE self, VALUE val)
 
     if (RTEST(val)) {
         ptr->allow_ruby_exit = 1;
-#if TCL_MAJOR_VERSION >= 8
         DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"ruby_exit\"");
         Tcl_CreateObjCommand(ptr->ip, "exit", ip_RubyExitObjCmd,
                              (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("Tcl_CreateCommand(\"exit\") --> \"ruby_exit\"");
-        Tcl_CreateCommand(ptr->ip, "exit", ip_RubyExitCommand,
-                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
         return Qtrue;
 
     } else {
         ptr->allow_ruby_exit = 0;
-#if TCL_MAJOR_VERSION >= 8
         DUMP1("Tcl_CreateObjCommand(\"exit\") --> \"interp_exit\"");
         Tcl_CreateObjCommand(ptr->ip, "exit", ip_InterpExitObjCmd,
                              (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#else /* TCL_MAJOR_VERSION < 8 */
-        DUMP1("Tcl_CreateCommand(\"exit\") --> \"interp_exit\"");
-        Tcl_CreateCommand(ptr->ip, "exit", ip_InterpExitCommand,
-                          (ClientData)mainWin, (Tcl_CmdDeleteProc *)NULL);
-#endif
         return Qfalse;
     }
 }
@@ -6275,7 +5438,6 @@ ip_has_mainwindow_p(VALUE self)
 
 
 /*** ruby string <=> tcl object ***/
-#if TCL_MAJOR_VERSION >= 8
 static VALUE
 get_str_from_obj(Tcl_Obj *obj)
 {
@@ -6284,20 +5446,7 @@ get_str_from_obj(Tcl_Obj *obj)
     const char *s;
     volatile VALUE str;
 
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 0
-    s = Tcl_GetStringFromObj(obj, &len);
-#else
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 3
-     /* TCL_VERSION 8.1 -- 8.3 */
-    if (Tcl_GetCharLength(obj) != Tcl_UniCharLen(Tcl_GetUnicode(obj))) {
-        /* possibly binary string */
-        s = (char *)Tcl_GetByteArrayFromObj(obj, &len);
-        binary = 1;
-    } else {
-        /* possibly text string */
-        s = Tcl_GetStringFromObj(obj, &len);
-    }
-#else /* TCL_VERSION >= 8.4 */
+    /* Tcl 8.6+ */
     if (IS_TCL_BYTEARRAY(obj)) {
       s = (char *)Tcl_GetByteArrayFromObj(obj, &len);
       binary = 1;
@@ -6305,21 +5454,17 @@ get_str_from_obj(Tcl_Obj *obj)
       s = Tcl_GetStringFromObj(obj, &len);
     }
 
-#endif
-#endif
     str = s ? rb_str_new(s, len) : rb_str_new2("");
     if (binary) {
 #ifdef HAVE_RUBY_ENCODING_H
       rb_enc_associate_index(str, ENCODING_INDEX_BINARY);
 #endif
       rb_ivar_set(str, ID_at_enc, ENCODING_NAME_BINARY);
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 1)
     } else {
 #ifdef HAVE_RUBY_ENCODING_H
       rb_enc_associate_index(str, ENCODING_INDEX_UTF8);
 #endif
       rb_ivar_set(str, ID_at_enc, ENCODING_NAME_UTF8);
-#endif
     }
     return str;
 }
@@ -6328,10 +5473,6 @@ static Tcl_Obj *
 get_obj_from_str(VALUE str)
 {
     const char *s = StringValueCStr(str);
-
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION == 0
-    return Tcl_NewStringObj((char*)s, RSTRING_LEN(str));
-#else /* TCL_VERSION >= 8.1 */
     VALUE enc = rb_attr_get(str, ID_at_enc);
 
     if (!NIL_P(enc)) {
@@ -6355,14 +5496,11 @@ get_obj_from_str(VALUE str)
         /* probably text string */
         return Tcl_NewStringObj(s, RSTRING_LENINT(str));
     }
-#endif
 }
-#endif /* ruby string <=> tcl object */
 
 static VALUE
 ip_get_result_string_obj(Tcl_Interp *interp)
 {
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj *retObj;
     volatile VALUE strval;
 
@@ -6372,9 +5510,6 @@ ip_get_result_string_obj(Tcl_Interp *interp)
     Tcl_ResetResult(interp);
     Tcl_DecrRefCount(retObj);
     return strval;
-#else
-    return rb_str_new2(interp->result);
-#endif
 }
 
 static int
@@ -6647,7 +5782,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
 
 
 /* eval string in tcl by Tcl_Eval() */
-#if TCL_MAJOR_VERSION >= 8
 struct call_eval_info {
     struct tcltkip *ptr;
     Tcl_Obj *cmd;
@@ -6663,7 +5797,6 @@ call_tcl_eval(VALUE arg)
 
     return Qnil;
 }
-#endif
 
 /*
  * Core Tcl command evaluation.
@@ -6676,7 +5809,6 @@ ip_eval_real(VALUE self, char *cmd_str, int cmd_len)
     volatile VALUE ret;
     struct tcltkip *ptr = get_ip(self);
 
-#if TCL_MAJOR_VERSION >= 8
     /* call Tcl_EvalObj() */
     {
       Tcl_Obj *cmd;
@@ -6770,54 +5902,6 @@ ip_eval_real(VALUE self, char *cmd_str, int cmd_len)
     ret =  ip_get_result_string_obj(ptr->ip);
     rbtk_release_ip(ptr);
     return ret;
-
-#else /* TCL_MAJOR_VERSION < 8 */
-    DUMP2("Tcl_Eval(%s)", cmd_str);
-
-    /* ip is deleted? */
-    if (deleted_ip(ptr)) {
-        ptr->return_value = TCL_OK;
-        return rb_str_new2("");
-    } else {
-        /* Tcl_Preserve(ptr->ip); */
-        rbtk_preserve_ip(ptr);
-        ptr->return_value = Tcl_Eval(ptr->ip, cmd_str);
-        /* ptr->return_value = Tcl_GlobalEval(ptr->ip, cmd_str); */
-    }
-
-    if (pending_exception_check1(ptr)) {
-        rbtk_release_ip(ptr);
-        return rbtk_pending_exception;
-    }
-
-    /* if (ptr->return_value == TCL_ERROR) { */
-    if (ptr->return_value != TCL_OK) {
-        volatile VALUE exc;
-
-	switch (ptr->return_value) {
-	case TCL_RETURN:
-	  exc = create_ip_exc(self, eTkCallbackReturn,
-			      "ip_eval_real receives TCL_RETURN");
-	case TCL_BREAK:
-	  exc = create_ip_exc(self, eTkCallbackBreak,
-			      "ip_eval_real receives TCL_BREAK");
-	case TCL_CONTINUE:
-	  exc = create_ip_exc(self, eTkCallbackContinue,
-			       "ip_eval_real receives TCL_CONTINUE");
-	default:
-	  exc = create_ip_exc(self, rb_eRuntimeError, "%s", ptr->ip->result);
-	}
-
-        rbtk_release_ip(ptr);
-        return exc;
-    }
-    DUMP2("(TCL_Eval result) %d", ptr->return_value);
-
-    /* pass back the result (as string) */
-    ret =  ip_get_result_string_obj(ptr->ip);
-    rbtk_release_ip(ptr);
-    return ret;
-#endif
 }
 
 int
@@ -7073,12 +6157,6 @@ ip_eval(VALUE self, VALUE str)
 static int
 ip_cancel_eval_core(Tcl_Interp *interp, VALUE msg, int flag)
 {
-#if TCL_MAJOR_VERSION < 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 6)
-    rb_raise(rb_eNotImpError,
-	     "cancel_eval is supported Tcl/Tk8.6 or later.");
-
-    UNREACHABLE;
-#else
     Tcl_Obj *msg_obj;
 
     if (NIL_P(msg)) {
@@ -7090,7 +6168,6 @@ ip_cancel_eval_core(Tcl_Interp *interp, VALUE msg, int flag)
     }
 
     return Tcl_CancelEval(interp, msg_obj, 0, flag);
-#endif
 }
 
 static VALUE
@@ -7153,13 +6230,11 @@ lib_restart_core(VALUE interp, int argc /* dummy */, VALUE *argv /* dummy */)
     DUMP2("(TCL_Eval result) %d", ptr->return_value);
     Tcl_ResetResult(ptr->ip);
 
-#if TCL_MAJOR_VERSION >= 8
     /* delete namespace ( tested on tk8.4.5 ) */
     ptr->return_value = Tcl_Eval(ptr->ip, "namespace delete ::tk::msgcat");
     /* ignore ERROR */
     DUMP2("(TCL_Eval result) %d", ptr->return_value);
     Tcl_ResetResult(ptr->ip);
-#endif
 
     /* delete trace proc ( tested on tk8.4.5 ) */
     ptr->return_value = Tcl_Eval(ptr->ip, "trace vdelete ::tk_strictMotif w ::tk::EventMotifBindings");
@@ -7660,18 +6735,13 @@ lib_Tcl_backslash(VALUE self, VALUE str)
 static VALUE
 lib_get_system_encoding(VALUE self)
 {
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
     tcl_stubs_check();
     return rb_str_new2(Tcl_GetEncodingName((Tcl_Encoding)NULL));
-#else
-    return Qnil;
-#endif
 }
 
 static VALUE
 lib_set_system_encoding(VALUE self, VALUE enc_name)
 {
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION > 0)
     tcl_stubs_check();
 
     if (NIL_P(enc_name)) {
@@ -7687,9 +6757,6 @@ lib_set_system_encoding(VALUE self, VALUE enc_name)
     }
 
     return enc_name;
-#else
-    return Qnil;
-#endif
 }
 
 
@@ -7697,108 +6764,30 @@ lib_set_system_encoding(VALUE self, VALUE enc_name)
 struct invoke_info {
     struct tcltkip *ptr;
     Tcl_CmdInfo cmdinfo;
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Size objc;  /* Tcl 9 uses Tcl_Size for object counts */
     Tcl_Obj **objv;
-#else
-    int argc;
-    char **argv;
-#endif
 };
 
 static VALUE
 invoke_tcl_proc(VALUE arg)
 {
     struct invoke_info *inf = (struct invoke_info *)arg;
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION < 6
-    Tcl_Size i, len;
-    Tcl_Size argc = inf->objc;
-    char **argv = (char **)NULL;
-#endif
 
     DUMP1("call invoke_tcl_proc");
 
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 6)
     /* Tcl/Tk 8.6 or later */
 
     /* eval */
     inf->ptr->return_value = Tcl_EvalObjv(inf->ptr->ip, inf->objc, inf->objv, TCL_EVAL_DIRECT);
     /* inf->ptr->return_value = Tcl_EvalObjv(inf->ptr->ip, inf->objc, inf->objv, 0); */
 
-#else /* Tcl/Tk 7.x, 8.0 -- 8.5 */
-
-    /* memory allocation for arguments of this command */
-#if TCL_MAJOR_VERSION == 8
-     /* Tcl/Tk 8.0 -- 8.5 */
-    if (!inf->cmdinfo.isNativeObjectProc) {
-        DUMP1("called proc is not a native-obj-proc");
-        /* string interface */
-        /* argv = (char **)ALLOC_N(char *, argc+1);*/ /* XXXXXXXXXX */
-        argv = RbTk_ALLOC_N(char *, (argc+1));
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
-        for (i = 0; i < argc; ++i) {
-            argv[i] = Tcl_GetStringFromObj(inf->objv[i], &len);
-        }
-        argv[argc] = (char *)NULL;
-    }
-#endif
-
-    DUMP1("reset result of tcl-interp");
-    Tcl_ResetResult(inf->ptr->ip);
-
-    /* Invoke the C procedure */
-#if TCL_MAJOR_VERSION == 8
-    /* Tcl/Tk 8.0 -- 8.5 */
-    if (inf->cmdinfo.isNativeObjectProc) {
-        DUMP1("call tcl_proc as a native-obj-proc");
-        inf->ptr->return_value
-            = (*(inf->cmdinfo.objProc))(inf->cmdinfo.objClientData,
-                                        inf->ptr->ip, inf->objc, inf->objv);
-    }
-    else
-#endif
-    {
-#if TCL_MAJOR_VERSION == 8
-        /* Tcl/Tk 8.0 -- 8.5 */
-        DUMP1("call tcl_proc as not a native-obj-proc");
-        inf->ptr->return_value
-            = (*(inf->cmdinfo.proc))(inf->cmdinfo.clientData, inf->ptr->ip,
-                                     argc, (CONST84 char **)argv);
-
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
-        ckfree((char*)argv);
-#endif
-#endif
-
-#else /* TCL_MAJOR_VERSION < 8 */
-        inf->ptr->return_value
-            = (*(inf->cmdinfo.proc))(inf->cmdinfo.clientData, inf->ptr->ip,
-                                     inf->argc, inf->argv);
-#endif
-    }
-
-#endif /* Tcl/Tk 8.6 or later || Tcl 7.x, 8.0 -- 8.5 */
-
     DUMP1("end of invoke_tcl_proc");
     return Qnil;
 }
 
 
-#if TCL_MAJOR_VERSION >= 8
 static VALUE
 ip_invoke_core(VALUE interp, Tcl_Size objc, Tcl_Obj **objv)
-#else
-static VALUE
-ip_invoke_core(VALUE interp, int argc, char **argv)
-#endif
 {
     struct tcltkip *ptr;
     Tcl_CmdInfo info;
@@ -7810,19 +6799,13 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
     struct invoke_info inf;
     int status;
 #else
-#if TCL_MAJOR_VERSION >= 8
     int argc = objc;
     char **argv = (char **)NULL;
     /* Tcl_Obj *resultPtr; */
 #endif
-#endif
 
     /* get the command name string */
-#if TCL_MAJOR_VERSION >= 8
     cmd = Tcl_GetStringFromObj(objv[0], &len);
-#else /* TCL_MAJOR_VERSION < 8 */
-    cmd = argv[0];
-#endif
 
     /* get the data struct */
     ptr = get_ip(interp);
@@ -7840,13 +6823,7 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
     if (!Tcl_GetCommandInfo(ptr->ip, cmd, &info)) {
         DUMP1("error Tcl_GetCommandInfo");
         DUMP1("try auto_load (call 'unknown' command)");
-        if (!Tcl_GetCommandInfo(ptr->ip,
-#if TCL_MAJOR_VERSION >= 8
-                                "::unknown",
-#else
-                                "unknown",
-#endif
-                                &info)) {
+        if (!Tcl_GetCommandInfo(ptr->ip, "::unknown", &info)) {
             DUMP1("fail to get 'unknown' command");
             /* if (event_loop_abort_on_exc || cmd[0] != '.') { */
             if (event_loop_abort_on_exc > 0) {
@@ -7867,15 +6844,10 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
                 return rb_str_new2("");
             }
         } else {
-#if TCL_MAJOR_VERSION >= 8
             Tcl_Obj **unknown_objv;
-#else
-            char **unknown_argv;
-#endif
             DUMP1("find 'unknown' command -> set arguments");
             unknown_flag = 1;
 
-#if TCL_MAJOR_VERSION >= 8
             /* unknown_objv = (Tcl_Obj **)ALLOC_N(Tcl_Obj *, objc+2); */
             unknown_objv = RbTk_ALLOC_N(Tcl_Obj *, (objc+2));
 #if 0 /* use Tcl_Preserve/Release */
@@ -7886,32 +6858,15 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
             memcpy(unknown_objv + 1, objv, sizeof(Tcl_Obj *)*objc);
             unknown_objv[++objc] = (Tcl_Obj*)NULL;
             objv = unknown_objv;
-#else
-            /* unknown_argv = (char **)ALLOC_N(char *, argc+2); */
-            unknown_argv = RbTk_ALLOC_N(char *, (argc+2));
-#if 0 /* use Tcl_Preserve/Release */
-	    Tcl_Preserve((ClientData)unknown_argv); /* XXXXXXXX */
-#endif
-            unknown_argv[0] = strdup("unknown");
-            memcpy(unknown_argv + 1, argv, sizeof(char *)*argc);
-            unknown_argv[++argc] = (char *)NULL;
-            argv = unknown_argv;
-#endif
         }
     }
     DUMP1("end Tcl_GetCommandInfo");
 
-#if 1 /* wrap tcl-proc call */
     /* setup params */
     inf.ptr = ptr;
     inf.cmdinfo = info;
-#if TCL_MAJOR_VERSION >= 8
     inf.objc = objc;
     inf.objv = objv;
-#else
-    inf.argc = argc;
-    inf.argv = argv;
-#endif
 
     /* invoke tcl-proc */
     DUMP1("invoke tcl-proc");
@@ -7935,68 +6890,8 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
         }
     }
 
-#else /* !wrap tcl-proc call */
-
-    /* memory allocation for arguments of this command */
-#if TCL_MAJOR_VERSION >= 8
-    if (!info.isNativeObjectProc) {
-        int i;
-
-        /* string interface */
-        /* argv = (char **)ALLOC_N(char *, argc+1); */
-        argv = RbTk_ALLOC_N(char *, (argc+1));
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
-        for (i = 0; i < argc; ++i) {
-            argv[i] = Tcl_GetStringFromObj(objv[i], &len);
-        }
-        argv[argc] = (char *)NULL;
-    }
-#endif
-
-    Tcl_ResetResult(ptr->ip);
-
-    /* Invoke the C procedure */
-#if TCL_MAJOR_VERSION >= 8
-    if (info.isNativeObjectProc) {
-        ptr->return_value = (*info.objProc)(info.objClientData, ptr->ip,
-                                            objc, objv);
-#if 0
-        /* get the string value from the result object */
-        resultPtr = Tcl_GetObjResult(ptr->ip);
-        Tcl_SetResult(ptr->ip, Tcl_GetStringFromObj(resultPtr, &len),
-                      TCL_VOLATILE);
-#endif
-    }
-    else
-#endif
-    {
-#if TCL_MAJOR_VERSION >= 8
-        ptr->return_value = (*info.proc)(info.clientData, ptr->ip,
-                                         argc, (CONST84 char **)argv);
-
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
-        ckfree((char*)argv);
-#endif
-#endif
-
-#else /* TCL_MAJOR_VERSION < 8 */
-        ptr->return_value = (*info.proc)(info.clientData, ptr->ip,
-                                         argc, argv);
-#endif
-    }
-#endif /* ! wrap tcl-proc call */
-
     /* free allocated memory for calling 'unknown' command */
     if (unknown_flag) {
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(objv[0]);
 #if 0 /* use Tcl_EventuallyFree */
 	Tcl_EventuallyFree((ClientData)objv, TCL_DYNAMIC); /* XXXXXXXX */
@@ -8006,20 +6901,6 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
 #else
         /* free(objv); */
         ckfree((char*)objv);
-#endif
-#endif
-#else /* TCL_MAJOR_VERSION < 8 */
-        free(argv[0]);
-        /* ckfree(argv[0]); */
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
-        ckfree((char*)argv);
-#endif
 #endif
 #endif
     }
@@ -8063,23 +6944,13 @@ ip_invoke_core(VALUE interp, int argc, char **argv)
 }
 
 
-#if TCL_MAJOR_VERSION >= 8
 static Tcl_Obj **
-#else /* TCL_MAJOR_VERSION < 8 */
-static char **
-#endif
 alloc_invoke_arguments(int argc, VALUE *argv)
 {
     int i;
-
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj **av;
-#else /* TCL_MAJOR_VERSION < 8 */
-    char **av;
-#endif
 
     /* memory allocation */
-#if TCL_MAJOR_VERSION >= 8
     /* av = ALLOC_N(Tcl_Obj *, argc+1);*/ /* XXXXXXXXXX */
     av = RbTk_ALLOC_N(Tcl_Obj *, (argc+1));
 #if 0 /* use Tcl_Preserve/Release */
@@ -8091,44 +6962,18 @@ alloc_invoke_arguments(int argc, VALUE *argv)
     }
     av[argc] = NULL;
 
-#else /* TCL_MAJOR_VERSION < 8 */
-    /* string interface */
-    /* av = ALLOC_N(char *, argc+1); */
-    av = RbTk_ALLOC_N(char *, (argc+1));
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)av); /* XXXXXXXX */
-#endif
-    for (i = 0; i < argc; ++i) {
-        av[i] = strdup(StringValueCStr(argv[i]));
-    }
-    av[argc] = NULL;
-#endif
-
     return av;
 }
 
 static void
-free_invoke_arguments(
-    int argc,
-#if TCL_MAJOR_VERSION >= 8
-    Tcl_Obj **av
-#else /* TCL_MAJOR_VERSION < 8 */
-    char **av
-#endif
-)
+free_invoke_arguments(int argc, Tcl_Obj **av)
 {
     int i;
 
     for (i = 0; i < argc; ++i) {
-#if TCL_MAJOR_VERSION >= 8
         Tcl_DecrRefCount(av[i]);
 	av[i] = (Tcl_Obj*)NULL;
-#else /* TCL_MAJOR_VERSION < 8 */
-        free(av[i]);
-	av[i] = (char*)NULL;
-#endif
     }
-#if TCL_MAJOR_VERSION >= 8
 #if 0 /* use Tcl_EventuallyFree */
     Tcl_EventuallyFree((ClientData)av, TCL_DYNAMIC); /* XXXXXXXX */
 #else
@@ -8136,18 +6981,6 @@ free_invoke_arguments(
     Tcl_Release((ClientData)av); /* XXXXXXXX */
 #else
     ckfree((char*)av);
-#endif
-#endif
-#else /* TCL_MAJOR_VERSION < 8 */
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)av, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)av); /* XXXXXXXX */
-#else
-    /* free(av); */
-    ckfree((char*)av);
-#endif
 #endif
 #endif
 }
@@ -8157,12 +6990,7 @@ ip_invoke_real(int argc, VALUE *argv, VALUE interp)
 {
     VALUE v;
     struct tcltkip *ptr;        /* tcltkip data struct */
-
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj **av = (Tcl_Obj **)NULL;
-#else /* TCL_MAJOR_VERSION < 8 */
-    char **av = (char **)NULL;
-#endif
 
     DUMP2("invoke_real called by thread:%"PRIxVALUE, rb_thread_current());
 
@@ -8284,12 +7112,7 @@ ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition posi
     volatile VALUE result;
     volatile VALUE ret;
     struct timeval t;
-
-#if TCL_MAJOR_VERSION >= 8
     Tcl_Obj **av = (Tcl_Obj **)NULL;
-#else /* TCL_MAJOR_VERSION < 8 */
-    char **av = (char **)NULL;
-#endif
 
     if (argc < 1) {
         rb_raise(rb_eArgError, "command name missing");
@@ -8483,7 +7306,6 @@ ip_get_variable2_core(VALUE interp, int argc, VALUE *argv)
     if (!NIL_P(index)) StringValue(index);
     */
 
-#if TCL_MAJOR_VERSION >= 8
     {
         Tcl_Obj *ret;
         volatile VALUE strval;
@@ -8518,37 +7340,6 @@ ip_get_variable2_core(VALUE interp, int argc, VALUE *argv)
         rbtk_release_ip(ptr);
         return(strval);
     }
-#else /* TCL_MAJOR_VERSION < 8 */
-    {
-        char *ret;
-        volatile VALUE strval;
-
-        /* ip is deleted? */
-        if (deleted_ip(ptr)) {
-            return rb_str_new2("");
-        } else {
-            /* Tcl_Preserve(ptr->ip); */
-            rbtk_preserve_ip(ptr);
-            ret = Tcl_GetVar2(ptr->ip, RSTRING_PTR(varname),
-                              NIL_P(index) ? NULL : RSTRING_PTR(index),
-                              FIX2INT(flag));
-        }
-
-        if (ret == (char*)NULL) {
-            volatile VALUE exc;
-            exc = rb_exc_new2(rb_eRuntimeError, Tcl_GetStringResult(ptr->ip));
-            /* Tcl_Release(ptr->ip); */
-            rbtk_release_ip(ptr);
-            return exc;
-        }
-
-        strval = rb_str_new2(ret);
-        /* Tcl_Release(ptr->ip); */
-        rbtk_release_ip(ptr);
-
-        return(strval);
-    }
-#endif
 }
 
 static VALUE
@@ -8596,7 +7387,6 @@ ip_set_variable2_core(VALUE interp, int argc, VALUE *argv)
     StringValue(value);
     */
 
-#if TCL_MAJOR_VERSION >= 8
     {
         Tcl_Obj *valobj, *ret;
         volatile VALUE strval;
@@ -8638,34 +7428,6 @@ ip_set_variable2_core(VALUE interp, int argc, VALUE *argv)
 
         return(strval);
     }
-#else /* TCL_MAJOR_VERSION < 8 */
-    {
-        CONST char *ret;
-        volatile VALUE strval;
-
-        /* ip is deleted? */
-        if (deleted_ip(ptr)) {
-            return rb_str_new2("");
-        } else {
-            /* Tcl_Preserve(ptr->ip); */
-            rbtk_preserve_ip(ptr);
-            ret = Tcl_SetVar2(ptr->ip, RSTRING_PTR(varname),
-                              NIL_P(index) ? NULL : RSTRING_PTR(index),
-                              RSTRING_PTR(value), FIX2INT(flag));
-        }
-
-        if (ret == (char*)NULL) {
-            return rb_exc_new2(rb_eRuntimeError, ptr->ip->result);
-        }
-
-        strval = rb_str_new2(ret);
-
-        /* Tcl_Release(ptr->ip); */
-        rbtk_release_ip(ptr);
-
-        return(strval);
-    }
-#endif
 }
 
 static VALUE
@@ -8836,7 +7598,6 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
 #endif
 
     {
-#if TCL_MAJOR_VERSION >= 8
         /* object style interface */
         Tcl_Obj *listobj;
         Tcl_Size objc;
@@ -8890,35 +7651,6 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
         }
 
         Tcl_DecrRefCount(listobj);
-
-#else /* TCL_MAJOR_VERSION < 8 */
-        /* string style interface */
-        int  argc;
-        char **argv;
-
-        if (Tcl_SplitList(interp, RSTRING_PTR(list_str),
-                          &argc, &argv) == TCL_ERROR) {
-            if (interp == (Tcl_Interp*)NULL) {
-                rb_raise(rb_eRuntimeError, "can't get elements from list");
-            } else {
-                rb_raise(rb_eRuntimeError, "%s", interp->result);
-            }
-        }
-
-        ary = rb_ary_new2(argc);
-
-        old_gc = rb_gc_disable();
-
-        for(idx = 0; idx < argc; idx++) {
-            elem = rb_str_new2(argv[idx]);
-            /* rb_ivar_set(elem, ID_at_enc, rb_str_new2("binary")); */
-            /* RARRAY(ary)->ptr[idx] = elem; */
-	    rb_ary_push(ary, elem)
-        }
-        /* RARRAY(ary)->len = argc; */
-
-        if (old_gc == Qfalse) rb_gc_enable();
-#endif
     }
 
     return ary;
@@ -8964,12 +7696,8 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
     len = 1;
     for(num = 0; num < argc; num++) {
         dst = StringValueCStr(argv[num]);
-#if TCL_MAJOR_VERSION >= 8
         len += Tcl_ScanCountedElement(dst, RSTRING_LENINT(argv[num]),
                                       &flagPtr[num]) + 1;
-#else /* TCL_MAJOR_VERSION < 8 */
-        len += Tcl_ScanElement(dst, &flagPtr[num]) + 1;
-#endif
     }
 
     /* pass 2 */
@@ -8980,13 +7708,9 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
 #endif
     dst = result;
     for(num = 0; num < argc; num++) {
-#if TCL_MAJOR_VERSION >= 8
         len = Tcl_ConvertCountedElement(RSTRING_PTR(argv[num]),
                                         RSTRING_LENINT(argv[num]),
                                         dst, flagPtr[num]);
-#else /* TCL_MAJOR_VERSION < 8 */
-        len = Tcl_ConvertElement(RSTRING_PTR(argv[num]), dst, flagPtr[num]);
-#endif
         dst += len;
         *dst = ' ';
         dst++;
@@ -9037,17 +7761,11 @@ lib_conv_listelement(VALUE self, VALUE src)
 
     StringValue(src);
 
-#if TCL_MAJOR_VERSION >= 8
     len = Tcl_ScanCountedElement(RSTRING_PTR(src), RSTRING_LENINT(src),
                                  &scan_flag);
     dst = rb_str_new(0, len + 1);
     len = Tcl_ConvertCountedElement(RSTRING_PTR(src), RSTRING_LENINT(src),
                                     RSTRING_PTR(dst), scan_flag);
-#else /* TCL_MAJOR_VERSION < 8 */
-    len = Tcl_ScanElement(RSTRING_PTR(src), &scan_flag);
-    dst = rb_str_new(0, len + 1);
-    len = Tcl_ConvertElement(RSTRING_PTR(src), RSTRING_PTR(dst), scan_flag);
-#endif
 
     rb_str_resize(dst, len);
 
@@ -9149,7 +7867,6 @@ create_dummy_encoding_for_tk_core(VALUE interp, VALUE name, VALUE error_mode)
 
   StringValue(name);
 
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 1)
   if (Tcl_GetEncoding((Tcl_Interp*)NULL, RSTRING_PTR(name)) == (Tcl_Encoding)NULL) {
     if (RTEST(error_mode)) {
       rb_raise(rb_eArgError, "invalid Tk encoding name '%s'",
@@ -9158,7 +7875,6 @@ create_dummy_encoding_for_tk_core(VALUE interp, VALUE name, VALUE error_mode)
       return Qnil;
     }
   }
-#endif
 
 #ifdef HAVE_RUBY_ENCODING_H
   if (RTEST(rb_define_dummy_encoding(RSTRING_PTR(name)))) {
@@ -9360,7 +8076,6 @@ encoding_table_get_obj_core(VALUE table, VALUE enc, VALUE error_mode)
 }
 
 #else /* ! HAVE_RUBY_ENCODING_H */
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 1)
 static int
 update_encoding_table(VALUE table, VALUE interp, VALUE error_mode)
 {
@@ -9439,19 +8154,6 @@ encoding_table_get_obj_core(VALUE table, VALUE enc, VALUE error_mode)
 {
   return encoding_table_get_name_core(table, enc, error_mode);
 }
-
-#else /* Tcl/Tk 7.x or 8.0 */
-static VALUE
-encoding_table_get_name_core(VALUE table, VALUE enc, VALUE error_mode)
-{
-  return Qnil;
-}
-static VALUE
-encoding_table_get_obj_core(VALUE table, VALUE enc, VALUE error_mode)
-{
-  return Qnil;
-}
-#endif /* end of dependency for the version of Tcl/Tk */
 #endif
 
 static VALUE
@@ -9554,7 +8256,6 @@ create_encoding_table_core(RB_BLOCK_CALL_FUNC_ARGLIST(arg, interp))
 }
 
 #else /* ! HAVE_RUBY_ENCODING_H */
-#if TCL_MAJOR_VERSION > 8 || (TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION >= 1)
 static VALUE
 create_encoding_table_core(RB_BLOCK_CALL_FUNC_ARGLIST(arg, interp))
 {
@@ -9592,16 +8293,6 @@ create_encoding_table_core(RB_BLOCK_CALL_FUNC_ARGLIST(arg, interp))
 
   return table;
 }
-
-#else /* Tcl/Tk 7.x or 8.0 */
-static VALUE
-create_encoding_table_core(RB_BLOCK_CALL_FUNC_ARGLIST(arg, interp))
-{
-  volatile VALUE table = rb_hash_new();
-  rb_ivar_set(interp, ID_encoding_table, table);
-  return table;
-}
-#endif
 #endif
 
 static VALUE
@@ -9635,7 +8326,6 @@ ip_get_encoding_table(VALUE interp)
  *   The following is based on tkMenu.[ch]
  *   of Tcl/Tk (Tk8.0 -- Tk8.5b1) source code.
  */
-#if TCL_MAJOR_VERSION >= 8
 
 #define MASTER_MENU             0
 #define TEAROFF_MENU            1
@@ -9673,12 +8363,9 @@ EXTERN struct dummy_TkMenuRef *TkFindMenuReferences(Tcl_Interp*, char*);
 #define MENU_HASH_KEY "tkMenus"
 #endif
 
-#endif
-
 static VALUE
 ip_make_menu_embeddable_core(VALUE interp, int argc, VALUE *argv)
 {
-#if TCL_MAJOR_VERSION >= 8
     volatile VALUE menu_path;
     struct tcltkip *ptr = get_ip(interp);
     struct dummy_TkMenuRef *menuRefPtr = NULL;
@@ -9743,10 +8430,6 @@ ip_make_menu_embeddable_core(VALUE interp, int argc, VALUE *argv)
     event.xany.display = Tk_Display((menuRefPtr->menuPtr)->tkwin);
     event.xconfigure.window = event.xany.window;
     Tk_HandleEvent(&event);
-#endif
-
-#else /* TCL_MAJOR_VERSION <= 7 */
-    rb_notimplement();
 #endif
 
     return interp;

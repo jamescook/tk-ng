@@ -2305,15 +2305,12 @@ end
 #######################################
 # define system font names
 #######################################
-if Tk::TCL_MAJOR_VERSION > 8 ||
-    (Tk::TCL_MAJOR_VERSION == 8 && Tk::TCL_MINOR_VERSION >= 5)
-  # add standard fonts of Tcl/Tk 8.5+
-  TkFont::SYSTEM_FONT_NAMES.add [
-    'TkDefaultFont', 'TkTextFont', 'TkFixedFont', 'TkMenuFont',
-    'TkHeadingFont', 'TkCaptionFont', 'TkSmallCaptionFont',
-    'TkIconFont', 'TkTooltipFont'
-  ]
-end
+# standard fonts (Tcl/Tk 8.5+)
+TkFont::SYSTEM_FONT_NAMES.add [
+  'TkDefaultFont', 'TkTextFont', 'TkFixedFont', 'TkMenuFont',
+  'TkHeadingFont', 'TkCaptionFont', 'TkSmallCaptionFont',
+  'TkIconFont', 'TkTooltipFont'
+]
 
 # platform-specific fonts
 #  -- windows
@@ -2324,25 +2321,19 @@ TkFont::SYSTEM_FONT_NAMES.add [
 #  --  macintosh, macosx
 TkFont::SYSTEM_FONT_NAMES.add ['system', 'application']
 
-if Tk::TCL_MAJOR_VERSION > 8 ||
-    (Tk::TCL_MAJOR_VERSION == 8 && Tk::TCL_MINOR_VERSION >= 5)
-  TkFont::SYSTEM_FONT_NAMES.add ['menu']
-end
+TkFont::SYSTEM_FONT_NAMES.add ['menu']
 
 #  --  macosx (Aqua theme)
-if Tk::TCL_MAJOR_VERSION > 8 ||
-    (Tk::TCL_MAJOR_VERSION == 8 && Tk::TCL_MINOR_VERSION >= 5)
-  TkFont::SYSTEM_FONT_NAMES.add [
-    'systemSystemFont', 'systemEmphasizedSystemFont',
-    'systemSmallSystemFont', 'systemSmallEmphasizedSystemFont',
-    'systemApplicationFont', 'systemLabelFont', 'systemViewsFont',
-    'systemMenuTitleFont', 'systemMenuItemFont', 'systemMenuItemMarkFont',
-    'systemMenuItemCmdKeyFont', 'systemWindowTitleFont',
-    'systemPushButtonFont', 'systemUtilityWindowTitleFont',
-    'systemAlertHeaderFont', 'systemToolbarFont', 'systemMiniSystemFont',
-    'systemDetailSystemFont', 'systemDetailEmphasizedSystemFont'
-  ]
-end
+TkFont::SYSTEM_FONT_NAMES.add [
+  'systemSystemFont', 'systemEmphasizedSystemFont',
+  'systemSmallSystemFont', 'systemSmallEmphasizedSystemFont',
+  'systemApplicationFont', 'systemLabelFont', 'systemViewsFont',
+  'systemMenuTitleFont', 'systemMenuItemFont', 'systemMenuItemMarkFont',
+  'systemMenuItemCmdKeyFont', 'systemWindowTitleFont',
+  'systemPushButtonFont', 'systemUtilityWindowTitleFont',
+  'systemAlertHeaderFont', 'systemToolbarFont', 'systemMiniSystemFont',
+  'systemDetailSystemFont', 'systemDetailEmphasizedSystemFont'
+]
 
 #######################################
 # autoload

@@ -40,20 +40,13 @@ typedef int Tcl_Size;
 #define CONST const
 #endif
 
+/* CONST84/CONST86 are always const for Tcl 8.6+ */
 #ifndef CONST84
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 4
-#define CONST84
-#else
 #define CONST84 const
-#endif
 #endif
 
 #ifndef CONST86
-#if TCL_MAJOR_VERSION == 8 && TCL_MINOR_VERSION <= 5
-#define CONST86
-#else
 #define CONST86 const
-#endif
 #endif
 
 /*
@@ -129,13 +122,9 @@ typedef int Tcl_Size;
  * The minimum stubs version should be set appropriately.
  * For Tcl 9.0+, we need at least 8.6 stubs (the last 8.x version).
  */
-#if TCL_MAJOR_VERSION >= 9
+/* Require at least 8.6 stubs (minimum supported version) */
 #define RBTK_TCL_STUBS_VERSION "8.6"
 #define RBTK_TK_STUBS_VERSION "8.6"
-#else
-#define RBTK_TCL_STUBS_VERSION "8.1"
-#define RBTK_TK_STUBS_VERSION "8.1"
-#endif
 
 /*
  * Deprecated API compatibility wrappers

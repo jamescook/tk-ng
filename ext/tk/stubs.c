@@ -530,7 +530,6 @@ ruby_tk_stubs_init(Tcl_Interp *tcl_ip)
 int
 ruby_tk_stubs_safeinit(Tcl_Interp *tcl_ip)
 {
-#if TCL_MAJOR_VERSION >= 8
     if (Tk_SafeInit(tcl_ip) == TCL_ERROR)
         return FAIL_Tk_Init;
 
@@ -542,11 +541,6 @@ ruby_tk_stubs_safeinit(Tcl_Interp *tcl_ip)
     }
 
     return TCLTK_STUBS_OK;
-
-#else /* TCL_MAJOR_VERSION < 8 */
-
-    return FAIL_Tk_Init;
-#endif
 }
 
 int

@@ -3064,10 +3064,7 @@ class MultiTkIp
       keys = []
     end
     keys << _slavearg(slave)
-    if Tk::TCL_MAJOR_VERSION > 8 ||
-        (Tk::TCL_MAJOR_VERSION == 8 && Tk::TCL_MINOR_VERSION >= 5)
-      keys << '--'
-    end
+    keys << '--'
     keys << cmd
     keys.concat(args)
     @interp._invoke('interp', 'invokehidden', *keys)
@@ -3085,10 +3082,7 @@ class MultiTkIp
     end
     keys << _slavearg(slave)
     keys << '-global'
-    if Tk::TCL_MAJOR_VERSION > 8 ||
-        (Tk::TCL_MAJOR_VERSION == 8 && Tk::TCL_MINOR_VERSION >= 5)
-      keys << '--'
-    end
+    keys << '--'
     keys << cmd
     keys.concat(args)
     @interp._invoke('interp', 'invokehidden', *keys)
