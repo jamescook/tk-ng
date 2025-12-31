@@ -1046,8 +1046,8 @@ def aboutBox
                            "(c) 2001-2007 Donal K. Fellows / " +
                            "(c) 2002-2007 Daniel A. Steffen )\n\n" +
                            "Your Ruby & Tk Version ::\n" +
-                           "Ruby#{RUBY_VERSION}(#{RUBY_RELEASE_DATE})[#{RUBY_PLATFORM}] / Tk#{$tk_patchlevel}#{(Tk::JAPANIZED_TK)? '-jp': ''}\n\n" +
-                           "Ruby/Tk release date :: tcltklib #{TclTkLib::RELEASE_DATE}; tk #{Tk::RELEASE_DATE}")
+                           "Ruby #{RUBY_VERSION} (#{RUBY_RELEASE_DATE}) [#{RUBY_PLATFORM}]\n" +
+                           "Tk #{$tk_patchlevel}#{(Tk::JAPANIZED_TK)? '-jp': ''}")
 end
 
 #########################################

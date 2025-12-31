@@ -4,7 +4,6 @@
  *              Oct. 24, 1997   Y. Matsumoto
  */
 
-#define TCLTKLIB_RELEASE_DATE "2010-08-25"
 /* #define CREATE_RUBYTK_KIT */
 
 #include "ruby.h"
@@ -128,9 +127,6 @@ fprintf(stderr, ARG1, ARG2, ARG3); fprintf(stderr, "\n"); fflush(stderr); }
 #define DUMP2(ARG1, ARG2)
 #define DUMP3(ARG1, ARG2, ARG3)
 */
-
-/* release date */
-static const char tcltklib_release_date[] = TCLTKLIB_RELEASE_DATE;
 
 /* finalize_proc_name */
 static const char finalize_hook_name[] = "INTERP_FINALIZE_HOOK";
@@ -7273,8 +7269,7 @@ tcltklib_compile_info(void)
 {
     VALUE ret;
     static const char info[] =
-	"tcltklib " TCLTKLIB_RELEASE_DATE " "
-	":: Ruby"
+	"tcltklib :: Ruby"
 #ifdef RUBY_API_VERSION_MAJOR
 	STRINGIZE(RUBY_API_VERSION_MAJOR)"."
 	STRINGIZE(RUBY_API_VERSION_MINOR)"."
@@ -7805,9 +7800,6 @@ Init_tcltklib(void)
    /* --------------------------------------------------------------- */
 
     rb_define_const(lib, "COMPILE_INFO", tcltklib_compile_info());
-
-    rb_define_const(lib, "RELEASE_DATE",
-                    rb_obj_freeze(rb_str_new2(tcltklib_release_date)));
 
     rb_define_const(lib, "FINALIZE_PROC_NAME",
                     rb_str_new2(finalize_hook_name));
