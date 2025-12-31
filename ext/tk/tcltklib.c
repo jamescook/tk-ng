@@ -1202,15 +1202,7 @@ call_original_exit(struct tcltkip *ptr, int state)
 
     if (info->isNativeObjectProc) {
         Tcl_Obj **argv;
-#define USE_RUBY_ALLOC 0
-#if USE_RUBY_ALLOC
-        argv = (Tcl_Obj **)ALLOC_N(Tcl_Obj *, 3);
-#else /* not USE_RUBY_ALLOC */
         argv = RbTk_ALLOC_N(Tcl_Obj *, 3);
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
-#endif
 	cmd_obj = Tcl_NewStringObj("exit", 4);
 	Tcl_IncrRefCount(cmd_obj);
 
@@ -1222,57 +1214,18 @@ call_original_exit(struct tcltkip *ptr, int state)
             = (*(info->objProc))(info->objClientData, ptr->ip, 2, argv);
 
 	Tcl_DecrRefCount(cmd_obj);
-
-#if USE_RUBY_ALLOC
-        xfree(argv);
-#else /* not USE_RUBY_ALLOC */
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
         ckfree((char*)argv);
-#endif
-#endif
-#endif
-#undef USE_RUBY_ALLOC
 
     } else {
         /* string interface */
         CONST84 char **argv;
-#define USE_RUBY_ALLOC 0
-#if USE_RUBY_ALLOC
-        argv = ALLOC_N(char *, 3); /* XXXXXXXXXX */
-#else /* not USE_RUBY_ALLOC */
         argv = RbTk_ALLOC_N(CONST84 char *, 3);
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
-#endif
         argv[0] = (char *)"exit";
-        /* argv[1] = Tcl_GetString(state_obj); */
         argv[1] = Tcl_GetStringFromObj(state_obj, TCL_SIZE_NULL);
         argv[2] = (char *)NULL;
 
         ptr->return_value = (*(info->proc))(info->clientData, ptr->ip, 2, argv);
-
-#if USE_RUBY_ALLOC
-        xfree(argv);
-#else /* not USE_RUBY_ALLOC */
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* free(argv); */
         ckfree((char*)argv);
-#endif
-#endif
-#endif
-#undef USE_RUBY_ALLOC
     }
 
     Tcl_DecrRefCount(state_obj);
@@ -3395,9 +3348,6 @@ ip_rb_threadUpdateObjCmd(
 
     /* param = (struct th_update_param *)Tcl_Alloc(sizeof(struct th_update_param)); */
     param = RbTk_ALLOC_N(struct th_update_param, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)param);
-#endif
     param->thread = current_thread;
     param->done = 0;
 
@@ -3417,16 +3367,7 @@ ip_rb_threadUpdateObjCmd(
       }
     }
 
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)param);
-#else
-    /* Tcl_Free((char *)param); */
     ckfree((char *)param);
-#endif
-#endif
 
     DUMP1("finish Ruby's 'thread_update'");
     return TCL_OK;
@@ -3984,9 +3925,7 @@ ip_rb_threadVwaitObjCmd(
 
     /* param = (struct th_vwait_param *)Tcl_Alloc(sizeof(struct th_vwait_param)); */
     param = RbTk_ALLOC_N(struct th_vwait_param, 1);
-#if 1 /* use Tcl_Preserve/Release */
     Tcl_Preserve((ClientData)param);
-#endif
     param->thread = current_thread;
     param->done = 0;
 
@@ -4002,16 +3941,7 @@ ip_rb_threadVwaitObjCmd(
                        rb_threadVwaitProc, (ClientData) param);
 
     if (ret != TCL_OK) {
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
         Tcl_Release((ClientData)param);
-#else
-        /* Tcl_Free((char *)param); */
-        ckfree((char *)param);
-#endif
-#endif
 
         Tcl_DecrRefCount(objv[1]);
         Tcl_Release(interp);
@@ -4036,16 +3966,7 @@ ip_rb_threadVwaitObjCmd(
                        rb_threadVwaitProc, (ClientData) param);
     }
 
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
     Tcl_Release((ClientData)param);
-#else
-    /* Tcl_Free((char *)param); */
-    ckfree((char *)param);
-#endif
-#endif
 
     Tcl_DecrRefCount(objv[1]);
     Tcl_Release(interp);
@@ -4129,9 +4050,7 @@ ip_rb_threadTkWaitObjCmd(
 
     /* param = (struct th_vwait_param *)Tcl_Alloc(sizeof(struct th_vwait_param)); */
     param = RbTk_ALLOC_N(struct th_vwait_param, 1);
-#if 1 /* use Tcl_Preserve/Release */
     Tcl_Preserve((ClientData)param);
-#endif
     param->thread = current_thread;
     param->done = 0;
 
@@ -4149,16 +4068,7 @@ ip_rb_threadTkWaitObjCmd(
                          rb_threadVwaitProc, (ClientData) param);
 
         if (ret != TCL_OK) {
-#if 0 /* use Tcl_EventuallyFree */
-            Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
             Tcl_Release(param);
-#else
-            /* Tcl_Free((char *)param); */
-            ckfree((char *)param);
-#endif
-#endif
 
             Tcl_DecrRefCount(objv[2]);
 
@@ -4215,16 +4125,7 @@ ip_rb_threadTkWaitObjCmd(
                              "no main-window (not Tk application?)",
                              (char*)NULL);
 
-#if 0 /* use Tcl_EventuallyFree */
-	    Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
             Tcl_Release(param);
-#else
-            /* Tcl_Free((char *)param); */
-            ckfree((char *)param);
-#endif
-#endif
 
             Tcl_DecrRefCount(objv[2]);
             Tcl_Release(tkwin);
@@ -4266,16 +4167,7 @@ ip_rb_threadTkWaitObjCmd(
 
             Tcl_Release(window);
 
-#if 0 /* use Tcl_EventuallyFree */
-	    Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
             Tcl_Release(param);
-#else
-            /* Tcl_Free((char *)param); */
-            ckfree((char *)param);
-#endif
-#endif
 
             Tcl_DecrRefCount(objv[2]);
 
@@ -4318,16 +4210,7 @@ ip_rb_threadTkWaitObjCmd(
                              "no main-window (not Tk application?)",
                              (char*)NULL);
 
-#if 0 /* use Tcl_EventuallyFree */
-	    Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
             Tcl_Release(param);
-#else
-            /* Tcl_Free((char *)param); */
-            ckfree((char *)param);
-#endif
-#endif
 
             Tcl_Release(tkwin);
             Tcl_Release(interp);
@@ -4361,16 +4244,7 @@ ip_rb_threadTkWaitObjCmd(
         break;
     } /* end of 'switch' statement */
 
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)param, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 1 /* use Tcl_Preserve/Release */
     Tcl_Release((ClientData)param);
-#else
-    /* Tcl_Free((char *)param); */
-    ckfree((char *)param);
-#endif
-#endif
 
     /*
      * Clear out the interpreter's result, since it may have been set
@@ -4792,9 +4666,6 @@ ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
         DUMP1("call with the string-interface");
         /* argv = (char **)Tcl_Alloc(sizeof(char *) * (objc + 1)); */
         argv = RbTk_ALLOC_N(char *, (objc + 1));
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)argv); /* XXXXXXXX */
-#endif
 
         for(i = 0; i < objc; i++) {
             /* argv[i] = Tcl_GetString(objv[i]); */
@@ -4805,16 +4676,7 @@ ip_rbNamespaceObjCmd(ClientData clientData, Tcl_Interp *interp, int objc, Tcl_Ob
         ret = (*(info.proc))(info.clientData, interp,
                               objc, (CONST84 char **)argv);
 
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
-        /* Tcl_Free((char*)argv); */
         ckfree((char*)argv);
-#endif
-#endif
     }
 
     DUMP2("namespace wrapper exit depth == %d", rbtk_eventloop_depth);
@@ -5653,9 +5515,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
     if (argv) {
         /* VALUE *temp = ALLOC_N(VALUE, argc); */
         VALUE *temp = RbTk_ALLOC_N(VALUE, argc);
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Preserve((ClientData)temp); /* XXXXXXXX */
-#endif
         MEMCPY(temp, argv, VALUE, argc);
         argv = temp;
     }
@@ -5663,17 +5522,11 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
     /* allocate memory (keep result) */
     /* alloc_done = (int*)ALLOC(int); */
     alloc_done = RbTk_ALLOC_N(int, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)alloc_done); /* XXXXXXXX */
-#endif
     *alloc_done = 0;
 
     /* allocate memory (freed by Tcl_ServiceEvent) */
     /* callq = (struct call_queue *)Tcl_Alloc(sizeof(struct call_queue)); */
     callq = RbTk_ALLOC_N(struct call_queue, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve(callq);
-#endif
 
     /* allocate result obj */
     result = rb_ary_new3(1, Qnil);
@@ -5733,40 +5586,16 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
 
     /* get result & free allocated memory */
     ret = RARRAY_AREF(result, 0);
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)alloc_done, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)alloc_done); /* XXXXXXXX */
-#else
-    /* free(alloc_done); */
     ckfree((char*)alloc_done);
-#endif
-#endif
     /* if (argv) free(argv); */
     if (argv) {
       /* if argv != NULL, alloc as 'temp' */
       int i;
       for(i = 0; i < argc; i++) { argv[i] = (VALUE)NULL; }
 
-#if 0 /* use Tcl_EventuallyFree */
-      Tcl_EventuallyFree((ClientData)argv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-      Tcl_Release((ClientData)argv); /* XXXXXXXX */
-#else
       ckfree((char*)argv);
-#endif
-#endif
     }
 
-#if 0 /* callq is freed by Tcl_ServiceEvent */
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release(callq);
-#else
-    ckfree((char*)callq);
-#endif
-#endif
 
     /* exception? */
     if (rb_obj_is_kind_of(ret, rb_eException)) {
@@ -6038,25 +5867,16 @@ ip_eval(VALUE self, VALUE str)
     /* allocate memory (keep result) */
     /* alloc_done = (int*)ALLOC(int); */
     alloc_done = RbTk_ALLOC_N(int, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)alloc_done); /* XXXXXXXX */
-#endif
     *alloc_done = 0;
 
     /* eval_str = ALLOC_N(char, RSTRING_LEN(str) + 1); */
     eval_str = ckalloc(RSTRING_LENINT(str) + 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)eval_str); /* XXXXXXXX */
-#endif
     memcpy(eval_str, RSTRING_PTR(str), RSTRING_LEN(str));
     eval_str[RSTRING_LEN(str)] = 0;
 
     /* allocate memory (freed by Tcl_ServiceEvent) */
     /* evq = (struct eval_queue *)Tcl_Alloc(sizeof(struct eval_queue)); */
     evq = RbTk_ALLOC_N(struct eval_queue, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve(evq);
-#endif
 
     /* allocate result obj */
     result = rb_ary_new3(1, Qnil);
@@ -6115,33 +5935,8 @@ ip_eval(VALUE self, VALUE str)
     /* get result & free allocated memory */
     ret = RARRAY_AREF(result, 0);
 
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)alloc_done, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)alloc_done); /* XXXXXXXX */
-#else
-    /* free(alloc_done); */
     ckfree((char*)alloc_done);
-#endif
-#endif
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)eval_str, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)eval_str); /* XXXXXXXX */
-#else
-    /* free(eval_str); */
     ckfree(eval_str);
-#endif
-#endif
-#if 0 /* evq is freed by Tcl_ServiceEvent */
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release(evq);
-#else
-    ckfree((char*)evq);
-#endif
-#endif
 
     if (rb_obj_is_kind_of(ret, rb_eException)) {
         DUMP1("raise exception");
@@ -6667,17 +6462,11 @@ lib_UTF_backslash_core(VALUE self, VALUE str, int all_bs)
 
     /* src_buf = ALLOC_N(char, RSTRING_LEN(str)+1); */
     src_buf = ckalloc(RSTRING_LENINT(str)+1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)src_buf); /* XXXXXXXX */
-#endif
     memcpy(src_buf, RSTRING_PTR(str), RSTRING_LEN(str));
     src_buf[RSTRING_LEN(str)] = 0;
 
     /* dst_buf = ALLOC_N(char, RSTRING_LEN(str)+1); */
     dst_buf = ckalloc(RSTRING_LENINT(str)+1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)dst_buf); /* XXXXXXXX */
-#endif
 
     ptr = src_buf;
     while(RSTRING_LEN(str) > ptr - src_buf) {
@@ -6695,26 +6484,8 @@ lib_UTF_backslash_core(VALUE self, VALUE str, int all_bs)
 #endif
     rb_ivar_set(str, ID_at_enc, ENCODING_NAME_UTF8);
 
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)src_buf, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)src_buf); /* XXXXXXXX */
-#else
-    /* free(src_buf); */
     ckfree(src_buf);
-#endif
-#endif
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)dst_buf, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)dst_buf); /* XXXXXXXX */
-#else
-    /* free(dst_buf); */
     ckfree(dst_buf);
-#endif
-#endif
 #endif
 
     return str;
@@ -6850,9 +6621,6 @@ ip_invoke_core(VALUE interp, Tcl_Size objc, Tcl_Obj **objv)
 
             /* unknown_objv = (Tcl_Obj **)ALLOC_N(Tcl_Obj *, objc+2); */
             unknown_objv = RbTk_ALLOC_N(Tcl_Obj *, (objc+2));
-#if 0 /* use Tcl_Preserve/Release */
-	    Tcl_Preserve((ClientData)unknown_objv); /* XXXXXXXX */
-#endif
             unknown_objv[0] = Tcl_NewStringObj("::unknown", 9);
             Tcl_IncrRefCount(unknown_objv[0]);
             memcpy(unknown_objv + 1, objv, sizeof(Tcl_Obj *)*objc);
@@ -6893,16 +6661,7 @@ ip_invoke_core(VALUE interp, Tcl_Size objc, Tcl_Obj **objv)
     /* free allocated memory for calling 'unknown' command */
     if (unknown_flag) {
         Tcl_DecrRefCount(objv[0]);
-#if 0 /* use Tcl_EventuallyFree */
-	Tcl_EventuallyFree((ClientData)objv, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-	Tcl_Release((ClientData)objv); /* XXXXXXXX */
-#else
-        /* free(objv); */
         ckfree((char*)objv);
-#endif
-#endif
     }
 
     /* exception on mainloop */
@@ -6953,9 +6712,6 @@ alloc_invoke_arguments(int argc, VALUE *argv)
     /* memory allocation */
     /* av = ALLOC_N(Tcl_Obj *, argc+1);*/ /* XXXXXXXXXX */
     av = RbTk_ALLOC_N(Tcl_Obj *, (argc+1));
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)av); /* XXXXXXXX */
-#endif
     for (i = 0; i < argc; ++i) {
         av[i] = get_obj_from_str(argv[i]);
         Tcl_IncrRefCount(av[i]);
@@ -6974,15 +6730,7 @@ free_invoke_arguments(int argc, Tcl_Obj **av)
         Tcl_DecrRefCount(av[i]);
 	av[i] = (Tcl_Obj*)NULL;
     }
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)av, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)av); /* XXXXXXXX */
-#else
     ckfree((char*)av);
-#endif
-#endif
 }
 
 static VALUE
@@ -7154,17 +6902,11 @@ ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition posi
     /* allocate memory (keep result) */
     /* alloc_done = (int*)ALLOC(int); */
     alloc_done = RbTk_ALLOC_N(int, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)alloc_done); /* XXXXXXXX */
-#endif
     *alloc_done = 0;
 
     /* allocate memory (freed by Tcl_ServiceEvent) */
     /* ivq = (struct invoke_queue *)Tcl_Alloc(sizeof(struct invoke_queue)); */
     ivq = RbTk_ALLOC_N(struct invoke_queue, 1);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)ivq); /* XXXXXXXX */
-#endif
 
     /* allocate result obj */
     result = rb_ary_new3(1, Qnil);
@@ -7220,28 +6962,8 @@ ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition posi
 
     /* get result & free allocated memory */
     ret = RARRAY_AREF(result, 0);
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)alloc_done, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)alloc_done); /* XXXXXXXX */
-#else
-    /* free(alloc_done); */
     ckfree((char*)alloc_done);
-#endif
-#endif
 
-#if 0 /* ivq is freed by Tcl_ServiceEvent */
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)ivq, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release(ivq);
-#else
-    ckfree((char*)ivq);
-#endif
-#endif
-#endif
 
     /* free allocated memory */
     free_invoke_arguments(argc, av);
@@ -7688,9 +7410,6 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
     /* based on Tcl/Tk's Tcl_Merge() */
     /* flagPtr = ALLOC_N(int, argc); */
     flagPtr = RbTk_ALLOC_N(int, argc);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)flagPtr); /* XXXXXXXXXX */
-#endif
 
     /* pass 1 */
     len = 1;
@@ -7703,9 +7422,6 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
     /* pass 2 */
     /* result = (char *)Tcl_Alloc(len); */
     result = (char *)ckalloc(len);
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Preserve((ClientData)result);
-#endif
     dst = result;
     for(num = 0; num < argc; num++) {
         len = Tcl_ConvertCountedElement(RSTRING_PTR(argv[num]),
@@ -7721,29 +7437,11 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
         dst[-1] = 0;
     }
 
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)flagPtr, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)flagPtr);
-#else
-    /* free(flagPtr); */
     ckfree((char*)flagPtr);
-#endif
-#endif
 
     /* create object */
     str = rb_str_new(result, dst - result - 1);
-#if 0 /* use Tcl_EventuallyFree */
-    Tcl_EventuallyFree((ClientData)result, TCL_DYNAMIC); /* XXXXXXXX */
-#else
-#if 0 /* use Tcl_Preserve/Release */
-    Tcl_Release((ClientData)result); /* XXXXXXXXXXX */
-#else
-    /* Tcl_Free(result); */
     ckfree(result);
-#endif
-#endif
 
     if (old_gc == Qfalse) rb_gc_enable();
 
