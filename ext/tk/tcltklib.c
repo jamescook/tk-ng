@@ -100,13 +100,14 @@ static int ENCODING_INDEX_BINARY;
 static VALUE ENCODING_NAME_UTF8;
 static VALUE ENCODING_NAME_BINARY;
 
+/* Encoding table: bidirectional mapping between Ruby Encoding objects and Tcl encoding names */
 static VALUE create_dummy_encoding_for_tk_core (VALUE, VALUE, VALUE);
 static VALUE create_dummy_encoding_for_tk (VALUE, VALUE);
 static int update_encoding_table (VALUE, VALUE, VALUE);
 static VALUE encoding_table_get_name_core (VALUE, VALUE, VALUE);
 static VALUE encoding_table_get_obj_core (VALUE, VALUE, VALUE);
-static VALUE encoding_table_get_name (VALUE, VALUE);
-static VALUE encoding_table_get_obj (VALUE, VALUE);
+static VALUE encoding_table_get_name (VALUE, VALUE);  /* Ruby Encoding -> Tcl name */
+static VALUE encoding_table_get_obj (VALUE, VALUE);   /* Tcl name -> Ruby Encoding */
 static VALUE create_encoding_table (VALUE);
 static VALUE ip_get_encoding_table (VALUE);
 
@@ -6755,6 +6756,7 @@ create_dummy_encoding_for_tk(VALUE interp, VALUE name)
   return create_dummy_encoding_for_tk_core(interp, name, Qtrue);
 }
 
+/* Refresh encoding table if Tcl has registered new encodings */
 static int
 update_encoding_table(VALUE table, VALUE interp, VALUE error_mode)
 {
@@ -6810,6 +6812,7 @@ update_encoding_table(VALUE table, VALUE interp, VALUE error_mode)
   return retry;
 }
 
+/* Convert Ruby Encoding object to Tcl encoding name string */
 static VALUE
 encoding_table_get_name_core(VALUE table, VALUE enc_arg, VALUE error_mode)
 {
@@ -6914,6 +6917,7 @@ encoding_table_get_name_core(VALUE table, VALUE enc_arg, VALUE error_mode)
   }
   return Qnil;
 }
+/* Convert Tcl encoding name string to Ruby Encoding object */
 static VALUE
 encoding_table_get_obj_core(VALUE table, VALUE enc, VALUE error_mode)
 {
@@ -6939,6 +6943,7 @@ encoding_table_get_obj(VALUE table, VALUE enc)
   return encoding_table_get_obj_core(table, enc, Qtrue);
 }
 
+/* Build bidirectional hash mapping Tcl encoding names <-> Ruby Encoding objects */
 static VALUE
 create_encoding_table_core(RB_BLOCK_CALL_FUNC_ARGLIST(arg, interp))
 {
@@ -7033,6 +7038,7 @@ create_encoding_table(VALUE interp)
 		    ID_call, 0);
 }
 
+/* Get or create the encoding table for an interpreter */
 static VALUE
 ip_get_encoding_table(VALUE interp)
 {
