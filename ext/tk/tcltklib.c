@@ -15,30 +15,7 @@
 
 int rb_thread_check_trap_pending(void);
 
-#if !defined(RSTRING_PTR)
-#define RSTRING_PTR(s) (RSTRING(s)->ptr)
-#define RSTRING_LEN(s) (RSTRING(s)->len)
-#endif
-#if !defined(RSTRING_LENINT)
-#define RSTRING_LENINT(s) ((int)RSTRING_LEN(s))
-#endif
-#if !defined(RARRAY_PTR)
-#define RARRAY_PTR(s) (RARRAY(s)->ptr)
-#define RARRAY_LEN(s) (RARRAY(s)->len)
-#endif
-#if !defined(RARRAY_CONST_PTR)
-#define RARRAY_CONST_PTR(s) (const VALUE *)RARRAY_PTR(s)
-#endif
-#if !defined(RARRAY_AREF)
-#define RARRAY_AREF(a, i) RARRAY_CONST_PTR(a)[i]
-#endif
-
 #define RbTk_ALLOC_N(type, n) (type *)ckalloc((int)(sizeof(type) * (n)))
-
-#if defined(HAVE_RB_PROC_NEW) && !defined(RUBY_VM)
-/* Ruby 1.8 :: rb_proc_new() was hidden from intern.h at 2008/04/22 */
-extern VALUE rb_proc_new (VALUE (*)(ANYARGS/* VALUE yieldarg[, VALUE procarg] */), VALUE);
-#endif
 
 #undef EXTERN   /* avoid conflict with tcl.h of tcl8.2 or before */
 #include <stdio.h>

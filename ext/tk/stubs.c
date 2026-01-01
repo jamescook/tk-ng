@@ -9,11 +9,6 @@
 #include "ruby.h"
 #include "stubs.h"
 
-#if !defined(RSTRING_PTR)
-#define RSTRING_PTR(s) (RSTRING(s)->ptr)
-#define RSTRING_LEN(s) (RSTRING(s)->len)
-#endif
-
 #include <tcl.h>
 #include <tk.h>
 #include "tcl9compat.h"
