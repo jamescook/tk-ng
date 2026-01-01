@@ -6551,13 +6551,10 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
     int  *flagPtr;
     char *dst, *result;
     volatile VALUE str;
-    VALUE old_gc;
 
     if (argc == 0) return rb_str_new2("");
 
     tcl_stubs_check();
-
-    old_gc = rb_gc_disable();
 
     /* based on Tcl/Tk's Tcl_Merge() */
     /* flagPtr = ALLOC_N(int, argc); */
@@ -6595,8 +6592,7 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE obj)
     str = rb_str_new(result, dst - result - 1);
     ckfree(result);
 
-    if (old_gc == Qfalse) rb_gc_enable();
-
+    RB_GC_GUARD(str);
     return str;
 }
 
