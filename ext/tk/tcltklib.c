@@ -6461,7 +6461,6 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
     int list_enc_idx;
     volatile VALUE list_ivar_enc;
     int result;
-    VALUE old_gc;
 
     tcl_stubs_check();
 
@@ -6504,8 +6503,6 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
 
         ary = rb_ary_new2(objc);
 
-        old_gc = rb_gc_disable();
-
         for(idx = 0; idx < objc; idx++) {
             elem = get_str_from_obj(objv[idx]);
 
@@ -6522,8 +6519,6 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
 
         /* RARRAY(ary)->len = objc; */
 
-        if (old_gc == Qfalse) rb_gc_enable();
-
         for(idx = 0; idx < objc; idx++) {
             Tcl_DecrRefCount(objv[idx]);
         }
@@ -6531,6 +6526,7 @@ lib_split_tklist_core(VALUE ip_obj, VALUE list_str)
         Tcl_DecrRefCount(listobj);
     }
 
+    RB_GC_GUARD(ary);
     return ary;
 }
 
