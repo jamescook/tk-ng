@@ -49,13 +49,6 @@ extern VALUE rb_proc_new (VALUE (*)(ANYARGS/* VALUE yieldarg[, VALUE procarg] */
 #include <tk.h>
 #include "tcl9compat.h"
 
-#ifndef HAVE_RUBY_NATIVE_THREAD_P
-#define ruby_native_thread_p() is_ruby_native_thread()
-#undef RUBY_USE_NATIVE_THREAD
-#else
-#define RUBY_USE_NATIVE_THREAD 1
-#endif
-
 #ifndef HAVE_RB_ERRINFO
 #define rb_errinfo() (ruby_errinfo+0) /* cannot be l-value */
 #else
@@ -313,9 +306,7 @@ call_queue_mark(struct call_queue *q)
 
 static VALUE eventloop_thread;
 static Tcl_Interp *eventloop_interp;
-#ifdef RUBY_USE_NATIVE_THREAD
 Tcl_ThreadId tk_eventloop_thread_id;  /* native thread ID of Tcl interpreter */
-#endif
 static VALUE eventloop_stack;
 static int   window_event_mode = ~0;
 
@@ -329,15 +320,9 @@ Tcl_Interp  *current_interp;
     : USE_TOGGLE_WINDOW_MODE_FOR_IDLE 0
     : DO_THREAD_SCHEDULE_AT_CALLBACK_DONE 0
 */
-#ifdef RUBY_USE_NATIVE_THREAD
 #define CONTROL_BY_STATUS_OF_RB_THREAD_WAITING_FOR_VALUE 1
 #define USE_TOGGLE_WINDOW_MODE_FOR_IDLE 0
 #define DO_THREAD_SCHEDULE_AT_CALLBACK_DONE 1
-#else /* ! RUBY_USE_NATIVE_THREAD */
-#define CONTROL_BY_STATUS_OF_RB_THREAD_WAITING_FOR_VALUE 1
-#define USE_TOGGLE_WINDOW_MODE_FOR_IDLE 0
-#define DO_THREAD_SCHEDULE_AT_CALLBACK_DONE 0
-#endif
 
 #if CONTROL_BY_STATUS_OF_RB_THREAD_WAITING_FOR_VALUE
 static int have_rb_thread_waiting_for_value = 0;
@@ -350,21 +335,12 @@ static int have_rb_thread_waiting_for_value = 0;
  *  'timer_tick' is a limit of one term of thread scheduling.
  *  If 'timer_tick' == 0, then not use the timer for thread scheduling.
  */
-#ifdef RUBY_USE_NATIVE_THREAD
 #define DEFAULT_EVENT_LOOP_MAX        800/*counts*/
 #define DEFAULT_NO_EVENT_TICK          10/*counts*/
 #define DEFAULT_NO_EVENT_WAIT           5/*milliseconds ( 1 -- 999 ) */
 #define WATCHDOG_INTERVAL              10/*milliseconds ( 1 -- 999 ) */
 #define DEFAULT_TIMER_TICK              0/*milliseconds ( 0 -- 999 ) */
 #define NO_THREAD_INTERRUPT_TIME      100/*milliseconds ( 1 -- 999 ) */
-#else /* ! RUBY_USE_NATIVE_THREAD */
-#define DEFAULT_EVENT_LOOP_MAX        800/*counts*/
-#define DEFAULT_NO_EVENT_TICK          10/*counts*/
-#define DEFAULT_NO_EVENT_WAIT          20/*milliseconds ( 1 -- 999 ) */
-#define WATCHDOG_INTERVAL              10/*milliseconds ( 1 -- 999 ) */
-#define DEFAULT_TIMER_TICK              0/*milliseconds ( 0 -- 999 ) */
-#define NO_THREAD_INTERRUPT_TIME      100/*milliseconds ( 1 -- 999 ) */
-#endif
 
 #define EVENT_HANDLER_TIMEOUT         100/*milliseconds*/
 
@@ -481,9 +457,7 @@ struct tcltkip {
 #if TCL_NAMESPACE_DEBUG
     Tcl_Namespace *default_ns;   /* default namespace */
 #endif
-#ifdef RUBY_USE_NATIVE_THREAD
     Tcl_ThreadId tk_thread_id;   /* native thread ID of Tcl interpreter */
-#endif
     int has_orig_exit;           /* has original 'exit' command ? */
     Tcl_CmdInfo orig_exit_info;  /* command info of original 'exit' command */
     int ref_count;               /* reference count of rbtk_preserve_ip call */
@@ -1031,9 +1005,7 @@ tcltkip_init_tk(VALUE interp)
         }
     }
 
-#ifdef RUBY_USE_NATIVE_THREAD
     ptr->tk_thread_id = Tcl_GetCurrentThread();
-#endif
 
     return Qnil;
 }
@@ -1214,7 +1186,6 @@ _timer_for_tcl(ClientData clientData)
     /* tick_counter += event_loop_max; */
 }
 
-#ifdef RUBY_USE_NATIVE_THREAD
 #if USE_TOGGLE_WINDOW_MODE_FOR_IDLE
 static int
 toggle_eventloop_window_mode_for_idle(void)
@@ -1231,7 +1202,6 @@ toggle_eventloop_window_mode_for_idle(void)
     return 0;
   }
 }
-#endif
 #endif
 
 static VALUE
@@ -1507,11 +1477,7 @@ lib_num_of_mainwindows_core(VALUE self, int argc /* dummy */, VALUE *argv /* dum
 static VALUE
 lib_num_of_mainwindows(VALUE self)
 {
-#ifdef RUBY_USE_NATIVE_THREAD  /* Ruby 1.9+ !!! */
     return tk_funcall(lib_num_of_mainwindows_core, 0, (VALUE*)NULL, self);
-#else
-    return lib_num_of_mainwindows_core(self, 0, (VALUE*)NULL);
-#endif
 }
 
 void
@@ -1530,7 +1496,6 @@ rbtk_EventCheckProc(ClientData clientData, int flag)
 }
 
 
-#ifdef RUBY_USE_NATIVE_THREAD  /* Ruby 1.9+ !!! */
 static VALUE
 call_DoOneEvent_core(VALUE flag_val, RB_UNUSED_VAR(int argc), RB_UNUSED_VAR(VALUE *argv))
 {
@@ -1550,21 +1515,6 @@ call_DoOneEvent(VALUE flag_val)
   return tk_funcall(call_DoOneEvent_core, 0, (VALUE*)NULL, flag_val);
 }
 
-#else  /* Ruby 1.8- */
-static VALUE
-call_DoOneEvent(VALUE flag_val)
-{
-    int flag;
-
-    flag = FIX2INT(flag_val);
-    if (Tcl_DoOneEvent(flag)) {
-        return Qtrue;
-    } else {
-        return Qfalse;
-    }
-}
-#endif
-
 
 #define USE_EVLOOP_THREAD_ALONE_CHECK_FLAG 0
 
@@ -1572,35 +1522,7 @@ call_DoOneEvent(VALUE flag_val)
 static int
 get_thread_alone_check_flag(void)
 {
-#ifdef RUBY_USE_NATIVE_THREAD
   return 0;
-#else
-  set_tcltk_version();
-
-  if (tcltk_version.major < 8) {
-    /* Tcl/Tk 7.x */
-    return 1;
-  } else if (tcltk_version.major == 8) {
-    if (tcltk_version.minor < 5) {
-      /* Tcl/Tk 8.0 - 8.4 */
-      return 1;
-    } else if (tcltk_version.minor == 5) {
-      if (tcltk_version.type < TCL_FINAL_RELEASE) {
-	/* Tcl/Tk 8.5a? - 8.5b? */
-	return 1;
-      } else {
-	/* Tcl/Tk 8.5.x */
-	return 0;
-      }
-    } else {
-      /* Tcl/Tk 8.6 - 8.9 ?? */
-      return 0;
-    }
-  } else {
-    /* Tcl/Tk 9+ ?? */
-    return 0;
-  }
-#endif
 }
 #endif
 
@@ -1821,7 +1743,6 @@ lib_eventloop_core(int check_root, int update_flag, int *check_var, Tcl_Interp *
                     int st;
                     int status;
 
-#ifdef RUBY_USE_NATIVE_THREAD
 		    if (update_flag) {
 		      st = RTEST(rb_protect(call_DoOneEvent,
 					    INT2FIX(event_flag), &status));
@@ -1841,11 +1762,6 @@ lib_eventloop_core(int check_root, int update_flag, int *check_var, Tcl_Interp *
 		      }
 #endif
 		    }
-#else
-                    /* st = Tcl_DoOneEvent(event_flag); */
-                    st = RTEST(rb_protect(call_DoOneEvent,
-                                          INT2FIX(event_flag), &status));
-#endif
 
 #if CONTROL_BY_STATUS_OF_RB_THREAD_WAITING_FOR_VALUE
 		    if (have_rb_thread_waiting_for_value) {
@@ -1955,11 +1871,7 @@ lib_eventloop_core(int check_root, int update_flag, int *check_var, Tcl_Interp *
         }
 
         DUMP1("check interrupts");
-#if defined(RUBY_USE_NATIVE_THREAD) || defined(RUBY_VM)
 	if (update_flag == 0) rb_thread_check_ints();
-#else
-        if (update_flag == 0) CHECK_INTS;
-#endif
 
     }
     return 1;
@@ -2042,11 +1954,9 @@ lib_eventloop_ensure(VALUE args)
         }
     }
 
-#ifdef RUBY_USE_NATIVE_THREAD
     if (NIL_P(eventloop_thread)) {
         tk_eventloop_thread_id = (Tcl_ThreadId) 0;
     }
-#endif
 
     xfree(ptr);
     /* ckfree((char*)ptr);*/
@@ -2065,9 +1975,7 @@ lib_eventloop_launcher(int check_root, int update_flag, int *check_var, Tcl_Inte
     tcl_stubs_check();
 
     eventloop_thread = rb_thread_current();
-#ifdef RUBY_USE_NATIVE_THREAD
     tk_eventloop_thread_id = Tcl_GetCurrentThread();
-#endif
 
     if (parent_evloop == eventloop_thread) {
         DUMP2("eventloop: recursive call on %"PRIxVALUE, parent_evloop);
@@ -2208,9 +2116,7 @@ VALUE
 lib_watchdog_ensure(VALUE arg)
 {
     eventloop_thread = Qnil; /* stop eventloops */
-#ifdef RUBY_USE_NATIVE_THREAD
     tk_eventloop_thread_id = (Tcl_ThreadId) 0;
-#endif
     return Qnil;
 }
 
@@ -2651,14 +2557,6 @@ tcl_protect(Tcl_Interp *interp, VALUE (*proc)(VALUE), VALUE data)
 {
     int code;
 
-#ifdef HAVE_NATIVETHREAD
-#ifndef RUBY_USE_NATIVE_THREAD
-    if (!ruby_native_thread_p()) {
-        rb_bug("cross-thread violation on tcl_protect()");
-    }
-#endif
-#endif
-
 #ifdef RUBY_VM
     code = tcl_protect_core(interp, proc, data);
 #else
@@ -2993,13 +2891,6 @@ ip_rbUpdateObjCmd(
                                              "IP is deleted");
         return TCL_ERROR;
     }
-#ifdef HAVE_NATIVETHREAD
-#ifndef RUBY_USE_NATIVE_THREAD
-    if (!ruby_native_thread_p()) {
-        rb_bug("cross-thread violation on ip_ruby_eval()");
-    }
-#endif
-#endif
 
     Tcl_ResetResult(interp);
 
@@ -3119,13 +3010,6 @@ ip_rb_threadUpdateObjCmd(
                                              "IP is deleted");
         return TCL_ERROR;
     }
-#ifdef HAVE_NATIVETHREAD
-#ifndef RUBY_USE_NATIVE_THREAD
-    if (!ruby_native_thread_p()) {
-        rb_bug("cross-thread violation on ip_rb_threadUpdateCommand()");
-    }
-#endif
-#endif
 
     if (rb_thread_alone()
         || NIL_P(eventloop_thread) || eventloop_thread == current_thread) {
@@ -3246,13 +3130,6 @@ ip_rbVwaitObjCmd(
     }
 
     Tcl_Preserve(interp);
-#ifdef HAVE_NATIVETHREAD
-#ifndef RUBY_USE_NATIVE_THREAD
-    if (!ruby_native_thread_p()) {
-        rb_bug("cross-thread violation on ip_rbVwaitCommand()");
-    }
-#endif
-#endif
 
     Tcl_ResetResult(interp);
 
@@ -4546,9 +4423,7 @@ ip_init(int argc, VALUE *argv, VALUE self)
     ptr = ALLOC(struct tcltkip);
     /* ptr = RbTk_ALLOC_N(struct tcltkip, 1); */
     DATA_PTR(self) = ptr;
-#ifdef RUBY_USE_NATIVE_THREAD
     ptr->tk_thread_id = 0;
-#endif
     ptr->ref_count = 0;
     ptr->allow_ruby_exit = 1;
     ptr->return_value = 0;
@@ -4676,10 +4551,8 @@ ip_init(int argc, VALUE *argv, VALUE self)
         DUMP1("Tcl_StaticPackage(\"Tk\")");
         Tcl_StaticPackage(ptr->ip, "Tk", Tk_Init, Tk_SafeInit);
 
-#ifdef RUBY_USE_NATIVE_THREAD
         /* set Tk thread ID */
         ptr->tk_thread_id = Tcl_GetCurrentThread();
-#endif
         /* get main window */
         mainWin = Tk_MainWindow(ptr->ip);
         RbTk_Preserve((ClientData)mainWin);
@@ -4765,10 +4638,8 @@ ip_create_slave_core(VALUE interp, int argc, VALUE *argv)
     new_ip = TypedData_Make_Struct(CLASS_OF(interp), struct tcltkip,
 				   &tcltkip_type, slave);
     /* create slave-ip */
-#ifdef RUBY_USE_NATIVE_THREAD
     /* slave->tk_thread_id = 0; */
     slave->tk_thread_id = master->tk_thread_id; /* == current thread */
-#endif
     slave->ref_count = 0;
     slave->allow_ruby_exit = 0;
     slave->return_value = 0;
@@ -5271,7 +5142,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
         ptr = (struct tcltkip *)NULL;
     }
 
-#ifdef RUBY_USE_NATIVE_THREAD
     if (ptr) {
       /* on Tcl interpreter */
       is_tk_evloop_thread = (ptr->tk_thread_id == (Tcl_ThreadId) 0
@@ -5281,9 +5151,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
       is_tk_evloop_thread = (tk_eventloop_thread_id == (Tcl_ThreadId) 0
 			     || tk_eventloop_thread_id == Tcl_GetCurrentThread());
     }
-#else
-    is_tk_evloop_thread = 1;
-#endif
 
     if (is_tk_evloop_thread
 	&& (NIL_P(eventloop_thread) || current == eventloop_thread)
@@ -5334,7 +5201,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
 
     /* add the handler to Tcl event queue */
     DUMP1("add handler");
-#ifdef RUBY_USE_NATIVE_THREAD
     if (ptr && ptr->tk_thread_id) {
       /* Tcl_ThreadQueueEvent(ptr->tk_thread_id,
 			   &(callq->ev), TCL_QUEUE_HEAD); */
@@ -5351,10 +5217,6 @@ tk_funcall(VALUE (*func)(VALUE, int, VALUE *), int argc, VALUE *argv, VALUE obj)
       /* Tcl_QueueEvent(&(callq->ev), TCL_QUEUE_HEAD); */
       Tcl_QueueEvent((Tcl_Event*)callq, TCL_QUEUE_HEAD);
     }
-#else
-    /* Tcl_QueueEvent(&(callq->ev), TCL_QUEUE_HEAD); */
-    Tcl_QueueEvent((Tcl_Event*)callq, TCL_QUEUE_HEAD);
-#endif
 
     /* wait for the handler to be processed */
     t.tv_sec  = 0;
@@ -5606,9 +5468,7 @@ static VALUE
 ip_eval(VALUE self, VALUE str)
 {
     struct eval_queue *evq;
-#ifdef RUBY_USE_NATIVE_THREAD
     struct tcltkip *ptr;
-#endif
     char *eval_str;
     int  *alloc_done;
     volatile VALUE current = rb_thread_current();
@@ -5620,22 +5480,13 @@ ip_eval(VALUE self, VALUE str)
 
     StringValue(str);
 
-#ifdef RUBY_USE_NATIVE_THREAD
     ptr = get_ip(ip_obj);
     DUMP2("eval status: ptr->tk_thread_id %p", ptr->tk_thread_id);
     DUMP2("eval status: Tcl_GetCurrentThread %p", Tcl_GetCurrentThread());
-#else
-    DUMP2("status: Tcl_GetCurrentThread %p", Tcl_GetCurrentThread());
-#endif
     DUMP2("status: eventloopt_thread %"PRIxVALUE, eventloop_thread);
 
-    if (
-#ifdef RUBY_USE_NATIVE_THREAD
-	(ptr->tk_thread_id == 0 || ptr->tk_thread_id == Tcl_GetCurrentThread())
-	&&
-#endif
-	(NIL_P(eventloop_thread) || current == eventloop_thread)
-	) {
+    if ((ptr->tk_thread_id == 0 || ptr->tk_thread_id == Tcl_GetCurrentThread())
+	&& (NIL_P(eventloop_thread) || current == eventloop_thread)) {
         if (NIL_P(eventloop_thread)) {
             DUMP2("eval from thread:%"PRIxVALUE" but no eventloop", current);
         } else {
@@ -5680,24 +5531,15 @@ ip_eval(VALUE self, VALUE str)
 
     /* add the handler to Tcl event queue */
     DUMP1("add handler");
-#ifdef RUBY_USE_NATIVE_THREAD
     if (ptr->tk_thread_id) {
-      /* Tcl_ThreadQueueEvent(ptr->tk_thread_id, &(evq->ev), position); */
       Tcl_ThreadQueueEvent(ptr->tk_thread_id, (Tcl_Event*)evq, position);
       Tcl_ThreadAlert(ptr->tk_thread_id);
     } else if (tk_eventloop_thread_id) {
       Tcl_ThreadQueueEvent(tk_eventloop_thread_id, (Tcl_Event*)evq, position);
-      /* Tcl_ThreadQueueEvent(tk_eventloop_thread_id,
-			   &(evq->ev), position); */
       Tcl_ThreadAlert(tk_eventloop_thread_id);
     } else {
-      /* Tcl_QueueEvent(&(evq->ev), position); */
       Tcl_QueueEvent((Tcl_Event*)evq, position);
     }
-#else
-    /* Tcl_QueueEvent(&(evq->ev), position); */
-    Tcl_QueueEvent((Tcl_Event*)evq, position);
-#endif
 
     /* wait for the handler to be processed */
     t.tv_sec  = 0;
@@ -6617,9 +6459,7 @@ static VALUE
 ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition position)
 {
     struct invoke_queue *ivq;
-#ifdef RUBY_USE_NATIVE_THREAD
     struct tcltkip *ptr;
-#endif
     int  *alloc_done;
     volatile VALUE current = rb_thread_current();
     volatile VALUE ip_obj = obj;
@@ -6632,22 +6472,13 @@ ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition posi
         rb_raise(rb_eArgError, "command name missing");
     }
 
-#ifdef RUBY_USE_NATIVE_THREAD
     ptr = get_ip(ip_obj);
     DUMP2("invoke status: ptr->tk_thread_id %p", ptr->tk_thread_id);
     DUMP2("invoke status: Tcl_GetCurrentThread %p", Tcl_GetCurrentThread());
-#else
-    DUMP2("status: Tcl_GetCurrentThread %p", Tcl_GetCurrentThread());
-#endif
     DUMP2("status: eventloopt_thread %"PRIxVALUE, eventloop_thread);
 
-    if (
-#ifdef RUBY_USE_NATIVE_THREAD
-	(ptr->tk_thread_id == 0 || ptr->tk_thread_id == Tcl_GetCurrentThread())
-	&&
-#endif
-	(NIL_P(eventloop_thread) || current == eventloop_thread)
-	) {
+    if ((ptr->tk_thread_id == 0 || ptr->tk_thread_id == Tcl_GetCurrentThread())
+	&& (NIL_P(eventloop_thread) || current == eventloop_thread)) {
         if (NIL_P(eventloop_thread)) {
             DUMP2("invoke from thread:%"PRIxVALUE" but no eventloop", current);
         } else {
@@ -6688,25 +6519,15 @@ ip_invoke_with_position(int argc, VALUE *argv, VALUE obj, Tcl_QueuePosition posi
 
     /* add the handler to Tcl event queue */
     DUMP1("add handler");
-#ifdef RUBY_USE_NATIVE_THREAD
     if (ptr->tk_thread_id) {
-      /* Tcl_ThreadQueueEvent(ptr->tk_thread_id, &(ivq->ev), position); */
       Tcl_ThreadQueueEvent(ptr->tk_thread_id, (Tcl_Event*)ivq, position);
       Tcl_ThreadAlert(ptr->tk_thread_id);
     } else if (tk_eventloop_thread_id) {
-      /* Tcl_ThreadQueueEvent(tk_eventloop_thread_id,
-			   &(ivq->ev), position); */
-      Tcl_ThreadQueueEvent(tk_eventloop_thread_id,
-			   (Tcl_Event*)ivq, position);
+      Tcl_ThreadQueueEvent(tk_eventloop_thread_id, (Tcl_Event*)ivq, position);
       Tcl_ThreadAlert(tk_eventloop_thread_id);
     } else {
-      /* Tcl_QueueEvent(&(ivq->ev), position); */
       Tcl_QueueEvent((Tcl_Event*)ivq, position);
     }
-#else
-    /* Tcl_QueueEvent(&(ivq->ev), position); */
-    Tcl_QueueEvent((Tcl_Event*)ivq, position);
-#endif
 
     /* wait for the handler to be processed */
     t.tv_sec  = 0;
