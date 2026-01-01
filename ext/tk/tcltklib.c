@@ -2285,7 +2285,6 @@ ip_ruby_cmd(
     int i;
     Tcl_Size len;  /* Tcl 9 uses Tcl_Size for string lengths */
     struct cmd_body_arg *arg;
-    VALUE old_gc;
     int code;
 
     if (interp == (Tcl_Interp*)NULL) {
@@ -2303,7 +2302,6 @@ ip_ruby_cmd(
     }
 
     /* get arguments from Tcl objects */
-    old_gc = rb_gc_disable();
 
     /* get receiver */
     str = Tcl_GetStringFromObj(argv[1], &len);
@@ -2316,7 +2314,6 @@ ip_ruby_cmd(
                          str, "'", (char *)NULL);
         rbtk_pending_exception = rb_exc_new2(rb_eArgError,
                                              Tcl_GetStringResult(interp));
-        if (old_gc == Qfalse) rb_gc_enable();
         return TCL_ERROR;
     }
 
@@ -2334,8 +2331,6 @@ ip_ruby_cmd(
         rb_ary_push(args, s);
     }
 
-    if (old_gc == Qfalse) rb_gc_enable();
-
     /* allocate */
     arg = ALLOC(struct cmd_body_arg);
     /* arg = RbTk_ALLOC_N(struct cmd_body_arg, 1); */
@@ -2350,6 +2345,8 @@ ip_ruby_cmd(
     xfree(arg);
     /* ckfree((char*)arg); */
 
+    RB_GC_GUARD(receiver);
+    RB_GC_GUARD(args);
     return code;
 }
 
