@@ -1113,16 +1113,6 @@ call_DoOneEvent(VALUE flag_val)
 }
 
 
-#define USE_EVLOOP_THREAD_ALONE_CHECK_FLAG 0
-
-#if USE_EVLOOP_THREAD_ALONE_CHECK_FLAG
-static int
-get_thread_alone_check_flag(void)
-{
-  return 0;
-}
-#endif
-
 #define TRAP_CHECK() do { \
     if (trap_check(check_var) == 0) return 0; \
 } while (0)
@@ -1178,11 +1168,6 @@ lib_eventloop_core(int check_root, int update_flag, int *check_var, Tcl_Interp *
     int event_flag;
     int status;
     int depth = rbtk_eventloop_depth;
-#if USE_EVLOOP_THREAD_ALONE_CHECK_FLAG
-    int thread_alone_check_flag = 1;
-#else
-    enum {thread_alone_check_flag = 1};
-#endif
 
     if (update_flag) DUMP1("update loop start!!");
 
@@ -1195,15 +1180,10 @@ lib_eventloop_core(int check_root, int update_flag, int *check_var, Tcl_Interp *
         timer_token = (Tcl_TimerToken)NULL;
     }
 
-#if USE_EVLOOP_THREAD_ALONE_CHECK_FLAG
-    /* version check */
-    thread_alone_check_flag = get_thread_alone_check_flag();
-#endif
-
     for(;;) {
         if (check_eventloop_interp()) return 0;
 
-        if (thread_alone_check_flag && rb_thread_alone()) {
+        if (rb_thread_alone()) {
             DUMP1("no other thread");
             event_loop_wait_event = 0;
 
