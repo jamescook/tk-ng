@@ -167,13 +167,7 @@ static CONST86 Tcl_ObjType *Tcl_ObjType_String;
 #define IS_TCL_STRING(obj)       ((obj)->typePtr == Tcl_ObjType_String)
 #define IS_TCL_VALID_STRING(obj) ((obj)->bytes != (char*)NULL)
 
-#ifndef HAVE_RB_HASH_LOOKUP
-#define rb_hash_lookup rb_hash_aref
-#endif
-
-#ifndef HAVE_RB_THREAD_ALIVE_P
-#define rb_thread_alive_p(thread) rb_funcall2((thread), ID_alive_p, 0, NULL)
-#endif
+#define rb_thread_alive_p(thread) rb_funcall((thread), ID_alive_p, 0)
 
 /* safe Tcl_Eval and Tcl_GlobalEval */
 static int
@@ -7671,9 +7665,7 @@ Init_tcltklib(void)
     ID_encoding_table = rb_intern("encoding_table");
 
     ID_stop_p = rb_intern("stop?");
-#ifndef HAVE_RB_THREAD_ALIVE_P
     ID_alive_p = rb_intern("alive?");
-#endif
     ID_kill = rb_intern("kill");
     ID_join = rb_intern("join");
     ID_value = rb_intern("value");
