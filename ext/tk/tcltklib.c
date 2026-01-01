@@ -26,15 +26,6 @@ int rb_thread_check_trap_pending(void);
 #include <tk.h>
 #include "tcl9compat.h"
 
-#ifndef HAVE_RB_ERRINFO
-#define rb_errinfo() (ruby_errinfo+0) /* cannot be l-value */
-#else
-VALUE rb_errinfo(void);
-#endif
-#ifndef HAVE_RB_SOURCEFILE
-#define rb_sourcefile() (ruby_sourcefile+0)
-#endif
-
 #include "stubs.h"
 
 #ifndef TCL_ALPHA_RELEASE
