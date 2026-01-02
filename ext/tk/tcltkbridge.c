@@ -16,13 +16,55 @@
 #include <tcl.h>
 #include <tk.h>
 #include <string.h>
+#include <dlfcn.h>
 
 /* Tcl 8.x/9.x compatibility (Tcl_Size, etc.) */
 #include "tcl9compat.h"
 
-/* Minimum Tcl/Tk version - "8.6-" means 8.6+ including 9.x */
-#define MIN_TCL_VERSION "8.6-"
-#define MIN_TK_VERSION "8.6-"
+/*
+ * Bootstrap helpers: call Tcl functions before stubs are initialized.
+ *
+ * Tcl 9.0 pre-initializes tclStubsPtr, but Tcl 8.6 does not.
+ * When tclStubsPtr is NULL, Tcl_CreateInterp() and Tcl_FindExecutable()
+ * crash because they're macros that dereference tclStubsPtr.
+ * We use dlsym to get the real function pointers and call them directly.
+ */
+static void
+find_executable_bootstrap(const char *argv0)
+{
+    if (tclStubsPtr != NULL) {
+        Tcl_FindExecutable(argv0);
+        return;
+    }
+
+    void (*real_find_executable)(const char *);
+    real_find_executable = dlsym(RTLD_DEFAULT, "Tcl_FindExecutable");
+    if (real_find_executable) {
+        real_find_executable(argv0);
+    }
+}
+
+static Tcl_Interp *
+create_interp_bootstrap(void)
+{
+    if (tclStubsPtr != NULL) {
+        return Tcl_CreateInterp();
+    }
+
+    Tcl_Interp *(*real_create_interp)(void);
+    real_create_interp = dlsym(RTLD_DEFAULT, "Tcl_CreateInterp");
+    if (!real_create_interp) {
+        return NULL;
+    }
+    return real_create_interp();
+}
+
+/*
+ * Version strings for Tcl_InitStubs/Tk_InitStubs.
+ * Must match the major version we compiled against - Tcl's version
+ * satisfaction requires same major number (9.x won't satisfy "8.6").
+ * TCL_VERSION/TK_VERSION are defined in tcl.h/tk.h at compile time.
+ */
 
 /* Module and class handles */
 static VALUE mTclTkLib;
@@ -37,6 +79,8 @@ static VALUE live_instances;  /* Ruby Array of live TclTkIp objects */
 
 /* Forward declaration for Tcl callback command */
 static int ruby_callback_proc(ClientData, Tcl_Interp *, int, Tcl_Obj *const *);
+static int ruby_eval_proc(ClientData, Tcl_Interp *, int, Tcl_Obj *const *);
+static void interp_deleted_callback(ClientData, Tcl_Interp *);
 
 /* Default timer interval for thread-aware mainloop (ms) */
 #define DEFAULT_TIMER_INTERVAL_MS 5
@@ -98,6 +142,23 @@ interp_free(void *ptr)
         Tcl_DeleteInterp(tip->interp);
     }
     xfree(tip);
+}
+
+/* ---------------------------------------------------------
+ * Callback invoked by Tcl when an interpreter is deleted
+ *
+ * This is registered via Tcl_CallWhenDeleted so that when Tcl
+ * internally deletes an interpreter (e.g., via `interp delete`),
+ * we update our Ruby-side state to reflect the deletion.
+ * Without this, the Ruby object would think the interp is still
+ * valid and using it would crash.
+ * --------------------------------------------------------- */
+static void
+interp_deleted_callback(ClientData clientData, Tcl_Interp *interp)
+{
+    struct tcltk_interp *tip = (struct tcltk_interp *)clientData;
+    tip->deleted = 1;
+    tip->interp = NULL;  /* Don't hold stale pointer */
 }
 
 static size_t
@@ -203,17 +264,17 @@ interp_initialize(int argc, VALUE *argv, VALUE self)
 
     /* 1. Tell Tcl where to find itself (once per process) */
     if (!tcl_stubs_initialized) {
-        Tcl_FindExecutable("ruby");
+        find_executable_bootstrap("ruby");
     }
 
-    /* 2. Create Tcl interpreter */
-    tip->interp = Tcl_CreateInterp();
+    /* 2. Create Tcl interpreter (using bootstrap to handle Tcl 8.6) */
+    tip->interp = create_interp_bootstrap();
     if (tip->interp == NULL) {
         rb_raise(eTclError, "failed to create Tcl interpreter");
     }
 
     /* 3. Initialize Tcl stubs - MUST be before any other Tcl calls */
-    tcl_version = Tcl_InitStubs(tip->interp, MIN_TCL_VERSION, 0);
+    tcl_version = Tcl_InitStubs(tip->interp, TCL_VERSION, 0);
     if (tcl_version == NULL) {
         const char *err = Tcl_GetStringResult(tip->interp);
         Tcl_DeleteInterp(tip->interp);
@@ -241,7 +302,7 @@ interp_initialize(int argc, VALUE *argv, VALUE self)
     }
 
     /* 7. Initialize Tk stubs - after Tk_Init */
-    tk_version = Tk_InitStubs(tip->interp, MIN_TK_VERSION, 0);
+    tk_version = Tk_InitStubs(tip->interp, TK_VERSION, 0);
     if (tk_version == NULL) {
         const char *err = Tcl_GetStringResult(tip->interp);
         Tcl_DeleteInterp(tip->interp);
@@ -251,14 +312,21 @@ interp_initialize(int argc, VALUE *argv, VALUE self)
 
     tcl_stubs_initialized = 1;
 
-    /* 8. Register ruby_callback Tcl command for callbacks */
+    /* 8. Register Tcl commands for Ruby integration */
     Tcl_CreateObjCommand(tip->interp, "ruby_callback",
                          ruby_callback_proc, (ClientData)tip, NULL);
+    Tcl_CreateObjCommand(tip->interp, "ruby",
+                         ruby_eval_proc, (ClientData)tip, NULL);
+    Tcl_CreateObjCommand(tip->interp, "ruby_eval",
+                         ruby_eval_proc, (ClientData)tip, NULL);
 
-    /* 9. Track this instance for multi-interp safety checks */
+    /* 9. Register callback for when Tcl deletes this interpreter */
+    Tcl_CallWhenDeleted(tip->interp, interp_deleted_callback, (ClientData)tip);
+
+    /* 10. Track this instance for multi-interp safety checks */
     rb_ary_push(live_instances, self);
 
-    /* 10. Store the main thread ID for cross-thread event queuing */
+    /* 11. Store the main thread ID for cross-thread event queuing */
     tip->main_thread_id = Tcl_GetCurrentThread();
 
     return self;
@@ -352,6 +420,62 @@ ruby_callback_proc(ClientData clientData, Tcl_Interp *interp,
     }
 
     /* Return result to Tcl */
+    if (!NIL_P(result)) {
+        VALUE str = rb_String(result);
+        Tcl_SetResult(interp, StringValueCStr(str), TCL_VOLATILE);
+    }
+
+    return TCL_OK;
+}
+
+/* ---------------------------------------------------------
+ * ruby_eval_proc - Tcl command that evaluates Ruby code strings
+ *
+ * Called from Tcl as: ruby <ruby_code_string>
+ * Used by tcltk.rb's callback mechanism.
+ * --------------------------------------------------------- */
+
+/* Helper for rb_protect */
+static VALUE
+eval_ruby_string(VALUE arg)
+{
+    return rb_eval_string(StringValueCStr(arg));
+}
+
+static int
+ruby_eval_proc(ClientData clientData, Tcl_Interp *interp,
+               int objc, Tcl_Obj *const objv[])
+{
+    VALUE code_str, result;
+    int state;
+    const char *code;
+
+    if (objc != 2) {
+        Tcl_SetResult(interp, (char *)"wrong # args: should be \"ruby code\"",
+                      TCL_STATIC);
+        return TCL_ERROR;
+    }
+
+    code = Tcl_GetString(objv[1]);
+    code_str = rb_utf8_str_new_cstr(code);
+
+    result = rb_protect(eval_ruby_string, code_str, &state);
+
+    if (state) {
+        VALUE errinfo = rb_errinfo();
+        rb_set_errinfo(Qnil);
+
+        /* Let SystemExit and Interrupt propagate */
+        if (rb_obj_is_kind_of(errinfo, rb_eSystemExit) ||
+            rb_obj_is_kind_of(errinfo, rb_eInterrupt)) {
+            rb_exc_raise(errinfo);
+        }
+
+        VALUE msg = rb_funcall(errinfo, rb_intern("message"), 0);
+        Tcl_SetResult(interp, StringValueCStr(msg), TCL_VOLATILE);
+        return TCL_ERROR;
+    }
+
     if (!NIL_P(result)) {
         VALUE str = rb_String(result);
         Tcl_SetResult(interp, StringValueCStr(str), TCL_VOLATILE);
@@ -1024,9 +1148,16 @@ interp_create_slave(int argc, VALUE *argv, VALUE self)
     slave->timer_interval_ms = DEFAULT_TIMER_INTERVAL_MS;
     slave->main_thread_id = Tcl_GetCurrentThread();
 
-    /* Register ruby_callback in the slave */
+    /* Register Ruby integration commands in the slave */
     Tcl_CreateObjCommand(slave->interp, "ruby_callback",
                          ruby_callback_proc, (ClientData)slave, NULL);
+    Tcl_CreateObjCommand(slave->interp, "ruby",
+                         ruby_eval_proc, (ClientData)slave, NULL);
+    Tcl_CreateObjCommand(slave->interp, "ruby_eval",
+                         ruby_eval_proc, (ClientData)slave, NULL);
+
+    /* Register callback for when Tcl deletes this interpreter */
+    Tcl_CallWhenDeleted(slave->interp, interp_deleted_callback, (ClientData)slave);
 
     /* Track this instance */
     rb_ary_push(live_instances, new_ip);

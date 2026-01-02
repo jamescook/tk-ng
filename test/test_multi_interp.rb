@@ -86,4 +86,43 @@ class TestMultiInterp < Minitest::Test
       RUBY
     end
   end
+
+  # Test that Ruby knows when Tcl deletes an interpreter
+  #
+  # This tests Tcl_CallWhenDeleted - when Tcl internally deletes an
+  # interpreter (via `interp delete`), our Ruby object should know.
+  # Without CallWhenDeleted, the Ruby object thinks it's still valid
+  # and using it will crash or produce undefined behavior.
+  def test_tcl_delete_updates_ruby_state
+    assert_tk_test("Ruby should know when Tcl deletes interpreter") do
+      <<~RUBY
+        require 'tk'
+        root = TkRoot.new { withdraw }
+
+        interp = TkCore::INTERP
+        slave = interp.create_slave("delete_test", true)
+
+        # Verify slave works
+        raise "slave should not be deleted yet" if slave.deleted?
+
+        # Delete the slave via Tcl (not Ruby) - simulates internal deletion
+        interp._eval("interp delete delete_test")
+
+        # Ruby should now know the slave is gone
+        # Without Tcl_CallWhenDeleted, slave.deleted? will still be false
+        # and trying to use it will crash
+        raise "slave.deleted? should be true after Tcl deletes it" unless slave.deleted?
+
+        # Double-check: using deleted interpreter should raise, not crash
+        begin
+          slave._eval("expr 1 + 1")
+          raise "should have raised an error using deleted interpreter"
+        rescue TclTkLib::TclError => e
+          # Expected - interpreter is deleted
+        end
+
+        root.destroy
+      RUBY
+    end
+  end
 end

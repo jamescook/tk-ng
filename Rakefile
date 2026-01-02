@@ -23,7 +23,7 @@ require 'rake/clean'
 
 # Clean up extconf cached config files
 CLEAN.include('ext/tk/config_list', 'ext/tk/tkutil/config_list')
-CLOBBER.include('tmp', 'lib/*.bundle', 'lib/*.so')
+CLOBBER.include('tmp', 'lib/*.bundle', 'lib/*.so', 'ext/**/*.o', 'ext/**/*.bundle', 'ext/**/*.bundle.dSYM')
 
 Rake::ExtensionTask.new do |ext|
   ext.name = 'tcltklib'
