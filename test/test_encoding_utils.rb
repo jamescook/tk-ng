@@ -68,3 +68,51 @@ class TestEncodingRoundTrip < Minitest::Test
     assert_equal str, result
   end
 end
+
+# Tests for Tk::Encoding functions
+class TestTkEncodingConversion < Minitest::Test
+  def setup
+    require 'tk'
+  end
+
+  # Deprecated but should still work as passthrough
+  def test_encoding_convertto_deprecated_but_works
+    _out, err = capture_io do
+      result = Tk::Encoding.encoding_convertto("hello")
+      assert_equal "hello", result
+      assert_equal ::Encoding::UTF_8, result.encoding
+    end
+    assert_match(/deprecated/, err)
+  end
+
+  def test_encoding_convertto_unicode_passthrough
+    _out, err = capture_io do
+      result = Tk::Encoding.encoding_convertto("日本語")
+      assert_equal "日本語", result
+      assert result.valid_encoding?
+    end
+    assert_match(/deprecated/, err)
+  end
+
+  def test_encoding_convertfrom_deprecated_but_works
+    _out, err = capture_io do
+      result = Tk::Encoding.encoding_convertfrom("hello")
+      assert_equal "hello", result
+      assert_equal ::Encoding::UTF_8, result.encoding
+    end
+    assert_match(/deprecated/, err)
+  end
+
+  def test_encoding_names
+    names = Tk::Encoding.encoding_names
+    assert names.is_a?(Array)
+    assert names.include?("utf-8")
+  end
+
+  def test_encoding_system
+    enc = Tk::Encoding.encoding_system_name
+    assert enc.is_a?(String)
+    # Modern Tcl uses utf-8 by default
+    assert_equal "utf-8", enc
+  end
+end

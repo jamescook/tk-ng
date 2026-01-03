@@ -557,60 +557,6 @@ class TestTkUtil < Minitest::Test
     assert_kind_of String, result
   end
 
-  # Callback system tests
-  def test_install_cmd_with_proc
-    called = false
-    cmd_id = TkUtil.install_cmd(proc { called = true })
-    assert_kind_of String, cmd_id
-    assert cmd_id.start_with?("ruby_cmd TkUtil callback ")
-  end
-
-  def test_install_cmd_with_block
-    called = false
-    cmd_id = TkUtil.install_cmd { called = true }
-    assert_kind_of String, cmd_id
-    assert cmd_id.start_with?("ruby_cmd TkUtil callback ")
-  end
-
-  def test_install_cmd_returns_unique_ids
-    id1 = TkUtil.install_cmd { }
-    id2 = TkUtil.install_cmd { }
-    refute_equal id1, id2
-  end
-
-  def test_callback_executes_installed_proc
-    result = nil
-    cmd_id = TkUtil.install_cmd(proc { |x| result = x * 2 })
-    # Extract the callback key from the full command string
-    key = cmd_id.sub("ruby_cmd TkUtil callback ", "")
-    TkUtil.callback(key, 21)
-    assert_equal 42, result
-  end
-
-  def test_callback_with_multiple_args
-    result = nil
-    cmd_id = TkUtil.install_cmd { |a, b, c| result = [a, b, c] }
-    key = cmd_id.sub("ruby_cmd TkUtil callback ", "")
-    TkUtil.callback(key, 1, 2, 3)
-    assert_equal [1, 2, 3], result
-  end
-
-  def test_uninstall_cmd_removes_callback
-    cmd_id = TkUtil.install_cmd { }
-    result = TkUtil.uninstall_cmd(cmd_id)
-    assert_kind_of Proc, result  # Returns the removed proc
-  end
-
-  def test_uninstall_cmd_with_invalid_id_returns_nil
-    result = TkUtil.uninstall_cmd("invalid_id")
-    assert_nil result
-  end
-
-  def test_uninstall_cmd_with_wrong_prefix_returns_nil
-    result = TkUtil.uninstall_cmd("wrong_prefix cmd123")
-    assert_nil result
-  end
-
   # eval_cmd tests
   def test_eval_cmd_calls_proc
     result = nil
@@ -664,5 +610,66 @@ class TestTkUtil < Minitest::Test
 
   def test_tk_callback_entry_inspect
     assert_equal "TkCallbackEntry", TkCallbackEntry.inspect
+  end
+end
+
+# Tests for TkCore.callback error handling
+# Uses TkComm.install_cmd which stores callbacks in TkCore::INTERP.tk_cmd_tbl
+class TestTkCoreCallback < Minitest::Test
+  include TkComm
+
+  def extract_callback_id(cmd_str)
+    # Extract the callback ID from "rb_out <ip_id> <id>" format
+    cmd_str =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+    $4
+  end
+
+  def test_callback_normal_execution
+    result = nil
+    cmd_str = TkComm.install_cmd(proc { |x| result = x * 2 })
+    key = extract_callback_id(cmd_str)
+
+    TkCore::INTERP.tk_cmd_tbl[key].call(21)
+    assert_equal 42, result
+  end
+
+  def test_callback_with_exception_formats_message
+    cmd_str = TkComm.install_cmd(proc { raise "test error" })
+    key = extract_callback_id(cmd_str)
+
+    err = assert_raises(RuntimeError) do
+      TkCore.callback(key)
+    end
+
+    # Error message should include class, message, and backtrace markers
+    assert_match(/RuntimeError/, err.message)
+    assert_match(/test error/, err.message)
+    assert_match(/backtrace of Ruby side/, err.message)
+    assert_match(/backtrace of Tk side/, err.message)
+  end
+
+  def test_callback_error_message_is_utf8
+    cmd_str = TkComm.install_cmd(proc { raise "エラー" })
+    key = extract_callback_id(cmd_str)
+
+    err = assert_raises(RuntimeError) do
+      TkCore.callback(key)
+    end
+
+    # Error message should be UTF-8 encoded
+    assert_equal Encoding::UTF_8, err.message.encoding
+    assert_match(/エラー/, err.message)
+  end
+
+  def test_callback_with_custom_exception
+    cmd_str = TkComm.install_cmd(proc { raise ArgumentError, "bad arg" })
+    key = extract_callback_id(cmd_str)
+
+    err = assert_raises(ArgumentError) do
+      TkCore.callback(key)
+    end
+
+    assert_match(/ArgumentError/, err.message)
+    assert_match(/bad arg/, err.message)
   end
 end

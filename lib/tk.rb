@@ -169,42 +169,6 @@ module TkComm
       end
     end
 
-###################################
-=begin
-    if ruby_class = WidgetClassNames[tk_class]
-      ruby_class_name = ruby_class.name
-      # gen_class_name = ruby_class_name + 'GeneratedOnTk'
-      gen_class_name = ruby_class_name
-      classname_def = ''
-    else
-      mod = TkExtlibAutoloadModule.find{|m| m.const_defined?(tk_class)}
-      if mod
-        ruby_class_name = mod.name + '::' + tk_class
-        gen_class_name = ruby_class_name
-        classname_def = ''
-      elsif Object.const_defined?('Tk' + tk_class)
-        ruby_class_name = 'Tk' + tk_class
-        # gen_class_name = ruby_class_name + 'GeneratedOnTk'
-        gen_class_name = ruby_class_name
-        classname_def = ''
-      else
-        ruby_class_name = 'TkWindow'
-        # gen_class_name = ruby_class_name + tk_class + 'GeneratedOnTk'
-        gen_class_name = 'TkWidget_' + tk_class
-        classname_def = "WidgetClassName = '#{tk_class}'.freeze"
-      end
-    end
-=end
-
-=begin
-    unless Object.const_defined? gen_class_name
-      Object.class_eval "class #{gen_class_name}<#{ruby_class_name}
-                           #{classname_def}
-                         end"
-    end
-    Object.class_eval "#{gen_class_name}.new('widgetname'=>'#{path}',
-                                             'without_creating'=>true)"
-=end
     base = Object
     gen_class_name.split('::').each{|klass|
       next if klass == ''
@@ -233,18 +197,6 @@ module TkComm
   module_function :_at
 
   def tk_tcl2ruby(val, enc_mode = false, listobj = true)
-=begin
-    if val =~ /^rb_out\S* (c(_\d+_)?\d+)/
-      #return Tk_CMDTBL[$1]
-      return TkCore::INTERP.tk_cmd_tbl[$1]
-      #cmd_obj = TkCore::INTERP.tk_cmd_tbl[$1]
-      #if cmd_obj.kind_of?(Proc) || cmd_obj.kind_of?(Method)
-      #  cmd_obj
-      #else
-      #  cmd_obj.cmd
-      #end
-    end
-=end
     if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
       return TkCore::INTERP.tk_cmd_tbl[$4]
     end
@@ -378,13 +330,7 @@ if USE_TCLs_LIST_FUNCTIONS
       end
 
       if dst_enc != true && dst_enc != false
-        if (s_enc = s.instance_variable_get(:@encoding))
-          s_enc = s_enc.to_s
-        elsif TkCore::WITH_ENCODING
-          s_enc = s.encoding.name
-        else
-          s_enc = sys_enc
-        end
+        s_enc = s.encoding.name
         dst_enc = true if s_enc != dst_enc
       end
 
@@ -394,20 +340,11 @@ if USE_TCLs_LIST_FUNCTIONS
     if sys_enc && dst_enc
       dst.map!{|s| _toUTF8(s)}
       ret = TkCore::INTERP._merge_tklist(*dst)
-      if TkCore::WITH_ENCODING
-        if dst_enc.kind_of?(String)
-          ret = _fromUTF8(ret, dst_enc)
-          ret.force_encoding(dst_enc)
-        else
-          ret.force_encoding('utf-8')
-        end
-      else # without encoding
-        if dst_enc.kind_of?(String)
-          ret = _fromUTF8(ret, dst_enc)
-          ret.instance_variable_set(:@encoding, dst_enc)
-        else
-          ret.instance_variable_set(:@encoding, 'utf-8')
-        end
+      if dst_enc.kind_of?(String)
+        ret = _fromUTF8(ret, dst_enc)
+        ret.force_encoding(dst_enc)
+      else
+        ret.force_encoding('utf-8')
       end
       ret
     else
@@ -522,84 +459,6 @@ end
   private_class_method :tk_split_list, :tk_split_simplelist
 #  private_class_method :array2tk_list
 
-=begin
-  ### --> definition is moved to TkUtil module
-  def _symbolkey2str(keys)
-    h = {}
-    keys.each{|key,value| h[key.to_s] = value}
-    h
-  end
-  private :_symbolkey2str
-  module_function :_symbolkey2str
-=end
-
-=begin
-  ### --> definition is moved to TkUtil module
-  # def hash_kv(keys, enc_mode = nil, conf = [], flat = false)
-  def hash_kv(keys, enc_mode = nil, conf = nil)
-    # Hash {key=>val, key=>val, ... } or Array [ [key, val], [key, val], ... ]
-    #     ==> Array ['-key', val, '-key', val, ... ]
-    dst = []
-    if keys and keys != None
-      keys.each{|k, v|
-        #dst.push("-#{k}")
-        dst.push('-' + k.to_s)
-        if v != None
-          # v = _get_eval_string(v, enc_mode) if (enc_mode || flat)
-          v = _get_eval_string(v, enc_mode) if enc_mode
-          dst.push(v)
-        end
-      }
-    end
-    if conf
-      conf + dst
-    else
-      dst
-    end
-  end
-  private :hash_kv
-  module_function :hash_kv
-=end
-
-=begin
-  ### --> definition is moved to TkUtil module
-  def bool(val)
-    case val
-    when "1", 1, 'yes', 'true'
-      true
-    else
-      false
-    end
-  end
-
-  def number(val)
-    case val
-    when /^-?\d+$/
-      val.to_i
-    when /^-?\d+\.?\d*(e[-+]?\d+)?$/
-      val.to_f
-    else
-      fail(ArgumentError, "invalid value for Number:'#{val}'")
-    end
-  end
-  def string(val)
-    if val == "{}"
-      ''
-    elsif val[0] == ?{ && val[-1] == ?}
-      val[1..-2]
-    else
-      val
-    end
-  end
-  def num_or_str(val)
-    begin
-      number(val)
-    rescue ArgumentError
-      string(val)
-    end
-  end
-=end
-
   def list(val, depth=0, enc=true)
     tk_split_list(val, depth, enc, enc)
   end
@@ -625,12 +484,6 @@ end
     end
   end
   def procedure(val)
-=begin
-    if val =~ /^rb_out\S* (c(_\d+_)?\d+)/
-      #Tk_CMDTBL[$1]
-      #TkCore::INTERP.tk_cmd_tbl[$1]
-      TkCore::INTERP.tk_cmd_tbl[$1].cmd
-=end
     if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
       return TkCore::INTERP.tk_cmd_tbl[$4].cmd
     else
@@ -697,129 +550,6 @@ end
   private :_callback_entry?
   module_function :_callback_entry?
 
-=begin
-  ### --> definition is moved to TkUtil module
-  def _get_eval_string(str, enc_mode = nil)
-    return nil if str == None
-    if str.kind_of?(TkObject)
-      str = str.path
-    elsif str.kind_of?(String)
-      str = _toUTF8(str) if enc_mode
-    elsif str.kind_of?(Symbol)
-      str = str.id2name
-      str = _toUTF8(str) if enc_mode
-    elsif str.kind_of?(Hash)
-      str = hash_kv(str, enc_mode).join(" ")
-    elsif str.kind_of?(Array)
-      str = array2tk_list(str)
-      str = _toUTF8(str) if enc_mode
-    elsif str.kind_of?(Proc)
-      str = install_cmd(str)
-    elsif str == nil
-      str = ""
-    elsif str == false
-      str = "0"
-    elsif str == true
-      str = "1"
-    elsif (str.respond_to?(:to_eval))
-      str = str.to_eval()
-      str = _toUTF8(str) if enc_mode
-    else
-      str = str.to_s() || ''
-      unless str.kind_of? String
-        fail RuntimeError, "fail to convert the object to a string"
-      end
-      str = _toUTF8(str) if enc_mode
-    end
-    return str
-  end
-=end
-=begin
-  def _get_eval_string(obj, enc_mode = nil)
-    case obj
-    when Numeric
-      obj.to_s
-    when String
-      (enc_mode)? _toUTF8(obj): obj
-    when Symbol
-      (enc_mode)? _toUTF8(obj.id2name): obj.id2name
-    when TkObject
-      obj.path
-    when Hash
-      hash_kv(obj, enc_mode).join(' ')
-    when Array
-      (enc_mode)? _toUTF8(array2tk_list(obj)): array2tk_list(obj)
-    when Proc, Method, TkCallbackEntry
-      install_cmd(obj)
-    when false
-      '0'
-    when true
-      '1'
-    when nil
-      ''
-    when None
-      nil
-    else
-      if (obj.respond_to?(:to_eval))
-        (enc_mode)? _toUTF8(obj.to_eval): obj.to_eval
-      else
-        begin
-          obj = obj.to_s || ''
-        rescue
-          fail RuntimeError, "fail to convert object '#{obj}' to string"
-        end
-        (enc_mode)? _toUTF8(obj): obj
-      end
-    end
-  end
-  private :_get_eval_string
-  module_function :_get_eval_string
-=end
-
-=begin
-  ### --> definition is moved to TkUtil module
-  def _get_eval_enc_str(obj)
-    return obj if obj == None
-    _get_eval_string(obj, true)
-  end
-  private :_get_eval_enc_str
-  module_function :_get_eval_enc_str
-=end
-
-=begin
-  ### --> obsolete
-  def ruby2tcl(v, enc_mode = nil)
-    if v.kind_of?(Hash)
-      v = hash_kv(v)
-      v.flatten!
-      v.collect{|e|ruby2tcl(e, enc_mode)}
-    else
-      _get_eval_string(v, enc_mode)
-    end
-  end
-  private :ruby2tcl
-=end
-
-=begin
-  ### --> definition is moved to TkUtil module
-  def _conv_args(args, enc_mode, *src_args)
-    conv_args = []
-    src_args.each{|arg|
-      conv_args << _get_eval_string(arg, enc_mode) unless arg == None
-      # if arg.kind_of?(Hash)
-      # arg.each{|k, v|
-      #   args << '-' + k.to_s
-      #   args << _get_eval_string(v, enc_mode)
-      # }
-      # elsif arg != None
-      #   args << _get_eval_string(arg, enc_mode)
-      # end
-    }
-    args + conv_args
-  end
-  private :_conv_args
-=end
-
   def _curr_cmd_id
     #id = format("c%.4d", Tk_IDs[0])
     "c" + TkCore::INTERP._ip_id_ + TkComm::Tk_IDs[0]
@@ -835,6 +565,14 @@ end
   private :_curr_cmd_id, :_next_cmd_id
   module_function :_curr_cmd_id, :_next_cmd_id
 
+  # Register a Ruby proc/block as a Tcl callback.
+  #
+  # Returns a Tcl command string like "rb_out <ip_id> <callback_id>" that
+  # Tcl can invoke. When Tcl calls this command, it triggers:
+  #   Tcl rb_out -> C ruby_callback -> TkCore.callback -> tk_cmd_tbl[id].call
+  #
+  # The callback is stored in TkCore::INTERP.tk_cmd_tbl (per-interpreter).
+  # Use uninstall_cmd to remove when the callback is no longer needed.
   def TkComm.install_cmd(cmd, local_cmdtbl=nil)
     return '' if cmd == ''
     begin
@@ -869,8 +607,9 @@ end
       'rb_out' << TkCore::INTERP._ip_id_ << ' ' << id
     end
   end
+  # Remove a previously registered callback from tk_cmd_tbl.
+  # Pass the same ID string returned by install_cmd.
   def TkComm.uninstall_cmd(id, local_cmdtbl=nil)
-    #id = $1 if /rb_out\S* (c(_\d+_)?\d+)/ =~ id
     id = $4 if id =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
 
     if local_cmdtbl && local_cmdtbl.kind_of?(Array)
@@ -894,25 +633,6 @@ end
     TkComm.uninstall_cmd(id, @cmdtbl)
   end
 
-=begin
-  def install_win(ppath,name=nil)
-    if !name or name == ''
-      #name = format("w%.4d", Tk_IDs[1])
-      #Tk_IDs[1] += 1
-      name = "w" + Tk_IDs[1]
-      Tk_IDs[1].succ!
-    end
-    if name[0] == ?.
-      @path = name.dup
-    elsif !ppath or ppath == "."
-      @path = Kernel.format(".%s", name);
-    else
-      @path = Kernel.format("%s.%s", ppath, name)
-    end
-    #Tk_WINDOWS[@path] = self
-    TkCore::INTERP.tk_windows[@path] = self
-  end
-=end
   def install_win(ppath,name=nil)
     if name
       if name == ''
@@ -1006,12 +726,7 @@ module TkComm
 
   def _bindinfo(what, context=nil)
     if context
-      if TkCore::WITH_RUBY_VM  ### Ruby 1.9 !!!!
-        enum_obj = tk_call_without_enc(*what+["<#{tk_event_sequence(context)}>"]).each_line
-      else
-        enum_obj = tk_call_without_enc(*what+["<#{tk_event_sequence(context)}>"])
-      end
-      enum_obj.collect {|cmdline|
+      tk_call_without_enc(*what+["<#{tk_event_sequence(context)}>"]).each_line.collect {|cmdline|
 =begin
         if cmdline =~ /^rb_out\S* (c(?:_\d+_)?\d+)\s+(.*)$/
           #[Tk_CMDTBL[$1], $2]
@@ -1312,7 +1027,11 @@ EOS
       true
     end
 
+    # Per-interpreter tables for callbacks and widget tracking
     INTERP.instance_eval{
+      # tk_cmd_tbl: Maps callback IDs (e.g., "c00001") to Ruby procs.
+      # Populated by TkComm.install_cmd, invoked by TkCore.callback.
+      # This is the central callback registry for this interpreter.
       @tk_cmd_tbl =
         Hash.new{|hash, key|
                          fail IndexError, "unknown command ID '#{key}'"
@@ -1480,46 +1199,6 @@ EOS
         return $ret
     }
   EOL
-=begin
-  INTERP.add_tk_procs('rb_out', 'args', <<-'EOL')
-    if {[set st [catch {eval {ruby_cmd TkCore callback} $args} ret]] != 0} {
-       #return -code $st $ret
-       set idx [string first "\n\n" $ret]
-       if {$idx > 0} {
-          return -code $st \
-                 -errorinfo [string range $ret [expr $idx + 2] \
-                                               [string length $ret]] \
-                 [string range $ret 0 [expr $idx - 1]]
-       } else {
-          return -code $st $ret
-       }
-    } else {
-        return $ret
-    }
-  EOL
-=end
-=begin
-  INTERP.add_tk_procs('rb_out', 'args', <<-'EOL')
-    #regsub -all {\\} $args {\\\\} args
-    #regsub -all {!} $args {\\!} args
-    #regsub -all "{" $args "\\{" args
-    regsub -all {(\\|!|\{|\})} $args {\\\1} args
-    if {[set st [catch {ruby [format "TkCore.callback %%Q!%s!" $args]} ret]] != 0} {
-       #return -code $st $ret
-       set idx [string first "\n\n" $ret]
-       if {$idx > 0} {
-          return -code $st \
-                 -errorinfo [string range $ret [expr $idx + 2] \
-                                               [string length $ret]] \
-                 [string range $ret 0 [expr $idx - 1]]
-       } else {
-          return -code $st $ret
-       }
-    } else {
-        return $ret
-    }
-  EOL
-=end
 
   if !WITH_RUBY_VM || RUN_EVENTLOOP_ON_MAIN_THREAD ### check Ruby 1.9 !!!!!!!
     at_exit{ INTERP.remove_tk_procs(TclTkLib::FINALIZE_PROC_NAME) }
@@ -1545,6 +1224,9 @@ EOS
     fail TkCallbackReturn, "Tk callback returns 'return' status"
   end
 
+  # Dispatcher for Tcl->Ruby callbacks. Called by the C bridge when Tcl
+  # invokes "rb_out". Looks up the callback in tk_cmd_tbl and calls it.
+  # Formats exception messages with backtrace for Tcl error reporting.
   def TkCore.callback(*arg)
     begin
       if TkCore::INTERP.tk_cmd_tbl.kind_of?(Hash)
@@ -1572,11 +1254,7 @@ EOS
               "\n---< backtrace of Ruby side >-----\n" +
               _toUTF8(e.backtrace.join("\n")) +
               "\n---< backtrace of Tk side >-------"
-        if TkCore::WITH_ENCODING
-          msg.force_encoding('utf-8')
-        else
-          msg.instance_variable_set(:@encoding, 'utf-8')
-        end
+        msg.force_encoding('utf-8')
       rescue Exception
         msg = e.class.inspect + ': ' + e.message + "\n" +
               "\n---< backtrace of Ruby side >-----\n" +
@@ -1588,44 +1266,6 @@ EOS
       fail(e, msg)
     end
   end
-=begin
-  def TkCore.callback(arg_str)
-    # arg = tk_split_list(arg_str)
-    arg = tk_split_simplelist(arg_str)
-    #_get_eval_string(TkUtil.eval_cmd(Tk_CMDTBL[arg.shift], *arg))
-    #_get_eval_string(TkUtil.eval_cmd(TkCore::INTERP.tk_cmd_tbl[arg.shift],
-    #                        *arg))
-    # TkCore::INTERP.tk_cmd_tbl[arg.shift].call(*arg)
-    begin
-      TkCore::INTERP.tk_cmd_tbl[arg.shift].call(*arg)
-    rescue Exception => e
-      raise(e, e.class.inspect + ': ' + e.message + "\n" +
-               "\n---< backtrace of Ruby side >-----\n" +
-               e.backtrace.join("\n") +
-               "\n---< backtrace of Tk side >-------")
-    end
-#=begin
-#    cb_obj = TkCore::INTERP.tk_cmd_tbl[arg.shift]
-#    unless $DEBUG
-#      cb_obj.call(*arg)
-#    else
-#      begin
-#       raise 'check backtrace'
-#      rescue
-#       # ignore backtrace before 'callback'
-#       pos = -($!.backtrace.size)
-#      end
-#      begin
-#       cb_obj.call(*arg)
-#      rescue
-#       trace = $!.backtrace
-#       raise $!, "\n#{trace[0]}: #{$!.message} (#{$!.class})\n" +
-#                 "\tfrom #{trace[1..pos].join("\n\tfrom ")}"
-#      end
-#    end
-#=end
-  end
-=end
 
   def load_cmd_on_ip(tk_cmd)
     bool(tk_call('auto_load', tk_cmd))
@@ -2452,28 +2092,6 @@ module Tk
 end
 
 ###########################################
-#  string with Tcl's encoding
-###########################################
-module Tk
-  def Tk.subst_utf_backslash(str)
-    Tk::EncodedString.subst_utf_backslash(str)
-  end
-  def Tk.subst_tk_backslash(str)
-    Tk::EncodedString.subst_tk_backslash(str)
-  end
-  def Tk.utf_to_backslash_sequence(str)
-    Tk::EncodedString.utf_to_backslash_sequence(str)
-  end
-  def Tk.utf_to_backslash(str)
-    Tk::EncodedString.utf_to_backslash_sequence(str)
-  end
-  def Tk.to_backslash_sequence(str)
-    Tk::EncodedString.to_backslash_sequence(str)
-  end
-end
-
-
-###########################################
 #  convert kanji string to/from utf-8
 ###########################################
 if (/^(8\.[1-9]|9\.|[1-9][0-9])/ =~ Tk::TCL_VERSION && !Tk::JAPANIZED_TK)
@@ -2498,251 +2116,74 @@ if (/^(8\.[1-9]|9\.|[1-9][0-9])/ =~ Tk::TCL_VERSION && !Tk::JAPANIZED_TK)
         BINARY  = RubyEncoding.find(BINARY_NAME)
         UNKNOWN = RubyEncoding.find('ASCII-8BIT')
 
-        ### ENCODING_TABLE removed - modern Tcl/Ruby use UTF-8 natively
-=begin
-        ENCODING_TABLE = {
-          'binary'       => BINARY,
-          # 'UNKNOWN-8BIT' => UNKNOWN,
-        }
-
-        list = TkCore::INTERP._invoke_without_enc(ENCNAMES_CMD[0],
-                                                  ENCNAMES_CMD[1])
-        TkCore::INTERP._split_tklist(list).each{|name|
-          begin
-            enc = RubyEncoding.find(name)
-          rescue ArgumentError
-            case name
-            when 'identity'
-              enc = BINARY
-            when 'shiftjis'
-              enc = RubyEncoding.find('Shift_JIS')
-            when 'unicode'
-              enc = RubyEncoding.find('UTF-8')
-              #if Tk.tk_call('set', 'tcl_platform(byteOrder)') =='littleEndian'
-              #  enc = RubyEncoding.find('UTF-16LE')
-              #else
-              #  enc = RubyEncoding.find('UTF-16BE')
-              #end
-            when 'symbol'
-              # single byte data
-              enc = RubyEncoding.find('ASCII-8BIT') ### ???
-            else
-              # unsupported on Ruby, but supported on Tk
-              enc = TkCore::INTERP.create_dummy_encoding_for_tk(name)
-            end
-          end
-          ENCODING_TABLE[name.freeze] = enc
-        }
-=end
-=begin
-        def ENCODING_TABLE.get_name(enc)
-          orig_enc = enc
-
-          # unless enc, use system default
-          #  1st: Ruby/Tk default encoding
-          #  2nd: Tcl/Tk default encoding
-          #  3rd: Ruby's default_external
-          enc ||= TkCore::INTERP.encoding
-          enc ||= TclTkLib.encoding_system
-          enc ||= DEFAULT_EXTERNAL_NAME
-
-          if enc.kind_of?(RubyEncoding)
-            # Ruby's Encoding object
-            if (name = self.key(enc))
-              return name
-            end
-
-            # Is it new ?
-            list = TkCore::INTERP._invoke_without_enc(ENCNAMES_CMD[0],
-                                                      ENCNAMES_CMD[1])
-            TkComm.simplelist(list).each{|name|
-              if ((enc == RubyEncoding.find(name)) rescue false)
-                # new relation!! update table
-                self[name.freeze] = enc
-                return name
-              end
-            }
-          else
-            # String or Symbol ?
-            if self[name = enc.to_s]
-              return name
-            end
-
-            # Is it new ?
-            if (enc_obj = (RubyEncoding.find(name) rescue false))
-              list = TkCore::INTERP._invoke_without_enc(ENCNAMES_CMD[0],
-                                                        ENCNAMES_CMD[1])
-              if TkComm.simplelist(list).index(name)
-                # Tk's encoding name ?
-                self[name.freeze] = enc_obj  # new relation!! update table
-                return name
-              else
-                # Ruby's encoding name ?
-                if (name = self.key(enc_obj))
-                  return name
-                end
-              end
-            end
-          end
-
-          fail ArgumentError, "unsupported Tk encoding '#{orig_enc}'"
-        end
-
-        def ENCODING_TABLE.get_obj(enc)
-          # returns the encoding object.
-          # If 'enc' is the encoding name on Tk only, it returns nil.
-          ((obj = self[self.get_name(enc)]).kind_of?(RubyEncoding))? obj: nil
-        end
-=end
-        ### end of creating ENCODING_TABLE
-
       end
 
       #############################################
 
-      if TkCore::WITH_ENCODING
-        ################################
-        ### Ruby 1.9
-        ################################
-        def force_default_encoding(mode)
-          TkCore::INTERP.force_default_encoding = mode
-        end
-
-        def force_default_encoding?
-          TkCore::INTERP.force_default_encoding?
-        end
-
-        def default_encoding=(enc)
-          warn "Tk.default_encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-          TkCore::INTERP.default_encoding = 'utf-8'
-        end
-
-        def encoding=(enc)
-          warn "Tk.encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-          TkCore::INTERP.encoding = 'utf-8'
-        end
-
-        def encoding_name
-          'utf-8'
-        end
-        def encoding_obj
-          RubyEncoding::UTF_8
-        end
-        alias encoding encoding_name
-        alias default_encoding encoding_name
-
-        def tk_encoding_names
-          #TkComm.simplelist(TkCore::INTERP._invoke_without_enc(Tk::Encoding::ENCNAMES_CMD[0], Tk::Encoding::ENCNAMES_CMD[1]))
-          TkComm.simplelist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
-        end
-        def encoding_names
-          self.tk_encoding_names
-        end
-        def encoding_objs
-          [RubyEncoding::UTF_8]
-        end
-
-        def encoding_system=(enc)
-          warn "Tk.encoding_system= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-        end
-
-        def encoding_system_name
-          'utf-8'
-        end
-        def encoding_system_obj
-          RubyEncoding::UTF_8
-        end
-        alias encoding_system encoding_system_name
-
-        ################################
-      else
-        ################################
-        ### Ruby 1.8-
-        ################################
-        def force_default_encoding=(mode)
-          true
-        end
-
-        def force_default_encoding?
-          true
-        end
-
-        def default_encoding=(enc)
-          TkCore::INTERP.default_encoding = enc
-        end
-
-        def encoding=(enc)
-          TkCore::INTERP.encoding = enc
-        end
-
-        def encoding_obj
-          TkCore::INTERP.encoding
-        end
-        def encoding_name
-          TkCore::INTERP.encoding
-        end
-        alias encoding encoding_name
-        alias default_encoding encoding_name
-
-        def tk_encoding_names
-          TkComm.simplelist(Tk.tk_call('encoding', 'names'))
-        end
-        def encoding_objs
-          self.tk_encoding_names
-        end
-        def encoding_names
-          self.tk_encoding_names
-        end
-
-        def encoding_system=(enc)
-          TclTkLib.encoding_system = enc
-        end
-
-        def encoding_system_name
-          TclTkLib.encoding_system
-        end
-        def encoding_system_obj
-          TclTkLib.encoding_system
-        end
-        alias encoding_system encoding_system_name
-
-        ################################
+      def force_default_encoding(mode)
+        TkCore::INTERP.force_default_encoding = mode
       end
 
+      def force_default_encoding?
+        TkCore::INTERP.force_default_encoding?
+      end
+
+      def default_encoding=(enc)
+        warn "Tk.default_encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+        TkCore::INTERP.default_encoding = 'utf-8'
+      end
+
+      def encoding=(enc)
+        warn "Tk.encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+        TkCore::INTERP.encoding = 'utf-8'
+      end
+
+      def encoding_name
+        'utf-8'
+      end
+      def encoding_obj
+        RubyEncoding::UTF_8
+      end
+      alias encoding encoding_name
+      alias default_encoding encoding_name
+
+      def tk_encoding_names
+        #TkComm.simplelist(TkCore::INTERP._invoke_without_enc(Tk::Encoding::ENCNAMES_CMD[0], Tk::Encoding::ENCNAMES_CMD[1]))
+        TkComm.simplelist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
+      end
+      def encoding_names
+        self.tk_encoding_names
+      end
+      def encoding_objs
+        [RubyEncoding::UTF_8]
+      end
+
+      def encoding_system=(enc)
+        warn "Tk.encoding_system= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+      end
+
+      def encoding_system_name
+        'utf-8'
+      end
+      def encoding_system_obj
+        RubyEncoding::UTF_8
+      end
+      alias encoding_system encoding_system_name
+
+
       def encoding_convertfrom(str, enc=nil)
-        enc = encoding_system_name unless enc
+        warn "Tk::Encoding.encoding_convertfrom is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
         str = str.dup
-        if TkCore::WITH_ENCODING
-          if str.kind_of?(Tk::EncodedString)
-            str.__instance_variable_set('@encoding', nil)
-          else
-            str.instance_variable_set('@encoding', nil)
-          end
-          str.force_encoding('binary')
-        else
-          str.instance_variable_set('@encoding', 'binary')
-        end
-        ret = TkCore::INTERP._invoke_without_enc('encoding', 'convertfrom',
-                                                 enc, str)
-        if TkCore::WITH_ENCODING
-          ret.force_encoding('utf-8')
-        else
-          Tk::UTF8_String.new(ret)
-        end
-        ret
+        str.force_encoding(::Encoding::UTF_8)
+        str
       end
       alias encoding_convert_from encoding_convertfrom
 
       def encoding_convertto(str, enc=nil)
-        # str must be a UTF-8 string
-        enc = encoding_system_name unless enc
-        ret = TkCore::INTERP._invoke_without_enc('encoding', 'convertto',
-                                                 enc, str)
-        #ret.instance_variable_set('@encoding', 'binary')
-        if TkCore::WITH_ENCODING
-          ret.force_encoding(RubyEncoding::UTF_8)
-        end
-        ret
+        warn "Tk::Encoding.encoding_convertto is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
+        str = str.dup
+        str.force_encoding(::Encoding::UTF_8)
+        str
       end
       alias encoding_convert_to encoding_convertto
 
@@ -2779,108 +2220,6 @@ if (/^(8\.[1-9]|9\.|[1-9][0-9])/ =~ Tk::TCL_VERSION && !Tk::JAPANIZED_TK)
     alias __invoke _invoke
     alias _eval_with_enc _eval
     alias _invoke_with_enc _invoke
-
-=begin
-    #### --> definition is moved to TclTkIp module
-
-    def _toUTF8(str, encoding = nil)
-      # decide encoding
-      if encoding
-        encoding = encoding.to_s
-      elsif str.kind_of?(Tk::EncodedString) && str.encoding != nil
-        encoding = str.encoding.to_s
-      elsif str.instance_variable_get(:@encoding)
-        encoding = str.instance_variable_get(:@encoding).to_s
-      elsif defined?(@encoding) && @encoding != nil
-        encoding = @encoding.to_s
-      else
-        encoding = __invoke('encoding', 'system')
-      end
-
-      # convert
-      case encoding
-      when 'utf-8', 'binary'
-        str
-      else
-        __toUTF8(str, encoding)
-      end
-    end
-
-    def _fromUTF8(str, encoding = nil)
-      unless encoding
-        if defined?(@encoding) && @encoding != nil
-          encoding = @encoding.to_s
-        else
-          encoding = __invoke('encoding', 'system')
-        end
-      end
-
-      if str.kind_of?(Tk::EncodedString)
-        if str.encoding == 'binary'
-          str
-        else
-          __fromUTF8(str, encoding)
-        end
-      elsif str.instance_variable_get(:@encoding).to_s == 'binary'
-        str
-      else
-        __fromUTF8(str, encoding)
-      end
-    end
-=end
-
-=begin
-    def _eval(cmd)
-      if defined?(@encoding) && @encoding != 'utf-8'
-        ret = if cmd.kind_of?(Tk::EncodedString)
-                case cmd.encoding
-                when 'utf-8', 'binary'
-                  __eval(cmd)
-                else
-                  __eval(_toUTF8(cmd, cmd.encoding))
-                end
-              elsif cmd.instance_variable_get(:@encoding) == 'binary'
-                __eval(cmd)
-              else
-                __eval(_toUTF8(cmd, @encoding))
-              end
-        if ret.kind_of?(String) && ret.instance_variable_get(:@encoding) == 'binary'
-          ret
-        else
-          _fromUTF8(ret, @encoding)
-        end
-      else
-        __eval(cmd)
-      end
-    end
-
-    def _invoke(*cmds)
-      if defined?(@encoding) && @encoding != 'utf-8'
-        cmds = cmds.collect{|cmd|
-          if cmd.kind_of?(Tk::EncodedString)
-            case cmd.encoding
-            when 'utf-8', 'binary'
-              cmd
-            else
-              _toUTF8(cmd, cmd.encoding)
-            end
-          elsif cmd.instance_variable_get(:@encoding) == 'binary'
-            cmd
-          else
-            _toUTF8(cmd, @encoding)
-          end
-        }
-        ret = __invoke(*cmds)
-        if ret.kind_of?(String) && ret.instance_variable_get(:@encoding) == 'binary'
-          ret
-        else
-          _fromUTF8(ret, @encoding)
-        end
-      else
-        __invoke(*cmds)
-        end
-    end
-=end
   end
 
   # TclTkLib encoding methods - all UTF-8 now
@@ -4576,17 +3915,6 @@ class TkObject<TkKernel
 #      fail NameError, "undefined method `#{name}' for #{self.to_s}", error_at
     end
   end
-
-=begin
-  def [](id)
-    cget(id)
-  end
-
-  def []=(id, val)
-    configure(id, val)
-    val
-  end
-=end
 
   def event_generate(context, keys=nil)
     if context.kind_of?(TkEvent::Event)

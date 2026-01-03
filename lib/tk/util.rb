@@ -158,53 +158,6 @@ module TkUtil
     TclTkLib._fromUTF8(*args)
   end
 
-  # Callback system - manages Tcl callbacks that invoke Ruby procs
-  # C version: tk_install_cmd, tk_uninstall_cmd, tk_do_callback (tkutil.c)
-  @callback_table = {}
-  @callback_id = 0
-  @callback_mutex = Mutex.new
-
-  CMD_ID_HEAD = "ruby_cmd TkUtil callback "
-  CMD_ID_PREFIX = "cmd"
-
-  # Install a proc/block as a Tcl callback, returns the callback ID string
-  def self.install_cmd(cmd = nil, &block)
-    cmd ||= block
-    @callback_mutex.synchronize do
-      @callback_id += 1
-      id = "#{CMD_ID_PREFIX}#{@callback_id}"
-      @callback_table[id] = cmd
-      "#{CMD_ID_HEAD}#{id}"
-    end
-  end
-
-  def install_cmd(cmd = nil, &block)
-    TkUtil.install_cmd(cmd, &block)
-  end
-
-  # Remove a callback by its ID string, returns the removed proc or nil
-  def self.uninstall_cmd(cmd_id)
-    return nil unless cmd_id.is_a?(String) && cmd_id.start_with?(CMD_ID_HEAD)
-    id = cmd_id[CMD_ID_HEAD.length..]
-    return nil unless id.start_with?(CMD_ID_PREFIX)
-    @callback_mutex.synchronize do
-      @callback_table.delete(id)
-    end
-  end
-
-  def uninstall_cmd(cmd_id)
-    TkUtil.uninstall_cmd(cmd_id)
-  end
-
-  # Execute a callback by its key (without the CMD_ID_HEAD prefix)
-  def self.callback(id, *args)
-    @callback_table[id]&.call(*args)
-  end
-
-  def callback(id, *args)
-    TkUtil.callback(id, *args)
-  end
-
   # Sentinel for "no value" - used to skip values in conversions
   # This is set after tkutil C extension loads TK::None
   @none_value = nil
