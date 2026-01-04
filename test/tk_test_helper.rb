@@ -19,16 +19,36 @@ require 'open3'
 require 'timeout'
 
 module TkTestHelper
+  # Project root for absolute paths in subprocesses
+  PROJECT_ROOT = File.expand_path('..', __dir__)
+
   # SimpleCov preamble injected into subprocess code for coverage merging
-  SIMPLECOV_PREAMBLE = <<~RUBY
-    require 'simplecov'
-    SimpleCov.command_name "subprocess:\#{Process.pid}"
-    SimpleCov.start do
-      add_filter '/test/'
-      add_filter '/ext/'
-      add_filter '/benchmark/'
-    end
-  RUBY
+  # Only runs if ENV['COVERAGE'] is set
+  #
+  # Key optimization: subprocesses write individual result files and skip
+  # merging. The main process collates all results at the end. This avoids
+  # reading/writing a 100MB+ resultset file after each subprocess.
+  def self.simplecov_preamble
+    <<~RUBY
+      if ENV['COVERAGE']
+        require 'simplecov'
+        SimpleCov.command_name "subprocess:\#{Process.pid}"
+        SimpleCov.start do
+          add_filter '/test/'
+          add_filter '/ext/'
+          add_filter '/benchmark/'
+
+          # Track all lib files (same as main process) - absolute path required
+          track_files "#{PROJECT_ROOT}/lib/**/*.rb"
+
+          # Write to individual files, don't merge (parent will collate at end)
+          self.coverage_dir "#{PROJECT_ROOT}/coverage/results"
+          # Minimal formatter - no HTML generation per subprocess
+          formatter SimpleCov::Formatter::SimpleFormatter
+        end
+      end
+    RUBY
+  end
 
   # Runs Ruby code in a separate process with fresh Tk interpreter.
   # Returns [success, stdout, stderr, status]
@@ -47,7 +67,7 @@ module TkTestHelper
     load_path_args = load_paths.flat_map { |p| ["-I", p] }
 
     # Prepend SimpleCov setup for coverage merging
-    full_code = coverage ? "#{SIMPLECOV_PREAMBLE}\n#{code}" : code
+    full_code = coverage ? "#{TkTestHelper.simplecov_preamble}\n#{code}" : code
 
     stdout, stderr, status = Open3.capture3(
       RbConfig.ruby, *load_path_args, "-e", full_code
