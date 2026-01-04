@@ -5,6 +5,7 @@
 
 # use Shigehiro's tcltklib
 require 'tcltklib'
+require_relative 'tcltkip'             # TclTkIp Ruby extensions
 require_relative 'tk/tk_kernel'        # TkKernel base class
 require_relative 'tk/tk_callback_entry' # TkCallbackEntry marker class
 require_relative 'tk/util'             # TkUtil module (pure Ruby)
@@ -17,27 +18,17 @@ require 'tk/autoload'
 # for Mutex
 require 'thread'
 
-class TclTkIp
-  # backup original (without encoding) _eval and _invoke
-  alias _eval_without_enc _eval
-  alias __eval__ _eval
-  alias _invoke_without_enc _invoke
-  alias __invoke__ _invoke
-
-  def _ip_id_
-    # for RemoteTkIp
-    ''
-  end
-
-  alias __initialize__ initialize
-  private :__initialize__
-
-  def initialize(*args)
-    __initialize__(*args)
-
-    @force_default_encoding ||= [false]
-    @encoding ||= [nil]
-    def @encoding.to_s; self.join(nil); end
+# TclTkLib encoding methods - all UTF-8 now
+module TclTkLib
+  class << self
+    def force_default_encoding=(mode); end
+    def force_default_encoding? = true
+    def default_encoding=(name); end
+    def encoding=(name); end
+    def encoding_name = 'utf-8'
+    def encoding_obj = ::Encoding::UTF_8
+    alias encoding encoding_name
+    alias default_encoding encoding_name
   end
 end
 
@@ -1828,219 +1819,8 @@ module Tk
   end
 end
 
-###########################################
-#  convert kanji string to/from utf-8
-###########################################
-if (/^(8\.[1-9]|9\.|[1-9][0-9])/ =~ Tk::TCL_VERSION && !Tk::JAPANIZED_TK)
-  module Tk
-    module Encoding
-      extend Encoding
-
-      TkCommandNames = ['encoding'.freeze].freeze
-
-      #############################################
-
-      if TkCore::WITH_ENCODING ### Ruby 1.9
-        RubyEncoding = ::Encoding
-
-        # for saving GC cost
-        #ENCNAMES_CMD = ['encoding'.freeze, 'names'.freeze]
-        BINARY_NAME  = 'binary'.freeze
-        UTF8_NAME    = 'utf-8'.freeze
-        DEFAULT_EXTERNAL_NAME = RubyEncoding.default_external.name.freeze
-        DEFAULT_INTERNAL_NAME = RubyEncoding.default_internal.name.freeze rescue nil
-
-        BINARY  = RubyEncoding.find(BINARY_NAME)
-        UNKNOWN = RubyEncoding.find('ASCII-8BIT')
-
-      end
-
-      #############################################
-
-      def force_default_encoding(mode)
-        TkCore::INTERP.force_default_encoding = mode
-      end
-
-      def force_default_encoding?
-        TkCore::INTERP.force_default_encoding?
-      end
-
-      def default_encoding=(enc)
-        warn "Tk.default_encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-        TkCore::INTERP.default_encoding = 'utf-8'
-      end
-
-      def encoding=(enc)
-        warn "Tk.encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-        TkCore::INTERP.encoding = 'utf-8'
-      end
-
-      def encoding_name
-        'utf-8'
-      end
-      def encoding_obj
-        RubyEncoding::UTF_8
-      end
-      alias encoding encoding_name
-      alias default_encoding encoding_name
-
-      def tk_encoding_names
-        #TkComm.simplelist(TkCore::INTERP._invoke_without_enc(Tk::Encoding::ENCNAMES_CMD[0], Tk::Encoding::ENCNAMES_CMD[1]))
-        TkComm.simplelist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
-      end
-      def encoding_names
-        self.tk_encoding_names
-      end
-      def encoding_objs
-        [RubyEncoding::UTF_8]
-      end
-
-      def encoding_system=(enc)
-        warn "Tk.encoding_system= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
-      end
-
-      def encoding_system_name
-        'utf-8'
-      end
-      def encoding_system_obj
-        RubyEncoding::UTF_8
-      end
-      alias encoding_system encoding_system_name
-
-
-      def encoding_convertfrom(str, enc=nil)
-        warn "Tk::Encoding.encoding_convertfrom is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
-        str = str.dup
-        str.force_encoding(::Encoding::UTF_8)
-        str
-      end
-      alias encoding_convert_from encoding_convertfrom
-
-      def encoding_convertto(str, enc=nil)
-        warn "Tk::Encoding.encoding_convertto is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
-        str = str.dup
-        str.force_encoding(::Encoding::UTF_8)
-        str
-      end
-      alias encoding_convert_to encoding_convertto
-
-      def encoding_dirs
-        # Tcl8.5 feature
-        TkComm.simplelist(Tk.tk_call_without_enc('encoding', 'dirs'))
-      end
-
-      def encoding_dirs=(dir_list) # an array or a Tcl's list string
-        # Tcl8.5 feature
-        Tk.tk_call_without_enc('encoding', 'dirs', dir_list)
-      end
-    end
-
-    extend Encoding
-  end
-
-  # TclTkIp encoding methods removed - modern Tcl (8.1+) uses UTF-8 internally
-  # See: https://wiki.tcl-lang.org/page/Unicode+and+UTF-8
-  # "as of version 8.1, Tcl...uses a modified version of utf-8 as its
-  # internal representation for strings"
-  class TclTkIp
-    def force_default_encoding=(mode); end
-    def force_default_encoding? = true
-    def default_encoding=(name); end
-    def encoding=(name); end
-    def encoding_name = 'utf-8'
-    def encoding_obj = ::Encoding::UTF_8
-    alias encoding encoding_name
-    alias default_encoding encoding_name
-
-    # These aliases are expected by other tk.rb code
-    alias __eval _eval
-    alias __invoke _invoke
-    alias _eval_with_enc _eval
-    alias _invoke_with_enc _invoke
-  end
-
-  # TclTkLib encoding methods - all UTF-8 now
-  module TclTkLib
-    class << self
-      def force_default_encoding=(mode); end
-      def force_default_encoding? = true
-      def default_encoding=(name); end
-      def encoding=(name); end
-      def encoding_name = 'utf-8'
-      def encoding_obj = ::Encoding::UTF_8
-      alias encoding encoding_name
-      alias default_encoding encoding_name
-    end
-  end
-
-else
-  # dummy methods
-  module Tk
-    module Encoding
-      extend Encoding
-
-      def force_default_encoding=(mode)
-        nil
-      end
-
-      def force_default_encoding?
-        nil
-      end
-
-      def default_encoding=(enc)
-        nil
-      end
-      def default_encoding
-        nil
-      end
-
-      def encoding=(name)
-        nil
-      end
-      def encoding
-        nil
-      end
-      def encoding_names
-        nil
-      end
-      def encoding_system
-        nil
-      end
-      def encoding_system=(enc)
-        nil
-      end
-
-      def encoding_convertfrom(str, enc=None)
-        str
-      end
-      alias encoding_convert_from encoding_convertfrom
-
-      def encoding_convertto(str, enc=None)
-        str
-      end
-      alias encoding_convert_to encoding_convertto
-      def encoding_dirs
-        nil
-      end
-      def encoding_dirs=(dir_array)
-        nil
-      end
-    end
-
-    extend Encoding
-  end
-
-  class TclTkIp
-    attr_accessor :encoding
-
-    alias __eval _eval
-    alias __invoke _invoke
-
-    alias _eval_with_enc _eval
-    alias _invoke_with_enc _invoke
-  end
-end
-
+# Tk::Encoding module loaded after TkCore is defined
+require_relative 'tk/encoding'
 
 module TkBindCore
   def bind(context, *args, &block)
