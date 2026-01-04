@@ -19,6 +19,17 @@ require 'open3'
 require 'timeout'
 
 module TkTestHelper
+  # SimpleCov preamble injected into subprocess code for coverage merging
+  SIMPLECOV_PREAMBLE = <<~RUBY
+    require 'simplecov'
+    SimpleCov.command_name "subprocess:\#{Process.pid}"
+    SimpleCov.start do
+      add_filter '/test/'
+      add_filter '/ext/'
+      add_filter '/benchmark/'
+    end
+  RUBY
+
   # Runs Ruby code in a separate process with fresh Tk interpreter.
   # Returns [success, stdout, stderr, status]
   #
@@ -30,13 +41,16 @@ module TkTestHelper
   #     root.destroy
   #   RUBY
   #
-  def tk_subprocess(code)
+  def tk_subprocess(code, coverage: true)
     # Build load path from current process
     load_paths = $LOAD_PATH.select { |p| p.include?(File.dirname(__dir__)) }
     load_path_args = load_paths.flat_map { |p| ["-I", p] }
 
+    # Prepend SimpleCov setup for coverage merging
+    full_code = coverage ? "#{SIMPLECOV_PREAMBLE}\n#{code}" : code
+
     stdout, stderr, status = Open3.capture3(
-      RbConfig.ruby, *load_path_args, "-e", code
+      RbConfig.ruby, *load_path_args, "-e", full_code
     )
 
     [status.success?, stdout, stderr, status]

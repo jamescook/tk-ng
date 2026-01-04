@@ -9,9 +9,7 @@
 # Tk sends back values like "%x %y" which get substituted with actual values.
 # CallbackSubst maps these % codes to Ruby attributes and type conversions.
 
-$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
-
-require 'minitest/autorun'
+require_relative 'test_helper'
 require 'tk/util'  # Pure Ruby implementation
 
 class TestCallbackSubstRuby < Minitest::Test

@@ -113,5 +113,58 @@ module Tk
         end
       end
     end
+
+    # Characters that require bracing in Tcl list elements
+    # Space, tab, newline, {, }, [, ], $, ;, \, "
+    NEEDS_BRACING = /[\s\{\}\[\]\$;\\"]/.freeze
+
+    # Merge strings into a Tcl list string.
+    # Properly quotes/braces elements that contain special characters.
+    #
+    # @param args [Array<String>] strings to merge
+    # @return [String] Tcl list string
+    def merge(*args)
+      return "" if args.empty?
+
+      args.map { |s| quote_element(s.to_s) }.join(" ")
+    end
+
+    # Quote a single element for inclusion in a Tcl list.
+    #
+    # @param str [String] element to quote
+    # @return [String] quoted element
+    def quote_element(str)
+      return "{}" if str.empty?
+
+      # Check if bracing is needed
+      if NEEDS_BRACING.match?(str)
+        # Check for unbalanced braces - if so, need backslash escaping
+        if balanced_braces?(str)
+          "{#{str}}"
+        else
+          # Escape special chars with backslash
+          str.gsub(/([{}\[\]$;\\"\s])/, '\\\\\1')
+        end
+      else
+        str
+      end
+    end
+
+    # Check if braces in a string are balanced.
+    #
+    # @param str [String] string to check
+    # @return [Boolean] true if braces are balanced
+    def balanced_braces?(str)
+      depth = 0
+      str.each_byte do |b|
+        if b == 123 # '{'
+          depth += 1
+        elsif b == 125 # '}'
+          depth -= 1
+          return false if depth < 0
+        end
+      end
+      depth == 0
+    end
   end
 end

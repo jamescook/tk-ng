@@ -10,9 +10,7 @@
 # Slave interpreters are a Tcl feature for creating sandboxed child
 # interpreters within a parent interpreter.
 
-$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
-
-require 'minitest/autorun'
+require_relative 'test_helper'
 require_relative 'tk_test_helper'
 
 class TestMultiInterp < Minitest::Test

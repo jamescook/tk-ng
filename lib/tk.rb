@@ -196,65 +196,100 @@ module TkComm
   end
   module_function :_at
 
+  # Pre-compiled patterns for tk_tcl2ruby
+  CALLBACK_PATTERN = /rb_out\S*(?:\s+(::\S*|\{(::.*)\}|"(::.*)"))?[ ](c(?:_\d+_)?\d+)/.freeze
+  IMAGE_PATTERN = /\Ai(?:_\d+_)?\d+\z/.freeze
+  FLOAT_PATTERN = /\A-?\d+\.?\d*(?:e[-+]?\d+)?\z/.freeze
+  ESCAPED_SPACE_PATTERN = /\\ /.freeze
+
+  # Convert Tcl string values to appropriate Ruby objects.
+  # Uses start_with?, character checks to minimize regex operations.
+  #
+  # NOTE: Number parsing here overlaps with TkUtil.number/num_or_str.
+  # Future refactor could consolidate, but TkUtil handles hex/octal (0x/0o)
+  # while this uses regex for decimal only. Tcl returns values in decimal
+  # form (hex/octal are input formats), so decimal-only should suffice.
+  # https://wiki.tcl-lang.org/page/What+kinds+of+numbers+does+Tcl+recognize
   def tk_tcl2ruby(val, enc_mode = false, listobj = true)
-    if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
-      return TkCore::INTERP.tk_cmd_tbl[$4]
+    return val if val.empty?
+
+    first_char = val.getbyte(0)
+
+    # Callback reference: "rb_out ... c12345"
+    if first_char == 114 && val.start_with?('rb_out') # 'r'
+      if (m = CALLBACK_PATTERN.match(val))
+        return TkCore::INTERP.tk_cmd_tbl[m[4]]
+      end
     end
-    #if val.include? ?\s
-    #  return val.split.collect{|v| tk_tcl2ruby(v)}
-    #end
-    case val
-    when /\A@font\S+\z/
-      TkFont.get_obj(val)
-    when /\A-?\d+\z/
-      val.to_i
-    when /\A\.\S*\z/
-      #Tk_WINDOWS[val] ? Tk_WINDOWS[val] : _genobj_for_tkwidget(val)
-      TkCore::INTERP.tk_windows[val]?
-           TkCore::INTERP.tk_windows[val] : _genobj_for_tkwidget(val)
-    when /\Ai(_\d+_)?\d+\z/
-      TkImage::Tk_IMGTBL.mutex.synchronize{
-        TkImage::Tk_IMGTBL[val]? TkImage::Tk_IMGTBL[val] : val
-      }
-    when /\A-?\d+\.?\d*(e[-+]?\d+)?\z/
-      val.to_f
-    when /\\ /
-      val.gsub(/\\ /, ' ')
-    when /[^\\] /
-      if listobj
-        #tk_split_escstr(val).collect{|elt|
-        #  tk_tcl2ruby(elt, enc_mode, listobj)
-        #}
+
+    # Font: "@fontXXX"
+    if first_char == 64 && val.start_with?('@font') # '@'
+      return TkFont.get_obj(val)
+    end
+
+    # Widget path: ".something"
+    if first_char == 46 # '.'
+      # But not a float like ".5" - check second char is not a digit
+      second_char = val.getbyte(1)
+      if second_char && (second_char < 48 || second_char > 57) # not '0'-'9'
+        win = TkCore::INTERP.tk_windows[val]
+        return win ? win : _genobj_for_tkwidget(val)
+      end
+    end
+
+    # Image: "i12345" or "i_1_999"
+    if first_char == 105 # 'i'
+      second_char = val.getbyte(1)
+      if second_char && (second_char == 95 || (second_char >= 48 && second_char <= 57)) # '_' or digit
+        if IMAGE_PATTERN.match?(val)
+          return TkImage::Tk_IMGTBL.mutex.synchronize {
+            TkImage::Tk_IMGTBL[val] || val
+          }
+        end
+      end
+    end
+
+    # Check for spaces (list or escaped)
+    if val.include?(' ')
+      if val.include?('\ ')
+        # Escaped spaces - unescape them
+        return val.gsub(ESCAPED_SPACE_PATTERN, ' ')
+      elsif listobj
+        # Unescaped space = Tcl list, parse recursively
         val = _toUTF8(val) unless enc_mode
-        tk_split_escstr(val, false, false).collect{|elt|
+        return tk_split_escstr(val, false, false).collect { |elt|
           tk_tcl2ruby(elt, true, listobj)
         }
       elsif enc_mode
-        _fromUTF8(val)
+        return _fromUTF8(val)
       else
-        val
-      end
-    else
-      if enc_mode
-        _fromUTF8(val)
-      else
-        val
+        return val
       end
     end
+
+    # Try integer (most common numeric case)
+    # Only if starts with digit or minus followed by digit
+    if (first_char >= 48 && first_char <= 57) || # '0'-'9'
+       (first_char == 45 && val.length > 1) # '-' and more chars
+      # Quick check: all digits (or leading minus)?
+      if val.match?(/\A-?\d+\z/)
+        return val.to_i
+      end
+      # Try float
+      if FLOAT_PATTERN.match?(val)
+        return val.to_f
+      end
+    end
+
+    # Default: return as string, possibly with encoding conversion
+    enc_mode ? _fromUTF8(val) : val
   end
 
   private :tk_tcl2ruby
   module_function :tk_tcl2ruby
-  #private_class_method :tk_tcl2ruby
 
-unless const_defined?(:USE_TCLs_LIST_FUNCTIONS)
-  USE_TCLs_LIST_FUNCTIONS = true
-end
-
-if USE_TCLs_LIST_FUNCTIONS
-  ###########################################################################
-  # use Tcl function version of split_list
-  ###########################################################################
+  # List parsing/merging functions using Tcl's native C implementation.
+  # These are faster than pure Ruby for merge operations with special chars.
 
   def tk_split_escstr(str, src_enc=true, dst_enc=true)
     str = _toUTF8(str) if src_enc
@@ -351,101 +386,6 @@ if USE_TCLs_LIST_FUNCTIONS
       TkCore::INTERP._merge_tklist(*dst)
     end
   end
-
-else
-  ###########################################################################
-  # use Ruby script version of split_list (traditional methods)
-  ###########################################################################
-
-  def tk_split_escstr(str, src_enc=true, dst_enc=true)
-    return [] if str == ""
-    list = []
-    token = nil
-    escape = false
-    brace = 0
-    str.split('').each {|c|
-      brace += 1 if c == '{' && !escape
-      brace -= 1 if c == '}' && !escape
-      if brace == 0 && c == ' ' && !escape
-        list << token.gsub(/^\{(.*)\}$/, '\1') if token
-        token = nil
-      else
-        token = (token || "") << c
-      end
-      escape = (c == '\\' && !escape)
-    }
-    list << token.gsub(/^\{(.*)\}$/, '\1') if token
-    list
-  end
-
-  def tk_split_sublist(str, depth=-1, src_enc=true, dst_enc=true)
-    #return [] if str == ""
-    #return [tk_split_sublist(str[1..-2])] if str =~ /^\{.*\}$/
-    #list = tk_split_escstr(str)
-    if depth == 0
-      return "" if str == ""
-      str = str[1..-2] if str =~ /^\{.*\}$/
-      list = [str]
-    else
-      return [] if str == []
-      return [tk_split_sublist(str[1..-2], depth - 1)] if str =~ /^\{.*\}$/
-      list = tk_split_escstr(str)
-    end
-    if list.size == 1
-      tk_tcl2ruby(list[0], nil, false)
-    else
-      list.collect{|token| tk_split_sublist(token, depth - 1)}
-    end
-  end
-
-  def tk_split_list(str, depth=0, src_enc=true, dst_enc=true)
-    return [] if str == ""
-    tk_split_escstr(str).collect{|token|
-      tk_split_sublist(token, depth - 1)
-    }
-  end
-
-  def tk_split_simplelist(str, src_enc=true, dst_enc=true)
-    return [] if str == ""
-    list = []
-    token = nil
-    escape = false
-    brace = 0
-    str.split('').each {|c|
-      if c == '\\' && !escape
-        escape = true
-        token = (token || "") << c if brace > 0
-        next
-      end
-      brace += 1 if c == '{' && !escape
-      brace -= 1 if c == '}' && !escape
-      if brace == 0 && c == ' ' && !escape
-        list << token.gsub(/^\{(.*)\}$/, '\1') if token
-        token = nil
-      else
-        token = (token || "") << c
-      end
-      escape = false
-    }
-    list << token.gsub(/^\{(.*)\}$/, '\1') if token
-    list
-  end
-
-  def array2tk_list(ary, enc=nil)
-    ary.collect{|e|
-      if e.kind_of? Array
-        "{#{array2tk_list(e, enc)}}"
-      elsif e.kind_of? Hash
-        # "{#{e.to_a.collect{|ee| array2tk_list(ee)}.join(' ')}}"
-        e.each{|k,v| tmp_ary << "-#{_get_eval_string(k)}" << v }
-        array2tk_list(tmp_ary, enc)
-      else
-        s = _get_eval_string(e, enc)
-        (s.index(/\s/) || s.size == 0)? "{#{s}}": s
-      end
-    }.join(" ")
-  end
-end
 
   private :tk_split_escstr, :tk_split_sublist
   private :tk_split_list, :tk_split_simplelist

@@ -9,9 +9,7 @@
 #   - TkBindTag (custom binding tags)
 #   - TkCallbackBreak (stopping event propagation)
 
-$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
-
-require 'minitest/autorun'
+require_relative 'test_helper'
 require_relative 'tk_test_helper'
 
 class TestBinding < Minitest::Test

@@ -5,7 +5,7 @@
 # Modern Ruby and Tcl both use UTF-8 internally, so no conversion is needed.
 # These tests verify strings survive the round-trip correctly.
 
-require 'minitest/autorun'
+require_relative 'test_helper'
 require 'tcltklib'
 
 class TestEncodingRoundTrip < Minitest::Test

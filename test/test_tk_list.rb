@@ -5,9 +5,7 @@
 # These functions convert between Ruby arrays and Tcl list strings.
 # The dead Ruby 1.8 encoding branches can be removed once these tests pass.
 
-$LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
-
-require 'minitest/autorun'
+require_relative 'test_helper'
 require 'tk'
 
 class TestArray2TkList < Minitest::Test
