@@ -1,17 +1,16 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 #
-# Test multiple independent Tcl interpreters
+# Test multiple independent Tcl interpreters using Tk::Bridge
 #
 # Uses polling approach with DONT_WAIT + sleep for multi-interpreter support.
 # Note: On macOS, all GUI must be on the main thread, so we use a combined
 # event loop that polls all interpreters.
 #
-# Run: ruby -I ext/tk/tcltkbridge -I lib sample/multi_interp_test.rb
+# Run: ruby -Ilib sample/multi_interp_test.rb
 #
 
-$LOAD_PATH.unshift File.expand_path('../lib', __dir__)
-$LOAD_PATH.unshift File.expand_path('../ext/tk/tcltkbridge', __dir__)
+$stdout.sync = true
 
 require 'tk/bridge'
 
@@ -61,6 +60,16 @@ puts "Each has its own state - clicking one doesn't affect others."
 puts "Close all windows to exit."
 puts
 
+# Smoke test support - click close buttons programmatically
+smoke_test_mode = ENV.delete('TK_READY_FD')
+buttons_clicked = false
+
+if smoke_test_mode
+  # Set up visibility detection
+  bridges[0].eval('set ::visibility_triggered 0')
+  bridges[0].eval('bind . <Visibility> { set ::visibility_triggered 1 }')
+end
+
 # Combined event loop - process events from all interpreters
 # Uses DONT_WAIT so we can poll multiple interpreters without blocking
 running = true
@@ -72,9 +81,22 @@ while running
   else
     active_bridges.each do |bridge|
       # Non-blocking event processing
-      bridge.interp.do_one_event(TclTkBridge::ALL_EVENTS | TclTkBridge::DONT_WAIT)
+      bridge.interp.do_one_event(TclTkLib::ALL_EVENTS | TclTkLib::DONT_WAIT)
       bridge.dispatch_pending_callbacks
     end
+
+    # Smoke test: once visible, click the close buttons
+    if smoke_test_mode && !buttons_clicked
+      if bridges[0].eval('set ::visibility_triggered') == '1'
+        # Click close button on each interpreter
+        bridges.each do |bridge|
+          bridge.invoke(".close", "invoke")
+          bridge.dispatch_pending_callbacks
+        end
+        buttons_clicked = true
+      end
+    end
+
     # Small sleep to avoid busy-waiting (necessary for multi-interpreter polling)
     sleep 0.001
   end

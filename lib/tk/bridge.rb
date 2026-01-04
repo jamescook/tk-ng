@@ -1,15 +1,38 @@
 # frozen_string_literal: true
 
 #
-# TclTkBridge Ruby wrapper
+# Tk::Bridge - High-level wrapper around TclTkIp
 #
-# Provides callback dispatch without rb_funcall from C.
-# Callbacks are queued in a Tcl variable and dispatched by Ruby's event loop.
+# This is an alternative API to the legacy TkCore::INTERP singleton pattern.
+# It provides a cleaner, instance-based design that naturally supports
+# multiple independent Tcl interpreters.
 #
-# Instance-based design supports multiple interpreters.
+# Key differences from legacy tk.rb API:
+#   - Instance-based: each Bridge wraps its own TclTkIp
+#   - Multi-interpreter friendly: no global state or singleton conflicts
+#   - Callback dispatch: uses Tcl variable queue + Ruby-side dispatch
+#     (avoids complex C->Ruby callback invocation)
+#   - Ruby-friendly wait methods: vwait, tkwait_window, tkwait_visibility
+#     that keep Ruby callbacks firing during the wait
+#
+# Usage:
+#   require 'tk/bridge'
+#
+#   bridge = Tk::Bridge.new
+#   bridge.eval("button .b -text Hello -command {puts clicked}")
+#   bridge.eval("pack .b")
+#   bridge.mainloop
+#
+# For simple single-interpreter apps, use Tk::Bridge.default:
+#   Tk::Bridge.default.eval("...")
+#
+# FUTURE GOAL: The widget classes in tk.rb (TkButton, TkLabel, etc.) could
+# be refactored to use Tk::Bridge internally instead of TkCore::INTERP.
+# This would enable first-class multi-interpreter support for the full
+# widget API, not just low-level Tcl access.
 #
 
-require 'tcltkbridge'
+require 'tcltklib'
 require_relative 'tcl_list_parser'
 
 module Tk
@@ -38,7 +61,7 @@ module Tk
     attr_reader :interp
 
     def initialize
-      @interp = TclTkBridge::Interp.new
+      @interp = TclTkIp.new
       @callbacks = {}
       @next_callback_id = 0
       @running = false
@@ -92,7 +115,7 @@ module Tk
       @running = true
       while @running
         # Block until Tcl/Tk event arrives (no polling, no sleep)
-        @interp.do_one_event(TclTkBridge::ALL_EVENTS)
+        @interp.do_one_event(TclTkLib::ALL_EVENTS)
 
         # Dispatch any queued Ruby callbacks
         dispatch_pending_callbacks
@@ -111,7 +134,7 @@ module Tk
     def window_exists?(path)
       result = @interp.tcl_eval("winfo exists #{path}")
       result == "1"
-    rescue TclTkBridge::TclError
+    rescue TclTkLib::TclError
       false  # Interpreter deleted or app destroyed
     end
 
@@ -186,7 +209,7 @@ module Tk
     def wait_loop
       loop do
         # Block until event arrives (no polling)
-        @interp.do_one_event(TclTkBridge::ALL_EVENTS)
+        @interp.do_one_event(TclTkLib::ALL_EVENTS)
         dispatch_pending_callbacks
         break if yield
       end
