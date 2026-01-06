@@ -23,7 +23,10 @@
 #     TCL_VERSION=8.6 rake docker:test    # Test with Tcl 8.6
 #     rake docker:clean                   # Remove dangling images
 
-FROM ubuntu:25.04
+#############################################
+# BUILDER STAGE - compile Ruby and extension
+#############################################
+FROM ubuntu:25.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -32,7 +35,7 @@ RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/locale/*' >> /etc/dpkg/dpkg.cfg.d/excludes
 
-# Base dependencies (no Ruby - installed via mise below)
+# Build dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -40,12 +43,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     curl \
     ca-certificates \
     git \
-    xvfb \
-    imagemagick \
-    perceptualdiff \
-    fonts-noto-color-emoji \
-    fonts-noto-cjk \
-    bwidget \
     wget \
     libyaml-dev \
     libffi-dev \
@@ -53,9 +50,18 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     zlib1g-dev \
     libssl-dev
 
-# Install mise (Ruby version manager)
-RUN curl https://mise.run | sh
-ENV PATH="/root/.local/bin:${PATH}"
+# Install mise (pinned version, cached)
+ARG MISE_VERSION=2025.1.6
+RUN --mount=type=cache,target=/mise-dl \
+    if [ -f /mise-dl/mise ]; then \
+        echo "Restoring cached mise..." && \
+        cp /mise-dl/mise /usr/local/bin/mise; \
+    else \
+        curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-$(dpkg --print-architecture | sed 's/amd64/x64/' | sed 's/arm64/arm64/')" -o /usr/local/bin/mise && \
+        cp /usr/local/bin/mise /mise-dl/mise; \
+    fi && \
+    chmod +x /usr/local/bin/mise
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Install Ruby via mise (cache compiled installs across builds)
 ARG RUBY_VERSION=3.4
@@ -68,32 +74,21 @@ RUN --mount=type=cache,target=/mise-cache \
         cp -a /mise-cache/ruby /root/.local/share/mise/installs/; \
     fi && \
     mise install ruby@${RUBY_VERSION} && \
-    cp -a /root/.local/share/mise/installs/ruby /mise-cache/ # v2
+    cp -a /root/.local/share/mise/installs/ruby /mise-cache/
 RUN mise use -g ruby@${RUBY_VERSION}
 ENV PATH="/root/.local/share/mise/shims:${PATH}"
 
-# Layer 2: Tcl/Tk version-specific packages
+# Tcl/Tk dev packages for compilation
 ARG TCL_VERSION=9.0
 ENV TCL_VERSION=${TCL_VERSION}
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends tcl-dev tk-dev libtk-img; \
+        apt-get update && apt-get install -y --no-install-recommends tcl-dev tk-dev; \
     else \
-        # Ubuntu 25.04's libtk-img 2.0.1 was built for Tcl 8 only (no libtcl9* files).
-        # Debian sid has libtk-img 2.1.0 with Tcl 9 support, so we install both
-        # libtk-img and its libjpeg62-turbo dependency from Debian.
-        # Use dpkg --print-architecture to get correct arch (amd64 for CI, arm64 for Apple Silicon).
-        apt-get update && apt-get install -y --no-install-recommends tcl9.0-dev tk9.0-dev libtommath-dev && \
-        ARCH=$(dpkg --print-architecture) && \
-        wget -q -O /tmp/libjpeg62-turbo.deb "http://ftp.us.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
-        wget -q -O /tmp/libtk-img.deb "http://ftp.us.debian.org/debian/pool/main/libt/libtk-img/libtk-img_2.1.0+dfsg1-1_${ARCH}.deb" && \
-        dpkg -i /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
-        rm /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb; \
+        apt-get update && apt-get install -y --no-install-recommends tcl9.0-dev tk9.0-dev libtommath-dev; \
     fi
-
-ENV TCLLIBPATH=/usr/share/tcltk
 
 # Ubuntu 25.04 pkg-config bug: tk9.0.pc requires "tcl" but only tcl9.0.pc exists
 RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
@@ -102,11 +97,10 @@ RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
         ln -sf tk9.0.pc /usr/lib/${MULTIARCH}/pkgconfig/tk.pc; \
     fi
 
-# Copy source and install dependencies
+# Copy source and install gems
 WORKDIR /app
 COPY . .
 
-# Install gems (cache compiled gems across builds)
 ENV BUNDLE_PATH=/usr/local/bundle
 RUN --mount=type=cache,target=/bundle-cache \
     gem install bundler --no-document && \
@@ -118,8 +112,7 @@ RUN --mount=type=cache,target=/bundle-cache \
     bundle install && \
     cp -a $BUNDLE_PATH/* /bundle-cache/
 
-# Compile the extension based on version
-# Note: Use dpkg-architecture to get correct lib path for arm64 vs x86_64
+# Compile the extension
 RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
         bundle exec rake compile -- --with-tcltkversion=8.6 \
@@ -134,6 +127,65 @@ RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
             --with-tcl-include=/usr/include/tcl9.0 \
             --with-tk-include=/usr/include/tk9.0; \
     fi
+
+#############################################
+# RUNTIME STAGE - slim image for running tests
+#############################################
+FROM ubuntu:25.04 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Skip docs/man pages
+RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
+    echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
+    echo 'path-exclude=/usr/share/locale/*' >> /etc/dpkg/dpkg.cfg.d/excludes
+
+# Runtime-only dependencies (no build-essential, no *-dev)
+ARG TCL_VERSION=9.0
+ENV TCL_VERSION=${TCL_VERSION}
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+    xvfb \
+    imagemagick \
+    perceptualdiff \
+    fonts-noto-color-emoji \
+    fonts-noto-cjk \
+    bwidget \
+    libyaml-0-2 \
+    libffi8 \
+    libreadline8 \
+    zlib1g \
+    libssl3t64 && \
+    if [ "${TCL_VERSION}" = "8.6" ]; then \
+        apt-get install -y --no-install-recommends tcl tk libtk-img; \
+    else \
+        apt-get install -y --no-install-recommends tcl9.0 tk9.0 && \
+        ARCH=$(dpkg --print-architecture) && \
+        apt-get install -y --no-install-recommends wget && \
+        wget -q -O /tmp/libjpeg62-turbo.deb "http://ftp.us.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
+        wget -q -O /tmp/libtk-img.deb "http://ftp.us.debian.org/debian/pool/main/libt/libtk-img/libtk-img_2.1.0+dfsg1-1_${ARCH}.deb" && \
+        dpkg -i /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
+        rm /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
+        apt-get purge -y wget && apt-get autoremove -y; \
+    fi && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV TCLLIBPATH=/usr/share/tcltk
+
+# Copy Ruby from builder (just the install, not mise itself)
+COPY --from=builder /root/.local/share/mise/installs /root/.local/share/mise/installs
+COPY --from=builder /root/.local/share/mise/shims /root/.local/share/mise/shims
+ENV PATH="/root/.local/share/mise/shims:${PATH}"
+
+# Copy gems from builder
+COPY --from=builder /usr/local/bundle /usr/local/bundle
+ENV BUNDLE_PATH=/usr/local/bundle
+
+# Copy app with compiled extension
+WORKDIR /app
+COPY --from=builder /app /app
 
 # Screenshots will be in /app/screenshots/unverified/linux/tcl{version}/
 CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 bundle exec rake test"]
