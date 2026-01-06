@@ -160,6 +160,7 @@ jobs:
     - name: Run visual regression tests
       env:
         LD_LIBRARY_PATH: /opt/tcltk9/lib
+        TCLLIBPATH: /usr/share/tcltk
       run: timeout 60 xvfb-run --auto-servernum rake test
 
     - name: Upload coverage report

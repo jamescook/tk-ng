@@ -62,8 +62,6 @@ Tklib        0.5     http://sourceforge.net/projects/tcllib      ==> tcllib
 BWidget      1.8 [ CVS/Hd(2009-07-02) ]
                      http://sourceforge.net/projects/tcllib      ==> bwidget
 
-ICONS        1.0     http://www.satisoft.com/tcltk/icons/        ==> ICONS
-
 TkImg        1.3     http://sourceforge.net/projects/tkimg       ==> tkimg
 
 Tile         0.8.3/8.6b1
@@ -80,6 +78,7 @@ TkHTML       2.0     ==> tkHTML (REMOVED - see tkHTML/DEPRECATED.md)
 TkTreeCtrl   2.2.9   ==> treectrl (REMOVED - see treectrl/DEPRECATED.md)
 TkTable      2.10    ==> tktable (REMOVED - see tktable/DEPRECATED.md)
 winico       0.6     ==> winico (REMOVED - see winico/DEPRECATED.md)
+ICONS        1.0     ==> ICONS (REMOVED - see ICONS/DEPRECATED.md)
 
 
 ===< support (may be alpha or beta quality) >================================
