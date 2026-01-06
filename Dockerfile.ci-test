@@ -12,6 +12,9 @@
 #   Tcl/Tk 8.6:
 #     docker build -f Dockerfile.ci-test --build-arg TCL_VERSION=8.6 -t tk-ci-test-8 .
 #
+#   Ruby 4.0 (future):
+#     docker build -f Dockerfile.ci-test --build-arg RUBY_VERSION=4.0 -t tk-ci-test-ruby4 .
+#
 #   Run tests:
 #     docker run --rm -v $(pwd)/screenshots:/app/screenshots tk-ci-test-9
 #
@@ -29,14 +32,13 @@ RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/locale/*' >> /etc/dpkg/dpkg.cfg.d/excludes
 
-# Layer 1: Base dependencies (cached, doesn't change often)
-# Uses BuildKit cache mount for apt - persists across builds even when layers change
+# Base dependencies (no Ruby - installed via mise below)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    ruby \
-    ruby-dev \
+    curl \
+    ca-certificates \
     git \
     xvfb \
     imagemagick \
@@ -44,7 +46,31 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     fonts-noto-color-emoji \
     fonts-noto-cjk \
     bwidget \
-    wget
+    wget \
+    libyaml-dev \
+    libffi-dev \
+    libreadline-dev \
+    zlib1g-dev \
+    libssl-dev
+
+# Install mise (Ruby version manager)
+RUN curl https://mise.run | sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Install Ruby via mise (cache compiled installs across builds)
+ARG RUBY_VERSION=3.4
+RUN --mount=type=cache,target=/mise-cache \
+    --mount=type=cache,target=/root/.cache/mise \
+    --mount=type=cache,target=/root/.local/share/mise/downloads \
+    mkdir -p /root/.local/share/mise/installs && \
+    if [ -d /mise-cache/ruby ]; then \
+        echo "Restoring cached Ruby install..." && \
+        cp -a /mise-cache/ruby /root/.local/share/mise/installs/; \
+    fi && \
+    mise install ruby@${RUBY_VERSION} && \
+    cp -a /root/.local/share/mise/installs/ruby /mise-cache/ # v2
+RUN mise use -g ruby@${RUBY_VERSION}
+ENV PATH="/root/.local/share/mise/shims:${PATH}"
 
 # Layer 2: Tcl/Tk version-specific packages
 ARG TCL_VERSION=9.0
@@ -80,20 +106,29 @@ RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
 WORKDIR /app
 COPY . .
 
-RUN --mount=type=cache,target=/root/.bundle \
-    gem install bundler --no-document && bundle install
+# Install gems (cache compiled gems across builds)
+ENV BUNDLE_PATH=/usr/local/bundle
+RUN --mount=type=cache,target=/bundle-cache \
+    gem install bundler --no-document && \
+    if [ -d /bundle-cache/gems ]; then \
+        echo "Restoring cached gems..." && \
+        mkdir -p $BUNDLE_PATH && \
+        cp -a /bundle-cache/* $BUNDLE_PATH/; \
+    fi && \
+    bundle install && \
+    cp -a $BUNDLE_PATH/* /bundle-cache/
 
 # Compile the extension based on version
 # Note: Use dpkg-architecture to get correct lib path for arm64 vs x86_64
 RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
-        rake compile -- --with-tcltkversion=8.6 \
+        bundle exec rake compile -- --with-tcltkversion=8.6 \
             --with-tcl-lib=/usr/lib/${MULTIARCH} \
             --with-tk-lib=/usr/lib/${MULTIARCH} \
             --with-tcl-include=/usr/include/tcl8.6 \
             --with-tk-include=/usr/include/tcl8.6; \
     else \
-        rake compile -- --with-tcltkversion=9.0 \
+        bundle exec rake compile -- --with-tcltkversion=9.0 \
             --with-tcl-lib=/usr/lib/${MULTIARCH} \
             --with-tk-lib=/usr/lib/${MULTIARCH} \
             --with-tcl-include=/usr/include/tcl9.0 \
@@ -101,4 +136,4 @@ RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
     fi
 
 # Screenshots will be in /app/screenshots/unverified/linux/tcl{version}/
-CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 rake test"]
+CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 bundle exec rake test"]

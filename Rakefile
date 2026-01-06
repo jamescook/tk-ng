@@ -188,7 +188,7 @@ namespace :docker do
       cmd = "docker run --rm"
       cmd += " -e TCL_VERSION=#{tcl_version}"
       cmd += " #{image_name}"
-      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 rake test:widget'"
+      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 bundle exec rake test:widget'"
 
       sh cmd
     end

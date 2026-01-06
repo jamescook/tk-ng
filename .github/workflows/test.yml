@@ -17,8 +17,11 @@ concurrency:
 
 jobs:
   test-tcl9:
-    name: test (tcl 9.0)
+    name: test (ruby ${{ matrix.ruby }}, tcl 9.0)
     runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        ruby: ['3.4']
     steps:
     - uses: actions/checkout@v4
 
@@ -30,8 +33,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: cache-mount
-        key: docker-mount-tcl9-${{ hashFiles('Dockerfile.ci-test') }}
-        restore-keys: docker-mount-tcl9-
+        key: docker-mount-ruby${{ matrix.ruby }}-tcl9-${{ hashFiles('Dockerfile.ci-test') }}
+        restore-keys: docker-mount-ruby${{ matrix.ruby }}-tcl9-
 
     - name: Restore Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
@@ -40,7 +43,10 @@ jobs:
           {
             "var-cache-apt": "/var/cache/apt",
             "var-lib-apt": "/var/lib/apt",
-            "root-bundle": "/root/.bundle"
+            "bundle-cache": "/bundle-cache",
+            "mise-cache": "/mise-cache",
+            "mise-xdg-cache": "/root/.cache/mise",
+            "mise-downloads": "/root/.local/share/mise/downloads"
           }
         skip-extraction: ${{ steps.cache.outputs.cache-hit }}
         builder: ${{ steps.buildx.outputs.name }}
@@ -50,12 +56,14 @@ jobs:
       with:
         context: .
         file: Dockerfile.ci-test
-        build-args: TCL_VERSION=9.0
+        build-args: |
+          RUBY_VERSION=${{ matrix.ruby }}
+          TCL_VERSION=9.0
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-9:latest
-        cache-from: type=gha,scope=tcl9
-        cache-to: type=gha,mode=max,scope=tcl9
+        cache-from: type=gha,scope=ruby${{ matrix.ruby }}-tcl9
+        cache-to: type=gha,mode=max,scope=ruby${{ matrix.ruby }}-tcl9
 
     - name: Run tests
       run: |
@@ -70,7 +78,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-tcl9
+        name: coverage-ruby${{ matrix.ruby }}-tcl9
         path: coverage/
         retention-days: 30
 
@@ -78,7 +86,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: screenshots-tcl9
+        name: screenshots-ruby${{ matrix.ruby }}-tcl9
         path: screenshots/unverified/
         retention-days: 30
 
@@ -86,16 +94,19 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: screenshot-diffs-tcl9
+        name: screenshot-diffs-ruby${{ matrix.ruby }}-tcl9
         path: |
           screenshots/diffs/
           screenshots/logs/
         retention-days: 7
 
   test-tcl8:
-    name: test (tcl 8.6)
+    name: test (ruby ${{ matrix.ruby }}, tcl 8.6)
     runs-on: ubuntu-24.04
     needs: test-tcl9
+    strategy:
+      matrix:
+        ruby: ['3.4']
     steps:
     - uses: actions/checkout@v4
 
@@ -107,8 +118,8 @@ jobs:
       uses: actions/cache@v4
       with:
         path: cache-mount
-        key: docker-mount-tcl8-${{ hashFiles('Dockerfile.ci-test') }}
-        restore-keys: docker-mount-tcl8-
+        key: docker-mount-ruby${{ matrix.ruby }}-tcl8-${{ hashFiles('Dockerfile.ci-test') }}
+        restore-keys: docker-mount-ruby${{ matrix.ruby }}-tcl8-
 
     - name: Restore Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
@@ -117,7 +128,10 @@ jobs:
           {
             "var-cache-apt": "/var/cache/apt",
             "var-lib-apt": "/var/lib/apt",
-            "root-bundle": "/root/.bundle"
+            "bundle-cache": "/bundle-cache",
+            "mise-cache": "/mise-cache",
+            "mise-xdg-cache": "/root/.cache/mise",
+            "mise-downloads": "/root/.local/share/mise/downloads"
           }
         skip-extraction: ${{ steps.cache.outputs.cache-hit }}
         builder: ${{ steps.buildx.outputs.name }}
@@ -127,12 +141,14 @@ jobs:
       with:
         context: .
         file: Dockerfile.ci-test
-        build-args: TCL_VERSION=8.6
+        build-args: |
+          RUBY_VERSION=${{ matrix.ruby }}
+          TCL_VERSION=8.6
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-8:latest
-        cache-from: type=gha,scope=tcl8
-        cache-to: type=gha,mode=max,scope=tcl8
+        cache-from: type=gha,scope=ruby${{ matrix.ruby }}-tcl8
+        cache-to: type=gha,mode=max,scope=ruby${{ matrix.ruby }}-tcl8
 
     - name: Run tests
       run: |
@@ -145,7 +161,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: screenshots-tcl8
+        name: screenshots-ruby${{ matrix.ruby }}-tcl8
         path: screenshots/unverified/
         retention-days: 30
 
@@ -153,7 +169,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: screenshot-diffs-tcl8
+        name: screenshot-diffs-ruby${{ matrix.ruby }}-tcl8
         path: |
           screenshots/diffs/
           screenshots/logs/
