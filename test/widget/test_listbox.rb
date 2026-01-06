@@ -115,6 +115,48 @@ class TestListboxWidget < Minitest::Test
     listbox.value = items
     listbox.selection_set(2)
 
+    # ========================================
+    # Listbox Item Configuration Tests (itemconfigure/itemcget)
+    # ========================================
+
+    # --- itemconfigure background ---
+    listbox.itemconfigure(0, background: "lightyellow")
+    errors << "itemconfigure background failed" if listbox.itemcget(0, :background).to_s.empty?
+
+    # --- itemconfigure foreground ---
+    listbox.itemconfigure(0, foreground: "darkblue")
+    errors << "itemconfigure foreground failed" if listbox.itemcget(0, :foreground).to_s.empty?
+
+    # --- itemconfigure selectbackground ---
+    listbox.itemconfigure(1, selectbackground: "darkgreen")
+    errors << "itemconfigure selectbackground failed" if listbox.itemcget(1, :selectbackground).to_s.empty?
+
+    # --- itemconfigure selectforeground ---
+    listbox.itemconfigure(1, selectforeground: "white")
+    errors << "itemconfigure selectforeground failed" if listbox.itemcget(1, :selectforeground).to_s.empty?
+
+    # --- Multiple items with different colors ---
+    listbox.itemconfigure(2, background: "lightpink", foreground: "darkred")
+    errors << "item 2 background failed" if listbox.itemcget(2, :background).to_s.empty?
+    errors << "item 2 foreground failed" if listbox.itemcget(2, :foreground).to_s.empty?
+
+    listbox.itemconfigure(3, background: "lightgreen", foreground: "darkgreen")
+    errors << "item 3 background failed" if listbox.itemcget(3, :background).to_s.empty?
+
+    # --- Verify individual items have different colors ---
+    bg0 = listbox.itemcget(0, :background).to_s
+    bg2 = listbox.itemcget(2, :background).to_s
+    errors << "different item backgrounds failed" if bg0 == bg2 && !bg0.empty?
+
+    # --- Verify ItemOptionDSL integration (listbox items have string options only, no list options) ---
+    # This tests that the DSL bridge works correctly when no list options are declared
+    listbox.itemconfigure(4, background: "white", foreground: "black",
+                          selectbackground: "navy", selectforeground: "yellow")
+    errors << "DSL item background failed" if listbox.itemcget(4, :background).to_s.empty?
+    errors << "DSL item foreground failed" if listbox.itemcget(4, :foreground).to_s.empty?
+    errors << "DSL item selectbackground failed" if listbox.itemcget(4, :selectbackground).to_s.empty?
+    errors << "DSL item selectforeground failed" if listbox.itemcget(4, :selectforeground).to_s.empty?
+
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
       root.destroy

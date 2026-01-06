@@ -28,6 +28,9 @@ end
 
 $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
 
+# Absolute path to test fixtures directory - works from any test file location
+FIXTURES_PATH = File.expand_path('fixtures', __dir__)
+
 require 'minitest/autorun'
 
 # Collate subprocess coverage results at the very end (after all tests complete)

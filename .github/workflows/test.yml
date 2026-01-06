@@ -131,7 +131,7 @@ jobs:
     - name: Install build dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: libx11-dev libxft-dev libxss-dev
+        packages: libx11-dev libxft-dev libxss-dev bwidget libtk-img
         execute_install_scripts: true
 
     - name: Setup screenshot tools
@@ -229,7 +229,7 @@ jobs:
     - name: Install system dependencies
       uses: awalsh128/cache-apt-pkgs-action@latest
       with:
-        packages: tcl-dev tk-dev
+        packages: tcl-dev tk-dev bwidget libtk-img
         execute_install_scripts: true
     - name: Setup screenshot tools
       uses: ./.github/actions/setup-screenshot-tools

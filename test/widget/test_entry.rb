@@ -125,6 +125,11 @@ class TestEntryWidget < Minitest::Test
     entry_export = TkEntry.new(main_frame, exportselection: false)
     errors << "exportselection failed" if entry_export.cget(:exportselection)
 
+    # --- Test disabled/readonly background colors ---
+    entry_colors = TkEntry.new(main_frame, disabledbackground: "gray", readonlybackground: "lightyellow")
+    errors << "disabledbackground failed" unless entry_colors.cget(:disabledbackground).to_s == "gray"
+    errors << "readonlybackground failed" unless entry_colors.cget(:readonlybackground).to_s == "lightyellow"
+
     # --- Test dynamic configure ---
     entry_dynamic = TkEntry.new(main_frame, width: 20)
     entry_dynamic.configure(width: 40, relief: "sunken")

@@ -3,7 +3,10 @@
 #  tpaned widget
 #                               by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_panedwindow.html
+#
 require 'tk' unless defined?(Tk)
+require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
 
 module Tk
@@ -15,6 +18,7 @@ module Tk
 end
 
 class Tk::Tile::TPaned < TkWindow
+  extend Tk::OptionDSL
   include Tk::Tile::TileWidget
 
   if Tk::Tile::USE_TTK_NAMESPACE
@@ -28,6 +32,12 @@ class Tk::Tile::TPaned < TkWindow
   end
   WidgetClassName = 'TPaned'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Widget-specific options
+  option :orient, type: :string     # vertical, horizontal
+  option :width,  type: :pixels
+  option :height, type: :pixels
+  option :style,  type: :string     # ttk style
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

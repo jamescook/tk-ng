@@ -58,6 +58,13 @@ class TestFrameWidget < Minitest::Test
     inner = TkFrame.new(outer, borderwidth: 1, relief: "sunken")
     errors << "nested frame parent wrong" unless inner.path.start_with?(outer.path)
 
+    # --- Container option (boolean) ---
+    # Note: container=true makes frame an embedding container, can't have children
+    # Just test that boolean conversion works correctly
+    frame_container = TkFrame.new(root, container: false)
+    errors << "container should be false" if frame_container.cget(:container)
+    errors << "container should return boolean" unless frame_container.cget(:container).is_a?(FalseClass)
+
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
       root.destroy

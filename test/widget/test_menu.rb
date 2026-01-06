@@ -31,7 +31,9 @@ class TestMenuWidget < Minitest::Test
     # --- Basic menu ---
     menu = TkMenu.new(root, tearoff: false)
 
-    errors << "tearoff failed" if menu.cget(:tearoff)
+    # Test tearoff boolean (DSL-declared)
+    errors << "tearoff false failed" if menu.cget(:tearoff)
+    errors << "tearoff not boolean" unless menu.cget(:tearoff).is_a?(FalseClass)
 
     # Add menu items
     menu.add_command(label: "New", accelerator: "Ctrl+N")
@@ -41,16 +43,26 @@ class TestMenuWidget < Minitest::Test
 
     # --- Menu appearance ---
     menu.configure(activebackground: "blue")
-    errors << "activebackground failed" if menu.cget(:activebackground).to_s.empty?
+    errors << "activebackground failed" unless menu.cget(:activebackground).to_s == "blue"
 
     menu.configure(activeforeground: "white")
-    errors << "activeforeground failed" if menu.cget(:activeforeground).to_s.empty?
+    errors << "activeforeground failed" unless menu.cget(:activeforeground).to_s == "white"
+
+    # Test selectcolor (DSL-declared color)
+    menu.configure(selectcolor: "green")
+    errors << "menu selectcolor failed" unless menu.cget(:selectcolor).to_s == "green"
 
     menu.configure(activeborderwidth: 2)
     errors << "activeborderwidth failed" unless menu.cget(:activeborderwidth).to_i == 2
 
-    menu.configure(activerelief: "raised")
-    errors << "activerelief failed" unless menu.cget(:activerelief) == "raised"
+    # activerelief is Tk 9.0+ only (min_version: 9)
+    # On 8.6: should warn and skip (not error)
+    # On 9.0+: should configure successfully
+    menu.configure(activerelief: "raised")  # Should not raise on any version
+    if Tk::TK_MAJOR_VERSION >= 9
+      errors << "activerelief failed on Tk 9+" unless menu.cget(:activerelief) == "raised"
+    end
+    # On 8.6, we just verify it didn't crash - warning is expected
 
     # --- Border and relief ---
     menu.configure(borderwidth: 1)
@@ -131,6 +143,96 @@ class TestMenuWidget < Minitest::Test
     submenu.add_command(label: "Submenu Item 1")
     submenu.add_command(label: "Submenu Item 2")
     menu.add_cascade(label: "More Options", menu: submenu)
+
+    # --- Cascade menu val2ruby conversion ---
+    # Tests that entrycget(:menu) returns a TkMenu object, not a string path
+    # This exercises __item_val2ruby_optkeys conversion
+    cascade_index = menu.index("More Options")
+    retrieved_submenu = menu.entrycget(cascade_index, :menu)
+    errors << "cascade menu val2ruby should return TkMenu" unless retrieved_submenu.is_a?(TkMenu) || retrieved_submenu.is_a?(Tk::Menu)
+    errors << "cascade menu val2ruby should return same menu" unless retrieved_submenu.path == submenu.path
+
+    # ========================================
+    # Menu Entry Configuration Tests (entryconfigure/entrycget)
+    # ========================================
+
+    # Create a fresh menu for entry tests
+    entry_menu = TkMenu.new(root, tearoff: false)
+    entry_menu.add_command(label: "Test Entry", accelerator: "Ctrl+T")
+    entry_menu.add_command(label: "Another Entry")
+    entry_menu.add_separator
+    entry_menu.add_checkbutton(label: "Check Option")
+    entry_menu.add_radiobutton(label: "Radio Option")
+
+    # --- entrycget label ---
+    label = entry_menu.entrycget(0, :label)
+    errors << "entrycget label failed" unless label == "Test Entry"
+
+    # --- entryconfigure label ---
+    entry_menu.entryconfigure(0, label: "Modified Entry")
+    errors << "entryconfigure label failed" unless entry_menu.entrycget(0, :label) == "Modified Entry"
+
+    # --- entrycget/configure accelerator ---
+    accel = entry_menu.entrycget(0, :accelerator)
+    errors << "entrycget accelerator failed" unless accel == "Ctrl+T"
+
+    entry_menu.entryconfigure(0, accelerator: "Ctrl+M")
+    errors << "entryconfigure accelerator failed" unless entry_menu.entrycget(0, :accelerator) == "Ctrl+M"
+
+    # --- entryconfigure state ---
+    entry_menu.entryconfigure(0, state: "disabled")
+    errors << "entryconfigure state disabled failed" unless entry_menu.entrycget(0, :state) == "disabled"
+
+    entry_menu.entryconfigure(0, state: "normal")
+    errors << "entryconfigure state normal failed" unless entry_menu.entrycget(0, :state) == "normal"
+
+    # --- entryconfigure underline ---
+    entry_menu.entryconfigure(0, underline: 0)
+    errors << "entryconfigure underline failed" unless entry_menu.entrycget(0, :underline) == 0
+
+    # --- entryconfigure command ---
+    cmd_called = false
+    entry_menu.entryconfigure(1, command: proc { cmd_called = true })
+    entry_menu.invoke(1)
+    errors << "entryconfigure command failed" unless cmd_called
+
+    # --- checkbutton entry variable ---
+    check_var = TkVariable.new(false)
+    entry_menu.entryconfigure(3, variable: check_var)
+    entry_menu.invoke(3)
+    errors << "checkbutton entry invoke failed" unless check_var.bool
+
+    # --- radiobutton entry value ---
+    radio_var = TkVariable.new("")
+    entry_menu.entryconfigure(4, variable: radio_var, value: "selected")
+    entry_menu.invoke(4)
+    errors << "radiobutton entry invoke failed" unless radio_var.value == "selected"
+
+    # --- entryconfigure selectcolor (DSL-declared string option) ---
+    entry_menu.entryconfigure(3, selectcolor: "blue")
+    errors << "entryconfigure selectcolor failed" unless entry_menu.entrycget(3, :selectcolor).to_s == "blue"
+
+    # --- entryconfigure foreground/background (colors) ---
+    entry_menu.entryconfigure(0, foreground: "red")
+    errors << "entryconfigure foreground failed" unless entry_menu.entrycget(0, :foreground).to_s == "red"
+
+    entry_menu.entryconfigure(0, background: "yellow")
+    errors << "entryconfigure background failed" unless entry_menu.entrycget(0, :background).to_s == "yellow"
+
+    # --- entryconfigure columnbreak ---
+    entry_menu.entryconfigure(1, columnbreak: true)
+    errors << "entryconfigure columnbreak failed" unless entry_menu.entrycget(1, :columnbreak)
+
+    # --- entry index ---
+    idx = entry_menu.index("Another Entry")
+    errors << "menu index failed" unless idx == 1
+
+    # --- entry type (use tk_send to avoid method conflicts) ---
+    type = entry_menu.tk_send('type', 0)
+    errors << "menu type failed" unless type == "command"
+
+    type = entry_menu.tk_send('type', 2)
+    errors << "menu separator type failed" unless type == "separator"
 
     # Check errors before tk_end
     unless errors.empty?

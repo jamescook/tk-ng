@@ -75,4 +75,65 @@ class TestOption < Minitest::Test
 
     refute_includes opt.inspect, "aliases"
   end
+
+  # --- min_version tests ---
+
+  def test_min_version_default_nil
+    opt = Tk::Option.new(name: :text)
+
+    assert_nil opt.min_version
+  end
+
+  def test_min_version_set
+    opt = Tk::Option.new(name: :activerelief, type: :relief, min_version: 9)
+
+    assert_equal 9, opt.min_version
+  end
+
+  def test_available_when_no_min_version
+    opt = Tk::Option.new(name: :text)
+
+    assert opt.available?
+  end
+
+  def test_available_when_version_satisfied
+    # Stub Tk::TK_MAJOR_VERSION for test
+    unless defined?(Tk::TK_MAJOR_VERSION)
+      Tk.const_set(:TK_MAJOR_VERSION, 9)
+      @cleanup_tk_version = true
+    end
+
+    opt = Tk::Option.new(name: :foo, min_version: 8)
+    assert opt.available?
+
+    opt9 = Tk::Option.new(name: :bar, min_version: 9)
+    assert opt9.available? if Tk::TK_MAJOR_VERSION >= 9
+  ensure
+    Tk.send(:remove_const, :TK_MAJOR_VERSION) if @cleanup_tk_version
+  end
+
+  def test_version_required_when_available
+    opt = Tk::Option.new(name: :text)
+
+    assert_nil opt.version_required
+  end
+
+  def test_version_required_when_unavailable
+    # Create option requiring version 99 (definitely not available)
+    opt = Tk::Option.new(name: :future_option, min_version: 99)
+
+    assert_equal 99, opt.version_required
+  end
+
+  def test_inspect_includes_min_version
+    opt = Tk::Option.new(name: :activerelief, type: :relief, min_version: 9)
+
+    assert_includes opt.inspect, "min_version=9"
+  end
+
+  def test_inspect_omits_min_version_when_nil
+    opt = Tk::Option.new(name: :text)
+
+    refute_includes opt.inspect, "min_version"
+  end
 end

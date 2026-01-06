@@ -76,7 +76,9 @@ class TestTextWidget < Minitest::Test
 
     # --- Selection colors ---
     text.configure(selectbackground: "blue", selectforeground: "white")
-    errors << "selectbackground failed" if text.cget(:selectbackground).to_s.empty?
+    errors << "selectbackground failed" unless text.cget(:selectbackground).to_s == "blue"
+    text.configure(inactiveselectbackground: "gray")
+    errors << "inactiveselectbackground failed" unless text.cget(:inactiveselectbackground).to_s == "gray"
 
     # --- Tab style ---
     text.configure(tabstyle: "wordprocessor")
@@ -97,6 +99,54 @@ class TestTextWidget < Minitest::Test
     # Search for text
     pos = text.search("here", "1.0")
     errors << "search failed" if pos.to_s.empty?
+
+    # ========================================
+    # Text Tag Configuration Tests (tag_configure/tag_cget)
+    # ========================================
+
+    # Create a tag and apply it
+    text.delete("1.0", "end")
+    text.insert("end", "Normal text. ")
+    text.insert("end", "Tagged text here. ", "highlight")
+    text.insert("end", "More normal text.")
+
+    # --- Configure tag foreground/background ---
+    text.tag_configure("highlight", foreground: "white", background: "blue")
+    errors << "tag foreground failed" unless text.tag_cget("highlight", :foreground) == "white"
+    errors << "tag background failed" unless text.tag_cget("highlight", :background) == "blue"
+
+    # --- Configure tag font styling ---
+    text.tag_configure("highlight", underline: true)
+    errors << "tag underline failed" unless text.tag_cget("highlight", :underline)
+
+    text.tag_configure("highlight", overstrike: true)
+    errors << "tag overstrike failed" unless text.tag_cget("highlight", :overstrike)
+
+    # --- Configure tag relief ---
+    text.tag_configure("highlight", relief: "raised", borderwidth: 1)
+    errors << "tag relief failed" unless text.tag_cget("highlight", :relief) == "raised"
+
+    # --- Configure tag spacing ---
+    text.tag_configure("highlight", spacing1: 5)
+    errors << "tag spacing1 failed" unless text.tag_cget("highlight", :spacing1).to_i == 5
+
+    # --- Configure tag justify ---
+    text.tag_configure("highlight", justify: "center")
+    errors << "tag justify failed" unless text.tag_cget("highlight", :justify) == "center"
+
+    # --- Create second tag with different options ---
+    text.insert("end", "\nError message", "error")
+    text.tag_configure("error", foreground: "red", background: "yellow")
+    errors << "error tag foreground failed" unless text.tag_cget("error", :foreground) == "red"
+    errors << "error tag background failed" unless text.tag_cget("error", :background) == "yellow"
+
+    # --- Tag ranges ---
+    ranges = text.tag_ranges("highlight")
+    errors << "tag_ranges failed" if ranges.nil?
+
+    # --- Tag names ---
+    names = text.tag_names
+    errors << "tag_names failed" unless names.include?("highlight")
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?

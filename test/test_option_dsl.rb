@@ -201,4 +201,54 @@ class TestOptionDSL < Minitest::Test
 
     assert_equal ['isactive'], klass.declared_boolval_optkeys
   end
+
+  # min_version tests
+
+  def test_option_with_min_version
+    klass = Class.new do
+      extend Tk::OptionDSL
+      option :new_feature, type: :string, min_version: 9
+    end
+
+    opt = klass.resolve_option(:new_feature)
+    assert_equal 9, opt.min_version
+  end
+
+  def test_option_version_required_returns_nil_when_available
+    klass = Class.new do
+      extend Tk::OptionDSL
+      option :text, type: :string  # no min_version
+    end
+
+    assert_nil klass.option_version_required(:text)
+  end
+
+  def test_option_version_required_returns_version_when_unavailable
+    klass = Class.new do
+      extend Tk::OptionDSL
+      option :future_option, type: :string, min_version: 99
+    end
+
+    assert_equal 99, klass.option_version_required(:future_option)
+  end
+
+  def test_option_version_required_returns_nil_for_unknown_option
+    klass = Class.new do
+      extend Tk::OptionDSL
+    end
+
+    assert_nil klass.option_version_required(:unknown)
+  end
+end
+
+# Separate test class to verify real widget declarations
+class TestMenuOptionDeclarations < Minitest::Test
+  def test_menu_activerelief_has_min_version_9
+    require 'tk/menu'
+
+    opt = Tk::Menu.resolve_option(:activerelief)
+
+    refute_nil opt, "Menu should have activerelief option declared"
+    assert_equal 9, opt.min_version, "activerelief should require Tk 9.0+"
+  end
 end

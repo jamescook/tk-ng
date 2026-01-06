@@ -4,6 +4,7 @@
 #                           by Hidetoshi Nagai <nagai@ai.kyutech.ac.jp>
 #
 require 'tk' unless defined?(Tk)
+require 'tk/option_dsl'
 
 class TkNamespace < TkObject
   extend Tk
@@ -36,6 +37,16 @@ class TkNamespace < TkObject
   #####################################
 
   class Ensemble < TkObject
+    extend Tk::OptionDSL
+
+    option :prefixes,    type: :boolean
+    option :map,         type: :list
+    option :subcommands, type: :list
+    option :unknown,     type: :list
+
+    # NOTE: __boolval_optkeys override for 'prefixes' removed - now declared via OptionDSL
+    # NOTE: __listval_optkeys override for 'map', 'subcommands', 'unknown' removed - now declared via OptionDSL
+
     def __cget_cmd
       ['namespace', 'ensemble', 'configure', self.path]
     end
@@ -51,16 +62,6 @@ class TkNamespace < TkObject
         :default_value=>nil, :current_value=>2}
     end
     private :__configinfo_struct
-
-    def __boolval_optkeys
-      ['prefixes']
-    end
-    private :__boolval_optkeys
-
-    def __listval_optkeys
-      ['map', 'subcommands', 'unknown']
-    end
-    private :__listval_optkeys
 
     def self.exist?(ensemble)
       bool(tk_call('namespace', 'ensemble', 'exists', ensemble))

@@ -29,6 +29,9 @@ module Tk
       float: :numval,
       boolean: :boolval,
       string: :strval,
+      color: :strval,    # colors treated as strings in legacy system
+      relief: :strval,   # relief values treated as strings
+      pixels: :strval,   # pixel values treated as strings (can be "10" or "10p")
       list: :listval,
     }.freeze
 
@@ -49,9 +52,10 @@ module Tk
     # @param type [Symbol] Type converter (:string, :integer, :boolean, etc.)
     # @param tcl_name [String, nil] Tcl option name if different from Ruby name
     # @param aliases [Array<Symbol>] Alternative names for this option
+    # @param min_version [Integer, nil] Minimum Tcl/Tk major version required (e.g., 9 for Tk 9.0+)
     #
-    def option(name, type: :string, tcl_name: nil, aliases: [])
-      opt = Option.new(name: name, tcl_name: tcl_name, type: type, aliases: aliases)
+    def option(name, type: :string, tcl_name: nil, aliases: [], min_version: nil)
+      opt = Option.new(name: name, tcl_name: tcl_name, type: type, aliases: aliases, min_version: min_version)
       _options[opt.name] = opt
       aliases.each { |a| _options[a.to_sym] = opt }
     end
@@ -73,6 +77,18 @@ module Tk
     # List of canonical option names (excludes aliases)
     def option_names
       _options.values.uniq.map(&:name)
+    end
+
+    # Check if an option requires a newer Tcl/Tk version than currently running.
+    # Returns the required version number if unavailable, nil if available or unknown.
+    #
+    # @param name [Symbol, String] Option name to check
+    # @return [Integer, nil] Required version if unavailable, nil if available
+    #
+    def option_version_required(name)
+      opt = resolve_option(name)
+      return nil unless opt
+      opt.version_required
     end
 
     # Bridge methods for legacy __*_optkeys compatibility
@@ -107,9 +123,20 @@ module Tk
     end
 
     def options_by_legacy_type(legacy_type)
-      _options.values.uniq.select do |opt|
+      all_options_with_ancestors.select do |opt|
         LEGACY_TYPE_MAP[opt.type.name] == legacy_type
       end.map { |opt| opt.tcl_name }
+    end
+
+    def all_options_with_ancestors
+      result = _options.values
+      ancestors.each do |ancestor|
+        next if ancestor == self
+        if ancestor.respond_to?(:_options, true) && ancestor.instance_variable_defined?(:@_options)
+          result += ancestor.instance_variable_get(:@_options).values
+        end
+      end
+      result.uniq
     end
   end
 end

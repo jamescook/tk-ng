@@ -69,15 +69,8 @@ class Tk::Toplevel<TkWindow
 #  end
 #################
 
-  def __boolval_optkeys
-    super() << 'container'
-  end
-  private :__boolval_optkeys
-
-  def __strval_optkeys
-    super() << 'screen'
-  end
-  private :__strval_optkeys
+  # NOTE: __boolval_optkeys override for 'container' removed - now declared via OptionDSL
+  # NOTE: __strval_optkeys override for 'screen' removed - now declared via OptionDSL
 
   def __val2ruby_optkeys  # { key=>proc, ... }
     super().update('menu'=>proc{|v| window(v)})

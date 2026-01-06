@@ -11,6 +11,7 @@ require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkTextTagConfig
   include TkTreatItemFont
@@ -261,6 +262,7 @@ class Tk::Text<TkTextWin
   #######################################
 
   extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
 
   TkCommandNames = ['text'.freeze].freeze
   WidgetClassName = 'Text'.freeze
@@ -300,6 +302,37 @@ class Tk::Text<TkTextWin
   option :width,              type: :integer   # in characters
   option :wrap,               type: :string    # none, char, word
 
+  # ================================================================
+  # Item options (for text tags)
+  # ================================================================
+
+  # Colors
+  item_option :background,      type: :string
+  item_option :foreground,      type: :string
+
+  # Spacing/margins (pixels)
+  item_option :borderwidth,     type: :pixels
+  item_option :lmargin1,        type: :pixels
+  item_option :lmargin2,        type: :pixels
+  item_option :rmargin,         type: :pixels
+  item_option :spacing1,        type: :pixels
+  item_option :spacing2,        type: :pixels
+  item_option :spacing3,        type: :pixels
+  item_option :offset,          type: :pixels
+
+  # Boolean options
+  item_option :overstrike,      type: :boolean
+  item_option :underline,       type: :boolean
+  item_option :elide,           type: :boolean
+
+  # String options
+  item_option :relief,          type: :string   # flat, groove, raised, ridge, solid, sunken
+  item_option :justify,         type: :string   # left, right, center
+  item_option :wrap,            type: :string   # none, char, word
+
+  # List options
+  item_option :tabs,            type: :list
+
   def self.new(*args, &block)
     obj = super(*args){}
     obj.init_instance_variable
@@ -335,10 +368,7 @@ class Tk::Text<TkTextWin
   end
   private :create_self
 
-  def __strval_optkeys
-    super() << 'inactiveseletcionbackground'
-  end
-  private :__strval_optkeys
+  # NOTE: __strval_optkeys override removed - had typo 'inactiveseletcionbackground', now correctly declared as 'inactiveselectbackground' via OptionDSL
 
   def self.at(x, y)
     Tk::Text::IndexString.at(x, y)

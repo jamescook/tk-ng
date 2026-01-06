@@ -30,15 +30,8 @@ class Tk::RadioButton<Tk::Button
   #end
   #private :create_self
 
-  def __boolval_optkeys
-    super() << 'indicatoron'
-  end
-  private :__boolval_optkeys
-
-  def __strval_optkeys
-    super() << 'selectcolor'
-  end
-  private :__strval_optkeys
+  # NOTE: __boolval_optkeys override for 'indicatoron' removed - now declared via OptionDSL
+  # NOTE: __strval_optkeys override for 'selectcolor' removed - now declared via OptionDSL
 
   def __ruby2val_optkeys  # { key=>proc, ... }
     {

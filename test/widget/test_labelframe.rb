@@ -78,6 +78,16 @@ class TestLabelFrameWidget < Minitest::Test
     errors << "padx failed" unless lf1.cget(:padx).to_i == 15
     errors << "pady failed" unless lf1.cget(:pady).to_i == 15
 
+    # --- Labelwidget val2ruby conversion ---
+    # Tests that cget(:labelwidget) returns a widget object, not a string path
+    # This exercises __val2ruby_optkeys conversion
+    custom_label = TkLabel.new(root, text: "Custom Label Widget", font: "Helvetica 10 bold")
+    lf4 = TkLabelFrame.new(root, labelwidget: custom_label)
+    lf4.pack(padx: 10, pady: 5)
+    retrieved_widget = lf4.cget(:labelwidget)
+    errors << "labelwidget val2ruby should return widget" unless retrieved_widget.respond_to?(:path)
+    errors << "labelwidget val2ruby should return same widget" unless retrieved_widget.path == custom_label.path
+
     # Check errors before tk_end
     unless errors.empty?
       root.destroy

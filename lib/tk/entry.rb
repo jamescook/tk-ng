@@ -28,8 +28,8 @@ class Tk::Entry<Tk::Label
   option :insertofftime,      type: :integer   # cursor blink off (ms)
   option :insertontime,       type: :integer   # cursor blink on (ms)
   option :insertwidth,        type: :pixels
-  option :placeholder,        type: :string
-  option :placeholderforeground, type: :color
+  option :placeholder,        type: :string, min_version: 9  # TIP 496 (Tk 8.7+)
+  option :placeholderforeground, type: :color, min_version: 9  # TIP 496 (Tk 8.7+)
   option :selectbackground,   type: :color
   option :selectborderwidth,  type: :pixels
   option :selectforeground,   type: :color
@@ -46,10 +46,7 @@ class Tk::Entry<Tk::Label
   #end
   #private :create_self
 
-  def __strval_optkeys
-    super() + ['show', 'disabledbackground', 'readonlybackground']
-  end
-  private :__strval_optkeys
+  # NOTE: __strval_optkeys override for 'show', 'disabledbackground', 'readonlybackground' removed - now declared via OptionDSL
 
   def bbox(index)
     list(tk_send_without_enc('bbox', index))

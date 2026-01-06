@@ -96,20 +96,9 @@ class Tk::Spinbox<Tk::Entry
   #end
   #private :create_self
 
-  def __boolval_optkeys
-    super() << 'wrap'
-  end
-  private :__boolval_optkeys
-
-  def __strval_optkeys
-    super() << 'buttonbackground' << 'format'
-  end
-  private :__strval_optkeys
-
-  def __listval_optkeys
-    super() << 'values'
-  end
-  private :__listval_optkeys
+  # NOTE: __boolval_optkeys override for 'wrap' removed - now declared via OptionDSL
+  # NOTE: __strval_optkeys override for 'buttonbackground', 'format' removed - now declared via OptionDSL
+  # NOTE: __listval_optkeys override for 'values' removed - now declared via OptionDSL
 
   def identify(x, y)
     tk_send_without_enc('identify', x, y)

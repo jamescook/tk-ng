@@ -8,13 +8,28 @@ require 'tk/itemfont.rb'
 module TkItemConfigOptkeys
   include TkUtil
 
+  # Helper method to merge declared item options from ItemOptionDSL into legacy optkeys.
+  # This bridges the new declarative item option system with the legacy type conversion.
+  def __merge_declared_item_optkeys(base_keys, declared_method)
+    if self.class.respond_to?(declared_method)
+      (base_keys + self.class.send(declared_method)).uniq
+    else
+      base_keys
+    end
+  end
+  private :__merge_declared_item_optkeys
+
   def __item_optkey_aliases(id)
-    {}
+    if self.class.respond_to?(:declared_item_optkey_aliases)
+      self.class.declared_item_optkey_aliases
+    else
+      {}
+    end
   end
   private :__item_optkey_aliases
 
   def __item_numval_optkeys(id)
-    []
+    __merge_declared_item_optkeys([], :declared_item_numval_optkeys)
   end
   private :__item_numval_optkeys
 
@@ -24,24 +39,29 @@ module TkItemConfigOptkeys
   private :__item_numstrval_optkeys
 
   def __item_boolval_optkeys(id)
-    ['exportselection', 'jump', 'setgrid', 'takefocus']
+    __merge_declared_item_optkeys(
+      ['exportselection', 'jump', 'setgrid', 'takefocus'],
+      :declared_item_boolval_optkeys
+    )
   end
   private :__item_boolval_optkeys
 
   def __item_strval_optkeys(id)
-    # maybe need to override
-    [
-      'text', 'label', 'show', 'data', 'file', 'maskdata', 'maskfile',
-      'activebackground', 'activeforeground', 'background',
-      'disabledforeground', 'disabledbackground', 'foreground',
-      'highlightbackground', 'highlightcolor', 'insertbackground',
-      'selectbackground', 'selectforeground', 'troughcolor'
-    ]
+    __merge_declared_item_optkeys(
+      [
+        'text', 'label', 'show', 'data', 'file', 'maskdata', 'maskfile',
+        'activebackground', 'activeforeground', 'background',
+        'disabledforeground', 'disabledbackground', 'foreground',
+        'highlightbackground', 'highlightcolor', 'insertbackground',
+        'selectbackground', 'selectforeground', 'troughcolor'
+      ],
+      :declared_item_strval_optkeys
+    )
   end
   private :__item_strval_optkeys
 
   def __item_listval_optkeys(id)
-    []
+    __merge_declared_item_optkeys([], :declared_item_listval_optkeys)
   end
   private :__item_listval_optkeys
 

@@ -47,10 +47,7 @@ class Tk::Frame<TkWindow
 #  end
 #################
 
-  def __boolval_optkeys
-    super() << 'container'
-  end
-  private :__boolval_optkeys
+  # NOTE: __boolval_optkeys override for 'container' removed - now declared via OptionDSL
 
   def initialize(parent=nil, keys=nil)
     my_class_name = nil

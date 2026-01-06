@@ -73,7 +73,7 @@ class TestRadioButtonWidget < Minitest::Test
 
     # --- Select color ---
     rb_small.configure(selectcolor: "red")
-    errors << "selectcolor failed" if rb_small.cget(:selectcolor).to_s.empty?
+    errors << "selectcolor failed" unless rb_small.cget(:selectcolor).to_s == "red"
 
     # --- Select/deselect methods ---
     rb_large.select

@@ -77,10 +77,7 @@ class Tk::Scale<TkWindow
   end
   private :create_self
 
-  def __strval_optkeys
-    super() << 'label'
-  end
-  private :__strval_optkeys
+  # NOTE: __strval_optkeys override for 'label' removed - now declared via OptionDSL
 
   def _wrap_command_arg(cmd)
     proc{|val|

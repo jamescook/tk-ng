@@ -60,6 +60,11 @@ class TestToplevelWidget < Minitest::Test
     errors << "container not boolean" unless container_top.cget(:container).is_a?(FalseClass)
     container_top.destroy
 
+    # --- Screen option (DSL-declared string) ---
+    # Screen is read-only after creation, just verify we can read it
+    screen_val = top.cget(:screen)
+    errors << "screen should be string" unless screen_val.is_a?(String)
+
     # --- Add content to toplevel ---
     TkLabel.new(top, text: "This is a Toplevel window").pack(pady: 20)
     TkButton.new(top, text: "Close", command: proc { top.destroy }).pack(pady: 10)
@@ -74,6 +79,17 @@ class TestToplevelWidget < Minitest::Test
     # --- Highlight thickness ---
     top.configure(highlightthickness: 2)
     errors << "highlightthickness failed" unless top.cget(:highlightthickness).to_i == 2
+
+    # --- Menu option val2ruby conversion ---
+    # Tests that cget(:menu) returns a TkMenu object, not a string path
+    # This exercises __val2ruby_optkeys conversion
+    require 'tk/menu'
+    menubar = TkMenu.new(top)
+    menubar.add_command(label: "File")
+    top.configure(menu: menubar)
+    retrieved_menu = top.cget(:menu)
+    errors << "menu val2ruby should return TkMenu" unless retrieved_menu.is_a?(TkMenu) || retrieved_menu.is_a?(Tk::Menu)
+    errors << "menu val2ruby should return same menu" unless retrieved_menu.path == menubar.path
 
     # Clean up
     top2.destroy

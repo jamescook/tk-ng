@@ -79,6 +79,9 @@ class TestSpinboxWidget < Minitest::Test
     num_spin.configure(buttonuprelief: "raised")
     errors << "buttonuprelief failed" unless num_spin.cget(:buttonuprelief) == "raised"
 
+    num_spin.configure(buttonbackground: "lightgray")
+    errors << "buttonbackground failed" if num_spin.cget(:buttonbackground).to_s.empty?
+
     # --- Set value and read ---
     num_spin.set("50")
     errors << "set/get failed" unless num_spin.get == "50"

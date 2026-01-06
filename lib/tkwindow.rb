@@ -1,10 +1,40 @@
 # frozen_string_literal: true
 
+require 'tk/option_dsl'
+
 class TkWindow<TkObject
   include TkWinfo
   extend TkBindCore
+  extend Tk::OptionDSL
   include Tk::Wm_for_General
   include Tk::Busy
+
+  # Common boolean options (inherited by all widgets)
+  option :exportselection, type: :boolean
+  option :jump,            type: :boolean
+  option :setgrid,         type: :boolean
+  option :takefocus,       type: :boolean
+
+  # Common color options (inherited by all widgets)
+  option :activebackground,    type: :color
+  option :activeforeground,    type: :color
+  option :background,          type: :color
+  option :disabledbackground,  type: :color
+  option :disabledforeground,  type: :color
+  option :foreground,          type: :color
+  option :highlightbackground, type: :color
+  option :highlightcolor,      type: :color
+  option :insertbackground,    type: :color
+  option :selectbackground,    type: :color
+  option :selectforeground,    type: :color
+  option :troughcolor,         type: :color
+
+  # Common string options
+  option :text,  type: :string
+  option :label, type: :string
+  option :show,  type: :string
+  option :data,  type: :string
+  option :file,  type: :string
 
   @@WIDGET_INSPECT_FULL = false
   def TkWindow._widget_inspect_full_?

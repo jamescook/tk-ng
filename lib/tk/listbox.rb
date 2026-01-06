@@ -9,18 +9,17 @@ require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkListItemConfig
   include TkItemConfigMethod
 
-  def __item_listval_optkeys(id)
-    []
-  end
-  private :__item_listval_optkeys
+  # NOTE: __item_listval_optkeys override removed - base returns [] when no list options declared via ItemOptionDSL
 end
 
 class Tk::Listbox<TkTextWin
   extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
   include TkListItemConfig
   include Scrollable
 
@@ -46,6 +45,16 @@ class Tk::Listbox<TkTextWin
   option :selectmode,         type: :string     # single, browse, multiple, extended
   option :state,              type: :string     # normal, disabled
   option :width,              type: :integer    # in characters
+
+  # ================================================================
+  # Item options (for listbox items)
+  # ================================================================
+
+  # Color options
+  item_option :background,        type: :string
+  item_option :foreground,        type: :string
+  item_option :selectbackground,  type: :string
+  item_option :selectforeground,  type: :string
 
   #def create_self(keys)
   #  if keys and keys != None

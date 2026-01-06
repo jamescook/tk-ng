@@ -10,18 +10,12 @@ require 'tk/canvastag'
 require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkCanvasItemConfig
   include TkItemConfigMethod
 
-  def __item_strval_optkeys(id)
-    # maybe need to override
-    super(id) + [
-      'fill', 'activefill', 'disabledfill',
-      'outline', 'activeoutline', 'disabledoutline'
-    ]
-  end
-  private :__item_strval_optkeys
+  # NOTE: __item_strval_optkeys override for fill/outline colors removed - now declared via ItemOptionDSL
 
   def __item_methodcall_optkeys(id)
     {'coords'=>'coords'}
@@ -48,6 +42,7 @@ end
 
 class Tk::Canvas<TkWindow
   extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
   include TkCanvasItemConfig
   include Tk::Scrollable
 
@@ -78,6 +73,40 @@ class Tk::Canvas<TkWindow
   option :xscrollincrement,  type: :pixels
   option :yscrollincrement,  type: :pixels
 
+  # ================================================================
+  # Item options (for canvas items: rectangles, ovals, lines, etc.)
+  # ================================================================
+
+  # Colors (string type for legacy compatibility)
+  item_option :fill,             type: :string
+  item_option :activefill,       type: :string
+  item_option :disabledfill,     type: :string
+  item_option :outline,          type: :string
+  item_option :activeoutline,    type: :string
+  item_option :disabledoutline,  type: :string
+
+  # Line widths (float values)
+  item_option :width,            type: :float
+  item_option :activewidth,      type: :float
+  item_option :disabledwidth,    type: :float
+
+  # Boolean options
+  item_option :smooth,           type: :boolean
+
+  # Integer options
+  item_option :splinesteps,      type: :integer
+
+  # List options (dash patterns, etc.)
+  item_option :tags,             type: :list
+
+  # String options (enumerated values)
+  item_option :state,            type: :string   # normal, disabled, hidden
+  item_option :arrow,            type: :string   # none, first, last, both
+  item_option :capstyle,         type: :string   # butt, projecting, round
+  item_option :joinstyle,        type: :string   # bevel, miter, round
+  item_option :anchor,           type: :string   # n, ne, e, se, s, sw, w, nw, center
+  item_option :justify,          type: :string   # left, right, center
+
   def __destroy_hook__
     TkcItem::CItemID_TBL.delete(@path)
   end
@@ -91,15 +120,8 @@ class Tk::Canvas<TkWindow
   #end
   #private :create_self
 
-  def __numval_optkeys
-    super() + ['closeenough']
-  end
-  private :__numval_optkeys
-
-  def __boolval_optkeys
-    super() + ['confine']
-  end
-  private :__boolval_optkeys
+  # NOTE: __numval_optkeys override for 'closeenough' removed - now declared via OptionDSL
+  # NOTE: __boolval_optkeys override for 'confine' removed - now declared via OptionDSL
 
   def tagid(tag)
     if tag.kind_of?(TkcItem) || tag.kind_of?(TkcTag)

@@ -468,7 +468,11 @@ module TkConfigMethod
   private :__configinfo_struct
 
   def __optkey_aliases
-    {}
+    if self.class.respond_to?(:declared_optkey_aliases)
+      self.class.declared_optkey_aliases
+    else
+      {}
+    end
   end
   private :__optkey_aliases
 
@@ -494,24 +498,14 @@ module TkConfigMethod
   private :__numstrval_optkeys
 
   def __boolval_optkeys
-    __merge_declared_optkeys(
-      ['exportselection', 'jump', 'setgrid', 'takefocus'],
-      :declared_boolval_optkeys
-    )
+    # NOTE: Hardcoded defaults moved to TkWindow via OptionDSL
+    __merge_declared_optkeys([], :declared_boolval_optkeys)
   end
   private :__boolval_optkeys
 
   def __strval_optkeys
-    __merge_declared_optkeys(
-      [
-        'text', 'label', 'show', 'data', 'file',
-        'activebackground', 'activeforeground', 'background',
-        'disabledforeground', 'disabledbackground', 'foreground',
-        'highlightbackground', 'highlightcolor', 'insertbackground',
-        'selectbackground', 'selectforeground', 'troughcolor'
-      ],
-      :declared_strval_optkeys
-    )
+    # NOTE: Hardcoded defaults moved to TkWindow via OptionDSL
+    __merge_declared_optkeys([], :declared_strval_optkeys)
   end
   private :__strval_optkeys
 
@@ -708,9 +702,26 @@ module TkConfigMethod
     __cget_core(slot)
   end
 
+  # Check if an option requires a newer Tcl/Tk version.
+  # If it does, emit a warning and return true (should skip this option).
+  # Returns false if option is available or not version-restricted.
+  def __skip_version_restricted_option?(option_name)
+    return false unless self.class.respond_to?(:option_version_required)
+    required_version = self.class.option_version_required(option_name)
+    return false unless required_version
+
+    warn "#{self.class}: option '#{option_name}' requires Tcl/Tk #{required_version}.0+ " \
+         "(current: #{Tk::TK_VERSION}). Option ignored."
+    true
+  end
+  private :__skip_version_restricted_option?
+
   def __configure_core(slot, value=None)
     if slot.kind_of? Hash
       slot = _symbolkey2str(slot)
+
+      # Filter out version-restricted options before processing
+      slot.delete_if { |k, _| __skip_version_restricted_option?(k) }
 
       __optkey_aliases.each{|alias_name, real_name|
         alias_name = alias_name.to_s
@@ -761,6 +772,9 @@ module TkConfigMethod
       if real_name
         slot = real_name.to_s
       end
+
+      # Check version restriction before attempting to configure
+      return self if __skip_version_restricted_option?(slot)
 
       # :nocov: __keyonly_optkeys - only overridden in BLT extensions (blt/tree.rb)
       if ( conf = __keyonly_optkeys.find{|k, v| k.to_s == slot} )

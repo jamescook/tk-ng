@@ -1,4 +1,5 @@
 # frozen_string_literal: false
+# :nocov:
 #
 #  tkextlib/tcllib/tkpiechart.rb
 #                               by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
@@ -313,3 +314,4 @@ module Tk::Tcllib::Tkpiechart
     private :create_self
   end
 end
+# :nocov:
