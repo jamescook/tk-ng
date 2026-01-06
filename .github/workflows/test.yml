@@ -37,9 +37,10 @@ jobs:
         name: docker-cache-ruby${{ matrix.ruby }}-tcl9
         path: cache-mount
 
-    - name: Restore Docker cache mounts
+    - name: Inject/extract Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
       with:
+        cache-dir: cache-mount
         cache-map: |
           {
             "var-cache-apt": "/var/cache/apt",
@@ -50,7 +51,7 @@ jobs:
             "mise-xdg-cache": "/root/.cache/mise",
             "mise-downloads": "/root/.local/share/mise/downloads"
           }
-        skip-extraction: false
+        save-always: true
         builder: ${{ steps.buildx.outputs.name }}
 
     - name: Build Docker image
@@ -64,8 +65,6 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-9:latest
-        cache-from: type=gha,scope=ruby${{ matrix.ruby }}-tcl9
-        cache-to: type=gha,mode=max,scope=ruby${{ matrix.ruby }}-tcl9
 
     # Save cache as artifact (90-day retention)
     - name: Upload build cache
@@ -141,9 +140,10 @@ jobs:
         name: docker-cache-ruby${{ matrix.ruby }}-tcl8
         path: cache-mount
 
-    - name: Restore Docker cache mounts
+    - name: Inject/extract Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
       with:
+        cache-dir: cache-mount
         cache-map: |
           {
             "var-cache-apt": "/var/cache/apt",
@@ -154,7 +154,7 @@ jobs:
             "mise-xdg-cache": "/root/.cache/mise",
             "mise-downloads": "/root/.local/share/mise/downloads"
           }
-        skip-extraction: false
+        save-always: true
         builder: ${{ steps.buildx.outputs.name }}
 
     - name: Build Docker image
@@ -168,8 +168,6 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-8:latest
-        cache-from: type=gha,scope=ruby${{ matrix.ruby }}-tcl8
-        cache-to: type=gha,mode=max,scope=ruby${{ matrix.ruby }}-tcl8
 
     # Save cache as artifact (90-day retention)
     - name: Upload build cache

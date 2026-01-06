@@ -104,12 +104,12 @@ COPY . .
 ENV BUNDLE_PATH=/usr/local/bundle
 RUN --mount=type=cache,target=/bundle-cache \
     gem install bundler --no-document && \
-    if [ -d /bundle-cache/gems ]; then \
+    if [ -d /bundle-cache/ruby ]; then \
         echo "Restoring cached gems..." && \
         mkdir -p $BUNDLE_PATH && \
         cp -a /bundle-cache/* $BUNDLE_PATH/; \
     fi && \
-    bundle install && \
+    (bundle check || bundle install) && \
     cp -a $BUNDLE_PATH/* /bundle-cache/
 
 # Compile the extension
@@ -190,4 +190,5 @@ WORKDIR /app
 COPY --from=builder /app /app
 
 # Screenshots will be in /app/screenshots/unverified/linux/tcl{version}/
-CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 bundle exec rake test"]
+# exec replaces bash so SIGINT (Ctrl+C) goes directly to rake
+CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && exec env DISPLAY=:99 bundle exec rake test"]

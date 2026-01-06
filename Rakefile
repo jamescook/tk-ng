@@ -169,7 +169,7 @@ namespace :docker do
     FileUtils.mkdir_p('coverage')
 
     puts "Running tests in Docker (Tcl #{tcl_version})..."
-    cmd = "docker run --rm"
+    cmd = "docker run --rm --init"
     cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
     cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
     cmd += " -e TCL_VERSION=#{tcl_version}"
@@ -185,10 +185,11 @@ namespace :docker do
       image_name = docker_image_name(tcl_version)
 
       puts "Running widget tests in Docker (Tcl #{tcl_version})..."
-      cmd = "docker run --rm"
+      cmd = "docker run --rm --init"
       cmd += " -e TCL_VERSION=#{tcl_version}"
       cmd += " #{image_name}"
-      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 bundle exec rake test:widget'"
+      # exec replaces bash so SIGINT (Ctrl+C) goes directly to rake
+      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && exec env DISPLAY=:99 bundle exec rake test:widget'"
 
       sh cmd
     end
@@ -199,7 +200,7 @@ namespace :docker do
     tcl_version = tcl_version_from_env
     image_name = docker_image_name(tcl_version)
 
-    cmd = "docker run --rm -it"
+    cmd = "docker run --rm --init -it"
     cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
     cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
     cmd += " -e TCL_VERSION=#{tcl_version}"
