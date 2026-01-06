@@ -1,0 +1,36 @@
+# Build artifacts
+tmp/
+*.so
+*.bundle
+*.o
+
+# Screenshots (generated inside container, mounted from host)
+screenshots/unverified/
+screenshots/diffs/
+screenshots/logs/
+
+# Coverage (generated inside container, mounted from host)
+coverage/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+docs/
+*.md
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Misc
+Dockerfile*
+.dockerignore
+mise.toml

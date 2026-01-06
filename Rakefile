@@ -132,3 +132,84 @@ namespace :screenshots do
 end
 
 task :default => :compile
+
+# Docker tasks for local testing and CI
+namespace :docker do
+  DOCKERFILE = 'Dockerfile.ci-test'
+
+  def docker_image_name(tcl_version)
+    tcl_version == '8.6' ? 'tk-ci-test-8' : 'tk-ci-test-9'
+  end
+
+  def tcl_version_from_env
+    ENV.fetch('TCL_VERSION', '9.0')
+  end
+
+  desc "Build Docker image (TCL_VERSION=9.0|8.6)"
+  task :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    puts "Building Docker image for Tcl #{tcl_version}..."
+    cmd = "docker build -f #{DOCKERFILE}"
+    cmd += " --build-arg TCL_VERSION=#{tcl_version}"
+    cmd += " -t #{image_name} ."
+
+    sh cmd
+  end
+
+  desc "Run tests in Docker (TCL_VERSION=9.0|8.6)"
+  task test: :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    # Ensure output directories exist on host
+    require 'fileutils'
+    FileUtils.mkdir_p('screenshots')
+    FileUtils.mkdir_p('coverage')
+
+    puts "Running tests in Docker (Tcl #{tcl_version})..."
+    cmd = "docker run --rm"
+    cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
+    cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
+    cmd += " -e TCL_VERSION=#{tcl_version}"
+    cmd += " #{image_name}"
+
+    sh cmd
+  end
+
+  namespace :test do
+    desc "Run widget tests in Docker (TCL_VERSION=9.0|8.6)"
+    task widget: 'docker:build' do
+      tcl_version = tcl_version_from_env
+      image_name = docker_image_name(tcl_version)
+
+      puts "Running widget tests in Docker (Tcl #{tcl_version})..."
+      cmd = "docker run --rm"
+      cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " #{image_name}"
+      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 rake test:widget'"
+
+      sh cmd
+    end
+  end
+
+  desc "Run interactive shell in Docker (TCL_VERSION=9.0|8.6)"
+  task shell: :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    cmd = "docker run --rm -it"
+    cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
+    cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
+    cmd += " -e TCL_VERSION=#{tcl_version}"
+    cmd += " #{image_name} bash"
+
+    sh cmd
+  end
+
+  desc "Remove dangling Docker images from previous builds"
+  task :clean do
+    sh "docker image prune -f"
+  end
+end

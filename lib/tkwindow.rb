@@ -145,6 +145,9 @@ class TkWindow<TkObject
     end
 
     if keys and keys != None
+      # Filter out options unavailable in current Tcl/Tk version
+      keys = __filter_unavailable_options(keys)
+
       unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
         tk_call_without_enc(cmd, @path, *hash_kv(keys, true))
       else
@@ -177,6 +180,19 @@ class TkWindow<TkObject
     end
   end
   private :create_self
+
+  # Filter out options that require a newer Tcl/Tk version than currently running.
+  # Uses OptionDSL metadata (min_version) to silently drop unsupported options.
+  def __filter_unavailable_options(keys)
+    return keys unless keys.is_a?(Hash)
+    return keys unless self.class.respond_to?(:resolve_option)
+
+    keys.reject do |key, _value|
+      opt = self.class.resolve_option(key)
+      opt && !opt.available?
+    end
+  end
+  private :__filter_unavailable_options
 
   def inspect
     if @@WIDGET_INSPECT_FULL

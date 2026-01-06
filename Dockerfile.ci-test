@@ -1,23 +1,39 @@
-# Test Dockerfile for Tcl/Tk on Ubuntu 24.04
+# syntax=docker/dockerfile:1
+# Test Dockerfile for Tcl/Tk on Ubuntu 25.04
+# Using 25.04 (plucky) instead of 24.04 LTS because it has:
+# - Tcl/Tk 9.0.1 packages
+# - BWidget 1.10.1 with Tcl 9 support
+# - libtk-img 2.0.1 with Tcl 9 support
 #
 # Usage:
-#   Tcl/Tk 9.0 (default, built from source):
-#     docker build -f Dockerfile.ci-test -t tk-ci-test .
+#   Tcl/Tk 9.0 (default):
+#     docker build -f Dockerfile.ci-test -t tk-ci-test-9 .
 #
-#   Tcl/Tk 8.6 (from apt):
+#   Tcl/Tk 8.6:
 #     docker build -f Dockerfile.ci-test --build-arg TCL_VERSION=8.6 -t tk-ci-test-8 .
 #
 #   Run tests:
-#     docker run --rm -v $(pwd)/screenshots:/app/screenshots tk-ci-test
+#     docker run --rm -v $(pwd)/screenshots:/app/screenshots tk-ci-test-9
+#
+#   Or use rake tasks:
+#     rake docker:test                    # Test with Tcl 9.0
+#     TCL_VERSION=8.6 rake docker:test    # Test with Tcl 8.6
+#     rake docker:clean                   # Remove dangling images
 
-FROM ubuntu:24.04
+FROM ubuntu:25.04
 
-ARG TCL_VERSION=9.0
 ENV DEBIAN_FRONTEND=noninteractive
-ENV TCL_VERSION=${TCL_VERSION}
 
-# Install base dependencies
-RUN apt-get update && apt-get install -y \
+# Skip docs/man pages to speed up apt installs
+RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
+    echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
+    echo 'path-exclude=/usr/share/locale/*' >> /etc/dpkg/dpkg.cfg.d/excludes
+
+# Layer 1: Base dependencies (cached, doesn't change often)
+# Uses BuildKit cache mount for apt - persists across builds even when layers change
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ruby \
     ruby-dev \
@@ -27,46 +43,50 @@ RUN apt-get update && apt-get install -y \
     perceptualdiff \
     fonts-noto-color-emoji \
     fonts-noto-cjk \
-    && rm -rf /var/lib/apt/lists/*
+    bwidget \
+    wget
 
-# Install Tcl/Tk based on version
-RUN apt-get update && \
+# Layer 2: Tcl/Tk version-specific packages
+ARG TCL_VERSION=9.0
+ENV TCL_VERSION=${TCL_VERSION}
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
-        apt-get install -y tcl-dev tk-dev; \
+        apt-get update && apt-get install -y --no-install-recommends tcl-dev tk-dev libtk-img; \
     else \
-        apt-get install -y curl libx11-dev libxft-dev libxss-dev && \
-        cd /tmp && \
-        curl -LO "https://prdownloads.sourceforge.net/tcl/tcl9.0.1-src.tar.gz" && \
-        tar xzf tcl9.0.1-src.tar.gz && \
-        rm -rf tcl9.0.1/pkgs/sqlite3* && \
-        cd tcl9.0.1/unix && \
-        ./configure --prefix=/usr/local --disable-zipfs && \
-        make -j$(nproc) && \
-        make install && \
-        cd /tmp && \
-        curl -LO "https://prdownloads.sourceforge.net/tcl/tk9.0.1-src.tar.gz" && \
-        tar xzf tk9.0.1-src.tar.gz && \
-        cd tk9.0.1/unix && \
-        ./configure --prefix=/usr/local --with-tcl=/usr/local/lib && \
-        make -j$(nproc) && \
-        make install && \
-        rm -rf /tmp/tcl* /tmp/tk*; \
-    fi && \
-    rm -rf /var/lib/apt/lists/*
+        # Ubuntu 25.04's libtk-img 2.0.1 was built for Tcl 8 only (no libtcl9* files).
+        # Debian sid has libtk-img 2.1.0 with Tcl 9 support, so we install both
+        # libtk-img and its libjpeg62-turbo dependency from Debian.
+        # Use dpkg --print-architecture to get correct arch (amd64 for CI, arm64 for Apple Silicon).
+        apt-get update && apt-get install -y --no-install-recommends tcl9.0-dev tk9.0-dev libtommath-dev && \
+        ARCH=$(dpkg --print-architecture) && \
+        wget -q -O /tmp/libjpeg62-turbo.deb "http://ftp.us.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
+        wget -q -O /tmp/libtk-img.deb "http://ftp.us.debian.org/debian/pool/main/libt/libtk-img/libtk-img_2.1.0+dfsg1-1_${ARCH}.deb" && \
+        dpkg -i /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
+        rm /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb; \
+    fi
 
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV TCLLIBPATH=/usr/share/tcltk
 
-# Copy gem source
+# Ubuntu 25.04 pkg-config bug: tk9.0.pc requires "tcl" but only tcl9.0.pc exists
+RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
+        MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
+        ln -sf tcl9.0.pc /usr/lib/${MULTIARCH}/pkgconfig/tcl.pc && \
+        ln -sf tk9.0.pc /usr/lib/${MULTIARCH}/pkgconfig/tk.pc; \
+    fi
+
+# Copy source and install dependencies
 WORKDIR /app
 COPY . .
 
-# Install bundler and dependencies
-RUN gem install bundler --no-document && bundle install
+RUN --mount=type=cache,target=/root/.bundle \
+    gem install bundler --no-document && bundle install
 
 # Compile the extension based on version
 # Note: Use dpkg-architecture to get correct lib path for arm64 vs x86_64
-RUN if [ "${TCL_VERSION}" = "8.6" ]; then \
-        MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
+RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
+    if [ "${TCL_VERSION}" = "8.6" ]; then \
         rake compile -- --with-tcltkversion=8.6 \
             --with-tcl-lib=/usr/lib/${MULTIARCH} \
             --with-tk-lib=/usr/lib/${MULTIARCH} \
@@ -74,14 +94,11 @@ RUN if [ "${TCL_VERSION}" = "8.6" ]; then \
             --with-tk-include=/usr/include/tcl8.6; \
     else \
         rake compile -- --with-tcltkversion=9.0 \
-            --with-tcl-lib=/usr/local/lib \
-            --with-tk-lib=/usr/local/lib \
-            --with-tcl-include=/usr/local/include \
-            --with-tk-include=/usr/local/include; \
+            --with-tcl-lib=/usr/lib/${MULTIARCH} \
+            --with-tk-lib=/usr/lib/${MULTIARCH} \
+            --with-tcl-include=/usr/include/tcl9.0 \
+            --with-tk-include=/usr/include/tk9.0; \
     fi
-
-# Verify extension loads
-RUN xvfb-run ruby -I lib -r tk -e "puts \"Tk loaded! TCL_VERSION=#{Tk::TCL_VERSION}\""
 
 # Screenshots will be in /app/screenshots/unverified/linux/tcl{version}/
 CMD ["bash", "-c", "Xvfb :99 -screen 0 1024x768x24 & sleep 1 && DISPLAY=:99 rake test"]
