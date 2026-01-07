@@ -36,15 +36,15 @@ jobs:
         name: docker-cache-tcl9
         path: cache-mount
 
+    # cache-dir is ignored when cache-map is provided, so we prefix paths explicitly
     - name: Inject/extract Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
       with:
-        cache-dir: cache-mount
         cache-map: |
           {
-            "var-cache-apt": "/var/cache/apt",
-            "var-lib-apt": "/var/lib/apt",
-            "bundle-cache": "/bundle-cache"
+            "cache-mount/var-cache-apt": "/var/cache/apt",
+            "cache-mount/var-lib-apt": "/var/lib/apt",
+            "cache-mount/bundle-cache": "/bundle-cache"
           }
         save-always: true
         builder: ${{ steps.buildx.outputs.name }}
@@ -146,15 +146,15 @@ jobs:
         name: docker-cache-tcl8
         path: cache-mount
 
+    # cache-dir is ignored when cache-map is provided, so we prefix paths explicitly
     - name: Inject/extract Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
       with:
-        cache-dir: cache-mount
         cache-map: |
           {
-            "var-cache-apt": "/var/cache/apt",
-            "var-lib-apt": "/var/lib/apt",
-            "bundle-cache": "/bundle-cache"
+            "cache-mount/var-cache-apt": "/var/cache/apt",
+            "cache-mount/var-lib-apt": "/var/lib/apt",
+            "cache-mount/bundle-cache": "/bundle-cache"
           }
         save-always: true
         builder: ${{ steps.buildx.outputs.name }}
