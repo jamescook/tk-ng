@@ -12,9 +12,6 @@
 #   Tcl/Tk 8.6:
 #     docker build -f Dockerfile.ci-test --build-arg TCL_VERSION=8.6 -t tk-ci-test-8 .
 #
-#   Ruby 4.0 (future):
-#     docker build -f Dockerfile.ci-test --build-arg RUBY_VERSION=4.0 -t tk-ci-test-ruby4 .
-#
 #   Run tests:
 #     docker run --rm -v $(pwd)/screenshots:/app/screenshots tk-ci-test-9
 #
@@ -23,8 +20,12 @@
 #     TCL_VERSION=8.6 rake docker:test    # Test with Tcl 8.6
 #     rake docker:clean                   # Remove dangling images
 
+# Ruby source - just grab pre-built Ruby, no compilation needed
+ARG RUBY_VERSION=3.4
+FROM ruby:${RUBY_VERSION}-slim AS ruby-source
+
 #############################################
-# BUILDER STAGE - compile Ruby and extension
+# BUILDER STAGE - compile extension only
 #############################################
 FROM ubuntu:25.04 AS builder
 
@@ -35,55 +36,24 @@ RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/locale/*' >> /etc/dpkg/dpkg.cfg.d/excludes
 
-# Build dependencies
+COPY --from=ruby-source /usr/local /usr/local
+ENV PATH="/usr/local/bin:${PATH}"
+
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    curl \
-    ca-certificates \
     git \
-    wget \
     libyaml-dev \
     libffi-dev \
     libreadline-dev \
     zlib1g-dev \
     libssl-dev
 
-# Install mise (pinned version, cached)
-ARG MISE_VERSION=2025.1.6
-RUN --mount=type=cache,target=/mise-dl \
-    if [ -f /mise-dl/mise ]; then \
-        echo "Restoring cached mise..." && \
-        cp /mise-dl/mise /usr/local/bin/mise; \
-    else \
-        curl -fsSL "https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-$(dpkg --print-architecture | sed 's/amd64/x64/' | sed 's/arm64/arm64/')" -o /usr/local/bin/mise && \
-        cp /usr/local/bin/mise /mise-dl/mise; \
-    fi && \
-    chmod +x /usr/local/bin/mise
-ENV PATH="/usr/local/bin:${PATH}"
-
-# Install Ruby via mise (cache compiled installs across builds)
-ARG RUBY_VERSION=3.4
-RUN --mount=type=cache,target=/mise-cache \
-    --mount=type=cache,target=/root/.cache/mise \
-    --mount=type=cache,target=/root/.local/share/mise/downloads \
-    mkdir -p /root/.local/share/mise/installs && \
-    if [ -d /mise-cache/ruby ]; then \
-        echo "Restoring cached Ruby install..." && \
-        cp -a /mise-cache/ruby /root/.local/share/mise/installs/; \
-    fi && \
-    mise install ruby@${RUBY_VERSION} && \
-    cp -a /root/.local/share/mise/installs/ruby /mise-cache/
-RUN mise use -g ruby@${RUBY_VERSION}
-ENV PATH="/root/.local/share/mise/shims:${PATH}"
-
 # Tcl/Tk dev packages for compilation
 ARG TCL_VERSION=9.0
 ENV TCL_VERSION=${TCL_VERSION}
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
         apt-get update && apt-get install -y --no-install-recommends tcl-dev tk-dev; \
     else \
@@ -97,13 +67,11 @@ RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
         ln -sf tk9.0.pc /usr/lib/${MULTIARCH}/pkgconfig/tk.pc; \
     fi
 
-# Copy source and install gems
 WORKDIR /app
 COPY . .
 
 ENV BUNDLE_PATH=/usr/local/bundle
 RUN --mount=type=cache,target=/bundle-cache \
-    gem install bundler --no-document && \
     if [ -d /bundle-cache/ruby ]; then \
         echo "Restoring cached gems..." && \
         mkdir -p $BUNDLE_PATH && \
@@ -113,7 +81,7 @@ RUN --mount=type=cache,target=/bundle-cache \
     cp -a $BUNDLE_PATH/* /bundle-cache/
 
 # Compile the extension
-RUN MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
+RUN MAKEFLAGS="-j$(nproc)" MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
         bundle exec rake compile -- --with-tcltkversion=8.6 \
             --with-tcl-lib=/usr/lib/${MULTIARCH} \
@@ -145,7 +113,6 @@ ARG TCL_VERSION=9.0
 ENV TCL_VERSION=${TCL_VERSION}
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
     imagemagick \
@@ -175,17 +142,11 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 ENV TCLLIBPATH=/usr/share/tcltk
 
-# Copy mise, its config, and Ruby from builder
-COPY --from=builder /usr/local/bin/mise /usr/local/bin/mise
-COPY --from=builder /root/.config/mise /root/.config/mise
-COPY --from=builder /root/.local/share/mise /root/.local/share/mise
-ENV PATH="/root/.local/share/mise/shims:${PATH}"
-
-# Copy gems from builder
-COPY --from=builder /usr/local/bundle /usr/local/bundle
+# Copy Ruby and gems from builder
+COPY --from=builder /usr/local /usr/local
+ENV PATH="/usr/local/bin:${PATH}"
 ENV BUNDLE_PATH=/usr/local/bundle
 
-# Copy app with compiled extension
 WORKDIR /app
 COPY --from=builder /app /app
 

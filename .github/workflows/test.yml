@@ -29,12 +29,11 @@ jobs:
       id: buildx
       uses: docker/setup-buildx-action@v3
 
-    # Restore cache from artifact (90-day retention)
-    - name: Download build cache
+    - name: Restore build cache
       uses: actions/download-artifact@v4
       continue-on-error: true
       with:
-        name: docker-cache-ruby${{ matrix.ruby }}-tcl9
+        name: docker-cache-tcl9
         path: cache-mount
 
     - name: Inject/extract Docker cache mounts
@@ -45,11 +44,7 @@ jobs:
           {
             "var-cache-apt": "/var/cache/apt",
             "var-lib-apt": "/var/lib/apt",
-            "bundle-cache": "/bundle-cache",
-            "mise-dl": "/mise-dl",
-            "mise-cache": "/mise-cache",
-            "mise-xdg-cache": "/root/.cache/mise",
-            "mise-downloads": "/root/.local/share/mise/downloads"
+            "bundle-cache": "/bundle-cache"
           }
         save-always: true
         builder: ${{ steps.buildx.outputs.name }}
@@ -66,15 +61,26 @@ jobs:
         load: true
         tags: tk-ci-test-9:latest
 
-    # Save cache as artifact (90-day retention)
+    # Debug: see what cache-dance created
+    - name: Debug cache directory
+      if: always()
+      run: |
+        echo "=== Current directory ==="
+        ls -la
+        echo "=== cache-mount directory ==="
+        ls -la cache-mount 2>/dev/null || echo "cache-mount does not exist"
+        echo "=== cache-mount contents (recursive) ==="
+        find cache-mount -type f 2>/dev/null | head -20 || echo "no files"
+
     - name: Upload build cache
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: docker-cache-ruby${{ matrix.ruby }}-tcl9
+        name: docker-cache-tcl9
         path: cache-mount
         retention-days: 90
         overwrite: true
+        if-no-files-found: warn
 
     - name: Run tests
       run: |
@@ -125,19 +131,19 @@ jobs:
       id: buildx
       uses: docker/setup-buildx-action@v3
 
-    # Restore cache - try tcl9's cache first (has compiled Ruby), then own cache
-    - name: Download tcl9 build cache (shared Ruby)
+    # Try tcl9's cache first (shared apt/gems), then own cache
+    - name: Restore tcl9 build cache
       uses: actions/download-artifact@v4
       continue-on-error: true
       with:
-        name: docker-cache-ruby${{ matrix.ruby }}-tcl9
+        name: docker-cache-tcl9
         path: cache-mount
 
-    - name: Download own build cache
+    - name: Restore own build cache
       uses: actions/download-artifact@v4
       continue-on-error: true
       with:
-        name: docker-cache-ruby${{ matrix.ruby }}-tcl8
+        name: docker-cache-tcl8
         path: cache-mount
 
     - name: Inject/extract Docker cache mounts
@@ -148,11 +154,7 @@ jobs:
           {
             "var-cache-apt": "/var/cache/apt",
             "var-lib-apt": "/var/lib/apt",
-            "bundle-cache": "/bundle-cache",
-            "mise-dl": "/mise-dl",
-            "mise-cache": "/mise-cache",
-            "mise-xdg-cache": "/root/.cache/mise",
-            "mise-downloads": "/root/.local/share/mise/downloads"
+            "bundle-cache": "/bundle-cache"
           }
         save-always: true
         builder: ${{ steps.buildx.outputs.name }}
@@ -169,15 +171,15 @@ jobs:
         load: true
         tags: tk-ci-test-8:latest
 
-    # Save cache as artifact (90-day retention)
     - name: Upload build cache
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: docker-cache-ruby${{ matrix.ruby }}-tcl8
+        name: docker-cache-tcl8
         path: cache-mount
         retention-days: 90
         overwrite: true
+        if-no-files-found: warn
 
     - name: Run tests
       run: |
