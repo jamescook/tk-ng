@@ -80,7 +80,7 @@ RUN --mount=type=cache,target=/bundle-cache \
     (bundle check || bundle install) && \
     cp -a $BUNDLE_PATH/* /bundle-cache/
 
-# Compile the extension
+# Compile the main extension
 RUN MAKEFLAGS="-j$(nproc)" MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) && \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
         bundle exec rake compile -- --with-tcltkversion=8.6 \
@@ -95,6 +95,9 @@ RUN MAKEFLAGS="-j$(nproc)" MULTIARCH=$(dpkg-architecture -qDEB_HOST_MULTIARCH) &
             --with-tcl-include=/usr/include/tcl9.0 \
             --with-tk-include=/usr/include/tk9.0; \
     fi
+
+# Compile trofs extension
+RUN bundle exec rake compile:trofs
 
 #############################################
 # RUNTIME STAGE - slim image for running tests

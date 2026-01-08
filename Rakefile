@@ -133,6 +133,82 @@ end
 
 task :default => :compile
 
+# trofs - Tcl read-only filesystem extension
+# This is a Tcl extension (not Ruby), built using standard TEA (Tcl Extension Architecture)
+namespace :trofs do
+  TROFS_DIR = 'ext/trofs'
+
+  desc "Build trofs Tcl extension"
+  task :compile do
+    Dir.chdir(TROFS_DIR) do
+      unless File.exist?('Makefile')
+        tcl_lib = `brew --prefix tcl-tk 2>/dev/null`.chomp
+        tcl_lib = '/usr/local' if tcl_lib.empty?
+        sh "./configure --with-tcl=#{tcl_lib}/lib"
+      end
+      sh 'make'
+    end
+  end
+
+  desc "Clean trofs build artifacts (use distclean for full clean)"
+  task :clean do
+    Dir.chdir(TROFS_DIR) do
+      sh 'make clean' if File.exist?('Makefile')
+    end
+  end
+
+  desc "Full clean including configure-generated files"
+  task :distclean do
+    require 'fileutils'
+    Dir.chdir(TROFS_DIR) do
+      sh 'make distclean' if File.exist?('Makefile')
+      FileUtils.rm_rf('autom4te.cache')
+    end
+  end
+
+  desc "Run all trofs tests (Tcl and Ruby)"
+  task test: ['trofs:test:tcl', 'trofs:test:ruby']
+
+  namespace :test do
+    desc "Run trofs Tcl tests"
+    task tcl: :compile do
+      trofs_dir = File.expand_path(TROFS_DIR)
+      test_dir = File.join(TROFS_DIR, 'tests')
+
+      tcl_tests = Dir.glob("#{test_dir}/*.tcl")
+      if tcl_tests.any?
+        tcl_tests.each do |test_file|
+          sh "TCLLIBPATH='#{trofs_dir}' TROFS_LIBRARY='#{trofs_dir}/library' tclsh #{test_file}"
+        end
+      else
+        puts "No Tcl tests found in #{test_dir}"
+      end
+    end
+
+    desc "Run trofs Ruby integration tests (requires main tk extension compiled)"
+    task ruby: ['trofs:compile', 'compile'] do
+      trofs_dir = File.expand_path(TROFS_DIR)
+      test_dir = File.join(TROFS_DIR, 'tests')
+
+      ruby_tests = Dir.glob("#{test_dir}/*.rb")
+      if ruby_tests.any?
+        ENV['TROFS_LIBRARY'] = File.join(trofs_dir, 'library')
+        ruby_tests.each do |test_file|
+          sh "ruby -I#{trofs_dir} -Ilib #{test_file}"
+        end
+      else
+        puts "No Ruby tests found in #{test_dir}"
+      end
+    end
+  end
+end
+
+# Convenience alias
+namespace :compile do
+  desc "Build trofs Tcl extension"
+  task trofs: 'trofs:compile'
+end
+
 # Docker tasks for local testing and CI
 namespace :docker do
   DOCKERFILE = 'Dockerfile.ci-test'
