@@ -33,7 +33,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: cache-mount
-        key: docker-cache-tcl9-${{ hashFiles('Dockerfile.ci-test', 'Gemfile.lock') }}
+        key: docker-cache-tcl9-${{ hashFiles('Dockerfile.ci-test', 'Gemfile.lock', 'ext/trofs/configure', 'ext/trofs/generic/*.c') }}
         restore-keys: |
           docker-cache-tcl9-
 
@@ -120,7 +120,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: cache-mount
-        key: docker-cache-tcl8-${{ hashFiles('Dockerfile.ci-test', 'Gemfile.lock') }}
+        key: docker-cache-tcl8-${{ hashFiles('Dockerfile.ci-test', 'Gemfile.lock', 'ext/trofs/configure', 'ext/trofs/generic/*.c') }}
         restore-keys: |
           docker-cache-tcl8-
           docker-cache-tcl9-
