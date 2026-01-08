@@ -210,6 +210,7 @@ end
 # Docker tasks for local testing and CI
 namespace :docker do
   DOCKERFILE = 'Dockerfile.ci-test'
+  DOCKER_LABEL = 'project=ruby-tk'
 
   def docker_image_name(tcl_version)
     tcl_version == '8.6' ? 'tk-ci-test-8' : 'tk-ci-test-9'
@@ -226,6 +227,7 @@ namespace :docker do
 
     puts "Building Docker image for Tcl #{tcl_version}..."
     cmd = "docker build -f #{DOCKERFILE}"
+    cmd += " --label #{DOCKER_LABEL}"
     cmd += " --build-arg TCL_VERSION=#{tcl_version}"
     cmd += " -t #{image_name} ."
 
@@ -283,8 +285,8 @@ namespace :docker do
     sh cmd
   end
 
-  desc "Remove dangling Docker images from previous builds"
-  task :clean do
-    sh "docker image prune -f"
+  desc "Remove dangling Docker images from ruby-tk builds"
+  task :prune do
+    sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
   end
 end

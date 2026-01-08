@@ -1,8 +1,18 @@
 # Build artifacts
 tmp/
-*.so
-*.bundle
-*.o
+**/*.so
+**/*.dylib
+**/*.bundle
+**/*.o
+
+# ext/trofs build artifacts (recompiled in Docker)
+ext/trofs/Makefile
+ext/trofs/config.log
+ext/trofs/config.status
+ext/trofs/pkgIndex.tcl
+ext/trofs/library/trofs.tcl
+ext/trofs/tests/upstream/load.tcl
+ext/trofs/autom4te.cache/
 
 # Screenshots (generated inside container, mounted from host)
 screenshots/unverified/

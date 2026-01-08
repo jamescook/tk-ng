@@ -133,6 +133,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         apt-get install -y --no-install-recommends tcl tk libtk-img; \
     else \
         apt-get install -y --no-install-recommends tcl9.0 tk9.0 && \
+        ln -sf /usr/bin/tclsh9.0 /usr/bin/tclsh && \
         ARCH=$(dpkg --print-architecture) && \
         apt-get install -y --no-install-recommends wget && \
         wget -q -O /tmp/libjpeg62-turbo.deb "http://ftp.us.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
