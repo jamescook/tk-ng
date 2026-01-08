@@ -2422,6 +2422,14 @@ $as_echo "$as_me: WARNING: --with-tcl argument should refer to directory contain
 		done
 	    fi
 
+	    # on Darwin, check Homebrew installation
+	    if test "`uname -s`" = "Darwin" -a x"${ac_cv_c_tclconfig}" = x ; then
+		brew_prefix=`brew --prefix tcl-tk 2>/dev/null`
+		if test -n "$brew_prefix" -a -f "$brew_prefix/lib/tclConfig.sh" ; then
+		    ac_cv_c_tclconfig="$brew_prefix/lib"
+		fi
+	    fi
+
 	    # TEA specific: on Windows, check in common installation locations
 	    if test "${TEA_PLATFORM}" = "windows" \
 		-a x"${ac_cv_c_tclconfig}" = x ; then
@@ -2446,6 +2454,11 @@ $as_echo "$as_me: WARNING: --with-tcl argument should refer to directory contain
 			`ls -d /usr/lib64 2>/dev/null` \
 			`ls -d /usr/lib/tcl8.6 2>/dev/null` \
 			`ls -d /usr/lib/tcl8.5 2>/dev/null` \
+			`ls -d /usr/lib/tcl9.0 2>/dev/null` \
+			`ls -d /usr/lib/x86_64-linux-gnu 2>/dev/null` \
+			`ls -d /usr/lib/aarch64-linux-gnu 2>/dev/null` \
+			`ls -d /usr/local/opt/tcl-tk/lib 2>/dev/null` \
+			`ls -d /opt/homebrew/opt/tcl-tk/lib 2>/dev/null` \
 			; do
 		    if test -f "$i/tclConfig.sh" ; then
 			ac_cv_c_tclconfig="`(cd $i; pwd)`"
@@ -5482,7 +5495,8 @@ fi
 
 
 
-    vars="library/trofs.tcl library/procs.tcl"
+    # library/trofs.tcl is generated from trofs.tcl.in, only check procs.tcl
+    vars="library/procs.tcl"
     for i in $vars; do
 	# check for existence, be strict because it is installed
 	if test ! -f "${srcdir}/$i" ; then
@@ -5490,6 +5504,7 @@ fi
 	fi
 	PKG_TCL_SOURCES="$PKG_TCL_SOURCES $i"
     done
+    PKG_TCL_SOURCES="$PKG_TCL_SOURCES library/trofs.tcl"
 
 
 
@@ -8745,7 +8760,7 @@ $as_echo "${TCLSH_PROG}" >&6; }
 # which require substituting th AC variables in.  Include these here.
 #--------------------------------------------------------------------
 
-ac_config_files="$ac_config_files Makefile $srcdir/library/trofs.tcl $srcdir/tests/load.tcl"
+ac_config_files="$ac_config_files Makefile $srcdir/library/trofs.tcl $srcdir/tests/upstream/load.tcl"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -9456,7 +9471,7 @@ do
   case $ac_config_target in
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "$srcdir/library/trofs.tcl") CONFIG_FILES="$CONFIG_FILES $srcdir/library/trofs.tcl" ;;
-    "$srcdir/tests/load.tcl") CONFIG_FILES="$CONFIG_FILES $srcdir/tests/load.tcl" ;;
+    "$srcdir/tests/upstream/load.tcl") CONFIG_FILES="$CONFIG_FILES $srcdir/tests/upstream/load.tcl" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

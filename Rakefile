@@ -142,9 +142,7 @@ namespace :trofs do
   task :compile do
     Dir.chdir(TROFS_DIR) do
       unless File.exist?('Makefile')
-        tcl_lib = `brew --prefix tcl-tk 2>/dev/null`.chomp
-        tcl_lib = '/usr/local' if tcl_lib.empty?
-        sh "./configure --with-tcl=#{tcl_lib}/lib"
+        sh './configure'
       end
       sh 'make'
     end
