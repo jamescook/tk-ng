@@ -59,6 +59,8 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-9:latest
+        cache-from: type=gha,scope=tcl9
+        cache-to: type=gha,mode=max,scope=tcl9
 
     - name: Run tests
       run: |
@@ -146,6 +148,8 @@ jobs:
         builder: ${{ steps.buildx.outputs.name }}
         load: true
         tags: tk-ci-test-8:latest
+        cache-from: type=gha,scope=tcl8
+        cache-to: type=gha,mode=max,scope=tcl8
 
     - name: Run tests
       run: |
