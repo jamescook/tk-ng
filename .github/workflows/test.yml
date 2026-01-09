@@ -123,7 +123,6 @@ jobs:
         key: docker-cache-tcl8-${{ hashFiles('Dockerfile.ci-test', 'Gemfile.lock', 'ext/trofs/configure', 'ext/trofs/generic/*.c') }}
         restore-keys: |
           docker-cache-tcl8-
-          docker-cache-tcl9-
 
     - name: Inject/extract Docker cache mounts
       uses: reproducible-containers/buildkit-cache-dance@v3
