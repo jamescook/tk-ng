@@ -2,9 +2,14 @@
 #
 # tk/menu.rb : treat menu and menubutton
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/menu.html
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/itemconfig'
 require 'tk/menuspec'
+require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkMenuEntryConfig
   include TkItemConfigMethod
@@ -19,15 +24,8 @@ module TkMenuEntryConfig
   end
   private :__item_config_cmd
 
-  def __item_strval_optkeys(id)
-    super(id) << 'selectcolor'
-  end
-  private :__item_strval_optkeys
-
-  def __item_listval_optkeys(id)
-    []
-  end
-  private :__item_listval_optkeys
+  # NOTE: __item_strval_optkeys override for 'selectcolor' removed - now declared via ItemOptionDSL
+  # NOTE: __item_listval_optkeys override removed - base returns [] when no list options declared via ItemOptionDSL
 
   def __item_val2ruby_optkeys(id)  # { key=>proc, ... }
     super(id).update('menu'=>proc{|i, v| window(v)})
@@ -49,10 +47,56 @@ class Tk::Menu<TkWindow
   include Wm
   include TkMenuEntryConfig
   extend TkMenuSpec
+  extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
 
   TkCommandNames = ['menu'.freeze].freeze
   WidgetClassName = 'Menu'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Standard options
+  option :activebackground,   type: :color
+  option :activeborderwidth,  type: :pixels
+  option :activeforeground,   type: :color
+  option :activerelief,       type: :relief, min_version: 9
+  option :borderwidth,        type: :pixels, aliases: [:bd]
+  option :disabledforeground, type: :color
+  option :font,               type: :string
+  option :foreground,         type: :color, aliases: [:fg]
+  option :relief,             type: :relief
+
+  # Widget-specific options
+  option :postcommand,        type: :string
+  option :selectcolor,        type: :color
+  option :tearoff,            type: :boolean
+  option :tearoffcommand,     type: :string
+  option :title,              type: :string
+  option :type,               type: :string    # menubar, tearoff, normal
+
+  # ================================================================
+  # Item options (for menu entries)
+  # ================================================================
+
+  # String options
+  item_option :label,           type: :string
+  item_option :accelerator,     type: :string
+  item_option :state,           type: :string    # normal, active, disabled
+  item_option :compound,        type: :string    # none, bottom, top, left, right, center
+
+  # Color options
+  item_option :activebackground,  type: :string
+  item_option :activeforeground,  type: :string
+  item_option :background,        type: :string
+  item_option :foreground,        type: :string
+  item_option :selectcolor,       type: :string
+
+  # Boolean options
+  item_option :columnbreak,     type: :boolean
+  item_option :hidemargin,      type: :boolean
+  item_option :indicatoron,     type: :boolean
+
+  # Integer options
+  item_option :underline,       type: :integer
 
   #def create_self(keys)
   #  if keys and keys != None
@@ -63,15 +107,8 @@ class Tk::Menu<TkWindow
   #end
   #private :create_self
 
-  def __strval_optkeys
-    super() << 'selectcolor' << 'title'
-  end
-  private :__strval_optkeys
-
-  def __boolval_optkeys
-    super() << 'tearoff'
-  end
-  private :__boolval_optkeys
+  # NOTE: __strval_optkeys override for 'selectcolor', 'title' removed - now declared via OptionDSL
+  # NOTE: __boolval_optkeys override for 'tearoff' removed - now declared via OptionDSL
 
   def self.new_menuspec(menu_spec, parent = nil, tearoff = false, keys = nil)
     if parent.kind_of?(Hash)
@@ -539,6 +576,12 @@ class Tk::Menubutton<Tk::Label
   TkCommandNames = ['menubutton'.freeze].freeze
   WidgetClassName = 'Menubutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Menubutton-specific options (inherits from Tk::Label)
+  option :direction,    type: :string    # above, below, left, right, flush
+  option :indicatoron,  type: :boolean
+  option :menu,         type: :string    # menu path
+
   def create_self(keys)
     if keys and keys != None
       unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
@@ -566,10 +609,7 @@ class Tk::Menubutton<Tk::Label
   end
   private :create_self
 
-  def __boolval_optkeys
-    super() << 'indicatoron'
-  end
-  private :__boolval_optkeys
+  # NOTE: __boolval_optkeys override for 'indicatoron' removed - now declared via OptionDSL
 
 end
 Tk::MenuButton = Tk::Menubutton

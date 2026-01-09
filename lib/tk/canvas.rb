@@ -1,24 +1,21 @@
 # frozen_string_literal: false
 #
-#               tk/canvas.rb - Tk canvas classes
+# tk/canvas.rb - Tk canvas classes
 #                       by Yukihiro Matsumoto <matz@caelum.co.jp>
+#
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/canvas.html
 #
 require 'tk' unless defined?(Tk)
 require 'tk/canvastag'
 require 'tk/itemconfig'
 require 'tk/scrollable'
+require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkCanvasItemConfig
   include TkItemConfigMethod
 
-  def __item_strval_optkeys(id)
-    # maybe need to override
-    super(id) + [
-      'fill', 'activefill', 'disabledfill',
-      'outline', 'activeoutline', 'disabledoutline'
-    ]
-  end
-  private :__item_strval_optkeys
+  # NOTE: __item_strval_optkeys override for fill/outline colors removed - now declared via ItemOptionDSL
 
   def __item_methodcall_optkeys(id)
     {'coords'=>'coords'}
@@ -44,12 +41,71 @@ module TkCanvasItemConfig
 end
 
 class Tk::Canvas<TkWindow
+  extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
   include TkCanvasItemConfig
   include Tk::Scrollable
 
   TkCommandNames = ['canvas'.freeze].freeze
   WidgetClassName = 'Canvas'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Standard options
+  option :borderwidth,       type: :pixels, aliases: [:bd]
+  option :highlightthickness, type: :pixels
+  option :insertbackground,  type: :color
+  option :insertborderwidth, type: :pixels
+  option :insertofftime,     type: :integer
+  option :insertontime,      type: :integer
+  option :insertwidth,       type: :pixels
+  option :relief,            type: :relief
+  option :selectbackground,  type: :color
+  option :selectborderwidth, type: :pixels
+  option :selectforeground,  type: :color
+
+  # Widget-specific options
+  option :closeenough,       type: :float      # mouse proximity threshold
+  option :confine,           type: :boolean    # restrict view to scroll region
+  option :height,            type: :pixels
+  option :scrollregion,      type: :list       # bounding box for scrolling
+  option :state,             type: :string     # normal, disabled, hidden
+  option :width,             type: :pixels
+  option :xscrollincrement,  type: :pixels
+  option :yscrollincrement,  type: :pixels
+
+  # ================================================================
+  # Item options (for canvas items: rectangles, ovals, lines, etc.)
+  # ================================================================
+
+  # Colors (string type for legacy compatibility)
+  item_option :fill,             type: :string
+  item_option :activefill,       type: :string
+  item_option :disabledfill,     type: :string
+  item_option :outline,          type: :string
+  item_option :activeoutline,    type: :string
+  item_option :disabledoutline,  type: :string
+
+  # Line widths (float values)
+  item_option :width,            type: :float
+  item_option :activewidth,      type: :float
+  item_option :disabledwidth,    type: :float
+
+  # Boolean options
+  item_option :smooth,           type: :boolean
+
+  # Integer options
+  item_option :splinesteps,      type: :integer
+
+  # List options (dash patterns, etc.)
+  item_option :tags,             type: :list
+
+  # String options (enumerated values)
+  item_option :state,            type: :string   # normal, disabled, hidden
+  item_option :arrow,            type: :string   # none, first, last, both
+  item_option :capstyle,         type: :string   # butt, projecting, round
+  item_option :joinstyle,        type: :string   # bevel, miter, round
+  item_option :anchor,           type: :string   # n, ne, e, se, s, sw, w, nw, center
+  item_option :justify,          type: :string   # left, right, center
 
   def __destroy_hook__
     TkcItem::CItemID_TBL.delete(@path)
@@ -64,15 +120,8 @@ class Tk::Canvas<TkWindow
   #end
   #private :create_self
 
-  def __numval_optkeys
-    super() + ['closeenough']
-  end
-  private :__numval_optkeys
-
-  def __boolval_optkeys
-    super() + ['confine']
-  end
-  private :__boolval_optkeys
+  # NOTE: __numval_optkeys override for 'closeenough' removed - now declared via OptionDSL
+  # NOTE: __boolval_optkeys override for 'confine' removed - now declared via OptionDSL
 
   def tagid(tag)
     if tag.kind_of?(TkcItem) || tag.kind_of?(TkcTag)

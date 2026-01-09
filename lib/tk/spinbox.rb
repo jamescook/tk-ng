@@ -3,6 +3,8 @@
 #               tk/spinbox.rb - Tk spinbox classes
 #                       by Yukihiro Matsumoto <matz@caelum.co.jp>
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/spinbox.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/entry'
 
@@ -10,6 +12,18 @@ class Tk::Spinbox<Tk::Entry
   TkCommandNames = ['spinbox'.freeze].freeze
   WidgetClassName = 'Spinbox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Spinbox-specific options (inherits from Tk::Entry)
+  option :buttonbackground,   type: :color
+  option :buttoncursor,       type: :string
+  option :buttondownrelief,   type: :relief
+  option :buttonuprelief,     type: :relief
+  option :format,             type: :string
+  option :from,               type: :float
+  option :increment,          type: :float
+  option :to,                 type: :float
+  option :values,             type: :list
+  option :wrap,               type: :boolean
 
   class SpinCommand < TkValidateCommand
     class ValidateArgs < TkUtil::CallbackSubst
@@ -82,20 +96,9 @@ class Tk::Spinbox<Tk::Entry
   #end
   #private :create_self
 
-  def __boolval_optkeys
-    super() << 'wrap'
-  end
-  private :__boolval_optkeys
-
-  def __strval_optkeys
-    super() << 'buttonbackground' << 'format'
-  end
-  private :__strval_optkeys
-
-  def __listval_optkeys
-    super() << 'values'
-  end
-  private :__listval_optkeys
+  # NOTE: __boolval_optkeys override for 'wrap' removed - now declared via OptionDSL
+  # NOTE: __strval_optkeys override for 'buttonbackground', 'format' removed - now declared via OptionDSL
+  # NOTE: __listval_optkeys override for 'values' removed - now declared via OptionDSL
 
   def identify(x, y)
     tk_send_without_enc('identify', x, y)

@@ -3,7 +3,11 @@
 #  treeview widget
 #                               by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_treeview.html
+#
 require 'tk' unless defined?(Tk)
+require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 require 'tkextlib/tile.rb'
 
 module Tk
@@ -1055,6 +1059,8 @@ end
 ########################
 
 class Tk::Tile::Treeview < TkWindow
+  extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
   include Tk::Tile::TileWidget
   include Scrollable
 
@@ -1067,6 +1073,43 @@ class Tk::Tile::Treeview < TkWindow
   end
   WidgetClassName = 'Treeview'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Widget-specific options
+  option :columns,        type: :list     # column identifiers
+  option :displaycolumns, type: :list     # columns to display (or "#all")
+  option :height,         type: :integer  # visible rows
+  option :selectmode,     type: :string   # extended, browse, none
+  option :show,           type: :list     # tree, headings
+  option :style,          type: :string   # ttk style
+
+  # Tk 9.0+ options (TIP 552)
+  option :striped,        type: :boolean, min_version: 9  # zebra striping
+  option :selecttype,     type: :string,  min_version: 9  # item, cell
+  option :titlecolumns,   type: :integer, min_version: 9  # non-scrolling columns
+  option :titleitems,     type: :integer, min_version: 9  # non-scrolling items
+
+  # ================================================================
+  # Item options (flattened for items, columns, headings, and tags)
+  # ================================================================
+
+  # Item options
+  item_option :open,          type: :boolean   # item expanded state
+  item_option :values,        type: :list      # item column values
+  item_option :tags,          type: :list      # item tags
+
+  # Column options
+  item_option :width,         type: :integer   # column width
+  item_option :minwidth,      type: :integer   # column minimum width
+  item_option :stretch,       type: :boolean   # column resizable
+  item_option :anchor,        type: :string    # content alignment
+
+  # Heading options
+  item_option :text,          type: :string    # heading text
+
+  # Tag options (for styling)
+  item_option :foreground,    type: :string    # text color
+  item_option :background,    type: :string    # background color
+  item_option :image,         type: :string    # icon image
 
   def __destroy_hook__
     Tk::Tile::Treeview::Item::ItemID_TBL.mutex.synchronize{

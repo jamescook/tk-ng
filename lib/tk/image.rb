@@ -4,6 +4,7 @@
 #
 
 require 'tk' unless defined?(Tk)
+require 'tk/option_dsl'
 
 class TkImage<TkObject
   include Tk
@@ -117,10 +118,12 @@ class TkImage<TkObject
 end
 
 class TkBitmapImage<TkImage
-  def __strval_optkeys
-    super() + ['maskdata', 'maskfile']
-  end
-  private :__strval_optkeys
+  extend Tk::OptionDSL
+
+  option :maskdata, type: :string
+  option :maskfile, type: :string
+
+  # NOTE: __strval_optkeys override for 'maskdata', 'maskfile' removed - now declared via OptionDSL
 
   def initialize(*args)
     @type = 'bitmap'

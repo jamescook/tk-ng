@@ -2,27 +2,59 @@
 #
 # tk/listbox.rb : treat listbox widget
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
+require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkListItemConfig
   include TkItemConfigMethod
 
-  def __item_listval_optkeys(id)
-    []
-  end
-  private :__item_listval_optkeys
+  # NOTE: __item_listval_optkeys override removed - base returns [] when no list options declared via ItemOptionDSL
 end
 
 class Tk::Listbox<TkTextWin
+  extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
   include TkListItemConfig
   include Scrollable
 
   TkCommandNames = ['listbox'.freeze].freeze
   WidgetClassName = 'Listbox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Standard options
+  option :borderwidth,        type: :pixels, aliases: [:bd]
+  option :disabledforeground, type: :color
+  option :exportselection,    type: :boolean
+  option :highlightthickness, type: :pixels
+  option :justify,            type: :string     # left, center, right
+  option :relief,             type: :relief
+  option :selectbackground,   type: :color
+  option :selectborderwidth,  type: :pixels
+  option :selectforeground,   type: :color
+  option :setgrid,            type: :boolean
+
+  # Widget-specific options
+  option :activestyle,        type: :string     # dotbox, none, underline
+  option :height,             type: :integer    # in lines
+  option :selectmode,         type: :string     # single, browse, multiple, extended
+  option :state,              type: :string     # normal, disabled
+  option :width,              type: :integer    # in characters
+
+  # ================================================================
+  # Item options (for listbox items)
+  # ================================================================
+
+  # Color options
+  item_option :background,        type: :string
+  item_option :foreground,        type: :string
+  item_option :selectbackground,  type: :string
+  item_option :selectforeground,  type: :string
 
   #def create_self(keys)
   #  if keys and keys != None

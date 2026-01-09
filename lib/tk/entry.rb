@@ -1,14 +1,18 @@
 # frozen_string_literal: false
 #
-#               tk/entry.rb - Tk entry classes
+# tk/entry.rb - Tk entry classes
 #                       by Yukihiro Matsumoto <matz@caelum.co.jp>
-
+#
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/entry.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/label'
 require 'tk/scrollable'
 require 'tk/validation'
+require 'tk/option_dsl'
 
 class Tk::Entry<Tk::Label
+  extend Tk::OptionDSL
   include X_Scrollable
   include TkValidation
 
@@ -16,15 +20,33 @@ class Tk::Entry<Tk::Label
   WidgetClassName = 'Entry'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
+  # Standard options
+  option :exportselection,    type: :boolean
+  option :highlightthickness, type: :pixels
+  option :insertbackground,   type: :color
+  option :insertborderwidth,  type: :pixels
+  option :insertofftime,      type: :integer   # cursor blink off (ms)
+  option :insertontime,       type: :integer   # cursor blink on (ms)
+  option :insertwidth,        type: :pixels
+  option :placeholder,        type: :string, min_version: 9  # TIP 496 (Tk 8.7+)
+  option :placeholderforeground, type: :color, min_version: 9  # TIP 496 (Tk 8.7+)
+  option :selectbackground,   type: :color
+  option :selectborderwidth,  type: :pixels
+  option :selectforeground,   type: :color
+
+  # Widget-specific options
+  option :disabledbackground, type: :color
+  option :disabledforeground, type: :color
+  option :readonlybackground, type: :color
+  option :show,               type: :string    # character mask (e.g., "*" for passwords)
+  option :validate,           type: :string    # none, focus, focusin, focusout, key, all
+
   #def create_self(keys)
   #  super(__conv_vcmd_on_hash_kv(keys))
   #end
   #private :create_self
 
-  def __strval_optkeys
-    super() + ['show', 'disabledbackground', 'readonlybackground']
-  end
-  private :__strval_optkeys
+  # NOTE: __strval_optkeys override for 'show', 'disabledbackground', 'readonlybackground' removed - now declared via OptionDSL
 
   def bbox(index)
     list(tk_send_without_enc('bbox', index))

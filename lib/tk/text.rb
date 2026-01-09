@@ -1,12 +1,17 @@
 # frozen_string_literal: false
 #
-#               tk/text.rb - Tk text classes
+# tk/text.rb - Tk text classes
 #                       by Yukihiro Matsumoto <matz@caelum.co.jp>
+#
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/text.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/itemfont'
 require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
+require 'tk/option_dsl'
+require 'tk/item_option_dsl'
 
 module TkTextTagConfig
   include TkTreatItemFont
@@ -256,9 +261,77 @@ class Tk::Text<TkTextWin
 
   #######################################
 
+  extend Tk::OptionDSL
+  extend Tk::ItemOptionDSL
+
   TkCommandNames = ['text'.freeze].freeze
   WidgetClassName = 'Text'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # Standard options
+  option :borderwidth,        type: :pixels, aliases: [:bd]
+  option :exportselection,    type: :boolean
+  option :highlightthickness, type: :pixels
+  option :insertbackground,   type: :color
+  option :insertborderwidth,  type: :pixels
+  option :insertofftime,      type: :integer
+  option :insertontime,       type: :integer
+  option :insertwidth,        type: :pixels
+  option :padx,               type: :pixels
+  option :pady,               type: :pixels
+  option :relief,             type: :relief
+  option :selectbackground,   type: :color
+  option :selectborderwidth,  type: :pixels
+  option :selectforeground,   type: :color
+  option :setgrid,            type: :boolean
+
+  # Widget-specific options
+  option :autoseparators,     type: :boolean
+  option :blockcursor,        type: :boolean
+  option :height,             type: :integer   # in lines
+  option :inactiveselectbackground, type: :color
+  option :insertunfocussed,   type: :string    # none, hollow, solid
+  option :maxundo,            type: :integer
+  option :spacing1,           type: :pixels
+  option :spacing2,           type: :pixels
+  option :spacing3,           type: :pixels
+  option :state,              type: :string    # normal, disabled
+  option :tabs,               type: :list
+  option :tabstyle,           type: :string    # tabular, wordprocessor
+  option :undo,               type: :boolean
+  option :width,              type: :integer   # in characters
+  option :wrap,               type: :string    # none, char, word
+
+  # ================================================================
+  # Item options (for text tags)
+  # ================================================================
+
+  # Colors
+  item_option :background,      type: :string
+  item_option :foreground,      type: :string
+
+  # Spacing/margins (pixels)
+  item_option :borderwidth,     type: :pixels
+  item_option :lmargin1,        type: :pixels
+  item_option :lmargin2,        type: :pixels
+  item_option :rmargin,         type: :pixels
+  item_option :spacing1,        type: :pixels
+  item_option :spacing2,        type: :pixels
+  item_option :spacing3,        type: :pixels
+  item_option :offset,          type: :pixels
+
+  # Boolean options
+  item_option :overstrike,      type: :boolean
+  item_option :underline,       type: :boolean
+  item_option :elide,           type: :boolean
+
+  # String options
+  item_option :relief,          type: :string   # flat, groove, raised, ridge, solid, sunken
+  item_option :justify,         type: :string   # left, right, center
+  item_option :wrap,            type: :string   # none, char, word
+
+  # List options
+  item_option :tabs,            type: :list
 
   def self.new(*args, &block)
     obj = super(*args){}
@@ -295,10 +368,7 @@ class Tk::Text<TkTextWin
   end
   private :create_self
 
-  def __strval_optkeys
-    super() << 'inactiveseletcionbackground'
-  end
-  private :__strval_optkeys
+  # NOTE: __strval_optkeys override removed - had typo 'inactiveseletcionbackground', now correctly declared as 'inactiveselectbackground' via OptionDSL
 
   def self.at(x, y)
     Tk::Text::IndexString.at(x, y)

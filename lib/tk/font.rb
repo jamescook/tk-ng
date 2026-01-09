@@ -373,6 +373,9 @@ class TkFont
     when /^8\..*/
       tk_split_simplelist(tk_call('font', 'names'))
 
+    else
+      # Fallback for unknown Tk versions (e.g., 9.x)
+      tk_split_simplelist(tk_call('font', 'names'))
     end
   end
 

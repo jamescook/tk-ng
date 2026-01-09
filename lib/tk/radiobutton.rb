@@ -2,6 +2,8 @@
 #
 # tk/radiobutton.rb : treat radiobutton widget
 #
+# See: https://www.tcl-lang.org/man/tcl/TkCmd/radiobutton.html
+#
 require 'tk' unless defined?(Tk)
 require 'tk/button'
 
@@ -9,6 +11,16 @@ class Tk::RadioButton<Tk::Button
   TkCommandNames = ['radiobutton'.freeze].freeze
   WidgetClassName = 'Radiobutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # RadioButton-specific options (inherits from Tk::Button)
+  option :indicatoron,    type: :boolean
+  option :offrelief,      type: :relief
+  option :selectcolor,    type: :color
+  option :selectimage,    type: :string
+  option :tristateimage,  type: :string
+  option :tristatevalue,  type: :string
+  option :value,          type: :string
+  option :variable,       type: :string
   #def create_self(keys)
   #  if keys and keys != None
   #    tk_call_without_enc('radiobutton', @path, *hash_kv(keys, true))
@@ -18,15 +30,8 @@ class Tk::RadioButton<Tk::Button
   #end
   #private :create_self
 
-  def __boolval_optkeys
-    super() << 'indicatoron'
-  end
-  private :__boolval_optkeys
-
-  def __strval_optkeys
-    super() << 'selectcolor'
-  end
-  private :__strval_optkeys
+  # NOTE: __boolval_optkeys override for 'indicatoron' removed - now declared via OptionDSL
+  # NOTE: __strval_optkeys override for 'selectcolor' removed - now declared via OptionDSL
 
   def __ruby2val_optkeys  # { key=>proc, ... }
     {
