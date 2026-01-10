@@ -60,6 +60,9 @@ namespace :test do
   end
 
   task widget: [:compile, :clean_coverage]
+
+  desc "Run all tests (main, bwidget, tkdnd)"
+  task all: ['test', 'bwidget:test', 'tkdnd:test']
 end
 
 def detect_platform
@@ -394,6 +397,48 @@ namespace :tkdnd do
   end
 end
 
+# bwidget - BWidget Tcl extension
+# Usually bundled with system Tcl/Tk or available via package manager.
+namespace :bwidget do
+  def bwidget_installed?
+    result = `echo 'if {[catch {package require BWidget}]} {exit 1}; exit 0' | tclsh`
+    $?.success?
+  end
+
+  def bwidget_version
+    `echo 'puts [package require BWidget]; exit 0' | tclsh 2>/dev/null`.chomp
+  end
+
+  desc "Check if bwidget is installed"
+  task :check do
+    if bwidget_installed?
+      puts "bwidget is installed (version #{bwidget_version})"
+    else
+      puts "bwidget is NOT installed"
+      puts "Install via package manager (e.g., 'brew install bwidget' or 'apt install bwidget')"
+    end
+  end
+
+  desc "Run bwidget tests"
+  task test: :compile do
+    unless bwidget_installed?
+      puts "bwidget is NOT installed"
+      puts "Install via package manager (e.g., 'brew install bwidget' or 'apt install bwidget')"
+      exit 1
+    end
+
+    test_dir = 'lib/tkextlib/bwidget/test'
+    test_files = Dir.glob("#{test_dir}/test_*.rb")
+    if test_files.any?
+      test_files.each do |f|
+        sh "ruby -Ilib -Itest #{f}"
+      end
+    else
+      puts "No bwidget tests found in #{test_dir}"
+    end
+  end
+end
+
 # Convenience alias
 namespace :compile do
   desc "Build trofs Tcl extension"
@@ -457,8 +502,21 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -e TCL_VERSION=#{tcl_version}"
       cmd += " #{image_name}"
-      # exec replaces bash so SIGINT (Ctrl+C) goes directly to rake
-      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && exec env DISPLAY=:99 bundle exec rake test:widget'"
+      cmd += " xvfb-run -a bundle exec rake test:widget"
+
+      sh cmd
+    end
+
+    desc "Run bwidget tests in Docker (TCL_VERSION=9.0|8.6)"
+    task bwidget: 'docker:build' do
+      tcl_version = tcl_version_from_env
+      image_name = docker_image_name(tcl_version)
+
+      puts "Running bwidget tests in Docker (Tcl #{tcl_version})..."
+      cmd = "docker run --rm --init"
+      cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " #{image_name}"
+      cmd += " xvfb-run -a bundle exec rake bwidget:test"
 
       sh cmd
     end
@@ -472,10 +530,13 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -e TCL_VERSION=#{tcl_version}"
       cmd += " #{image_name}"
-      cmd += " bash -c 'Xvfb :99 -screen 0 1024x768x24 & sleep 1 && exec env DISPLAY=:99 bundle exec rake tkdnd:test'"
+      cmd += " xvfb-run -a bundle exec rake tkdnd:test"
 
       sh cmd
     end
+
+    desc "Run all tests in Docker (TCL_VERSION=9.0|8.6)"
+    task all: ['docker:test', 'docker:test:bwidget', 'docker:test:tkdnd']
   end
 
   desc "Run interactive shell in Docker (TCL_VERSION=9.0|8.6)"

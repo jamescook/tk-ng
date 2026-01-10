@@ -80,6 +80,26 @@ class TestToplevelWidget < Minitest::Test
     top.configure(highlightthickness: 2)
     errors << "highlightthickness failed" unless top.cget(:highlightthickness).to_i == 2
 
+    # --- wm_attributes (window manager attributes) ---
+    # Test alpha transparency - may not work in headless/Xvfb environments
+    # Per Tk docs: "Where not supported, the -alpha value remains at 1.0"
+    top.wm_attributes(:alpha, 0.8)
+    alpha_val = top.wm_attributes(:alpha).to_f
+    if alpha_val == 1.0
+      # Environment doesn't support alpha (e.g., Xvfb in Docker) - skip test
+      $stderr.puts "Note: alpha transparency not supported in this environment, skipping alpha test"
+    else
+      errors << "wm_attributes alpha set failed" unless alpha_val.between?(0.79, 0.81)
+      # Reset alpha
+      top.wm_attributes(:alpha, 1.0)
+      errors << "wm_attributes alpha reset failed" unless top.wm_attributes(:alpha).to_f == 1.0
+    end
+
+    # Test reading all attributes as hash
+    all_attrs = top.wm_attributes
+    errors << "wm_attributes should return hash" unless all_attrs.is_a?(Hash)
+    errors << "wm_attributes hash should include alpha" unless all_attrs.key?('alpha')
+
     # --- Menu option val2ruby conversion ---
     # Tests that cget(:menu) returns a TkMenu object, not a string path
     # This exercises __val2ruby_optkeys conversion

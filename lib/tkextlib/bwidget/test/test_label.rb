@@ -4,8 +4,8 @@
 #
 # See: https://core.tcl-lang.org/bwidget/doc/bwidget/BWman/Label.html
 
-require_relative '../../test_helper'
-require_relative '../../tk_test_helper'
+require_relative '../../../../test/test_helper'
+require_relative '../../../../test/tk_test_helper'
 
 class TestBWidgetLabel < Minitest::Test
   include TkTestHelper
