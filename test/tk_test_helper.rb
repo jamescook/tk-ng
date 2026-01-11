@@ -24,26 +24,6 @@ module TkTestHelper
   # Project root for absolute paths in subprocesses
   PROJECT_ROOT = File.expand_path('..', __dir__)
 
-  # Visual mode helper injected into subprocess code.
-  # When VISUAL=1, shows the window and waits for user to close it.
-  # Otherwise, destroys immediately for headless testing.
-  #
-  # Usage in test app methods:
-  #   tk_end(root)  # instead of root.destroy
-  #
-  def self.visual_mode_preamble
-    <<~RUBY
-      def tk_end(root)
-        if ENV['VISUAL']
-          root.deiconify
-          Tk.mainloop
-        else
-          root.destroy
-        end
-      end
-    RUBY
-  end
-
   # SimpleCov preamble injected into subprocess code for coverage merging
   # Only runs if ENV['COVERAGE'] is set
   #
@@ -110,7 +90,7 @@ module TkTestHelper
   #
   # Example:
   #   def test_something
-  #     assert_tk_test("should do the thing") do
+  #     assert_tk_subprocess("should do the thing") do
   #       <<~RUBY
   #         require 'tk'
   #         root = TkRoot.new { withdraw }
@@ -120,9 +100,9 @@ module TkTestHelper
   #     end
   #   end
   #
-  def assert_tk_test(message = "Tk subprocess test failed")
+  def assert_tk_subprocess(message = "Tk subprocess test failed")
     caller_loc = caller_locations(1, 1).first
-    warn "[DEPRECATION] assert_tk_test is deprecated. Use assert_tk_app instead. " \
+    warn "[DEPRECATION] assert_tk_subprocess is slow. Use assert_tk_app instead when possible. " \
          "Called from #{caller_loc.path}:#{caller_loc.lineno}"
 
     code = yield
@@ -136,23 +116,9 @@ module TkTestHelper
     assert success, "#{message}\n#{output.join("\n")}"
   end
 
-  # Assertion wrapper that extracts source from a method and runs it.
-  # This allows writing test code as regular Ruby methods with full
-  # syntax highlighting and IDE support.
-  #
-  # Example:
-  #   def test_something
-  #     assert_tk_app("should do the thing", method(:my_app))
-  #   end
-  #
-  #   def my_app
-  #     require 'tk'
-  #     root = TkRoot.new { withdraw }
-  #     # test code with full syntax highlighting...
-  #     root.destroy
-  #   end
-  #
-  def assert_tk_app(message, app_method)
+  # DEPRECATED: Use assert_tk_app instead (uses persistent TkWorker)
+  # This spawns a new subprocess for each test - slower but supports VISUAL mode.
+  def assert_tk_app_subprocess(message, app_method)
     # Extract method body (skip def line and closing end)
     source_lines = app_method.source.lines
     body = source_lines[1..-2].join
@@ -267,6 +233,44 @@ module TkTestHelper
     true
   rescue Errno::ESRCH
     false
+  end
+
+  # Run test using persistent TkWorker (fast, no subprocess spawn per test).
+  #
+  # The test code has access to `root` (a withdrawn TkRoot instance).
+  # Do NOT create your own TkRoot or call root.destroy - worker manages this.
+  #
+  # Example:
+  #   def test_something
+  #     assert_tk_app("should work", method(:my_app))
+  #   end
+  #
+  #   def my_app
+  #     require 'tk'
+  #     label = TkLabel.new(root) { text "Hello" }
+  #     raise "wrong" unless label.cget(:text) == "Hello"
+  #   end
+  #
+  def assert_tk_app(message, app_method)
+    require_relative 'tk_worker'
+
+    # Extract method body (skip def line and closing end)
+    source_lines = app_method.source.lines
+    body = source_lines[1..-2].join
+
+    result = TkWorker.run_test(body)
+
+    unless result[:success]
+      output = []
+      output << "Error: #{result[:error_class]}: #{result[:error_message]}"
+      output << "Backtrace:\n  #{result[:backtrace].join("\n  ")}" if result[:backtrace]
+      output << "STDOUT:\n#{result[:stdout]}" unless result[:stdout].to_s.empty?
+      output << "STDERR:\n#{result[:stderr]}" unless result[:stderr].to_s.empty?
+
+      flunk "#{message}\n#{output.join("\n")}"
+    end
+
+    assert true  # Explicit pass
   end
 
   # Assertion wrapper for smoke_test_sample

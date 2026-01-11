@@ -18,7 +18,6 @@ class TestBWidgetComboBox < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- ComboBox with values ---
@@ -55,11 +54,6 @@ class TestBWidgetComboBox < Minitest::Test
     combo.clear_value
     # Should not raise error
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget ComboBox test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget ComboBox test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

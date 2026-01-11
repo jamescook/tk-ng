@@ -19,7 +19,6 @@ class TestTEntryWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -95,12 +94,6 @@ class TestTEntryWidget < Minitest::Test
     errors << "username width failed" unless username.cget(:width).to_i == 25
     errors << "password show failed" unless password.cget(:show) == "*"
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TEntry test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TEntry test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

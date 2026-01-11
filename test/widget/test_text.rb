@@ -19,7 +19,6 @@ class TestTextWidget < Minitest::Test
     require 'tk'
     require 'tk/text'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic creation with size ---
@@ -150,10 +149,8 @@ class TestTextWidget < Minitest::Test
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Text test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

@@ -18,7 +18,6 @@ class TestBWidgetButton < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic button ---
@@ -58,11 +57,6 @@ class TestBWidgetButton < Minitest::Test
     hv = button.cget(:helpvar)
     errors << "helpvar cget failed" if hv.nil?
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget Button test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget Button test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

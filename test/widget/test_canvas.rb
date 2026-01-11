@@ -19,7 +19,6 @@ class TestCanvasWidget < Minitest::Test
     require 'tk'
     require 'tk/canvas'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic creation with size ---
@@ -199,10 +198,8 @@ class TestCanvasWidget < Minitest::Test
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Canvas test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

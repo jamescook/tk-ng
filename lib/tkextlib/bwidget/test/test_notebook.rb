@@ -18,7 +18,6 @@ class TestBWidgetNoteBook < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic notebook ---
@@ -67,11 +66,6 @@ class TestBWidgetNoteBook < Minitest::Test
     pages = notebook.pages
     errors << "delete failed" unless pages.size == 2
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget NoteBook test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget NoteBook test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

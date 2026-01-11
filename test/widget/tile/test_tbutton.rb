@@ -19,7 +19,6 @@ class TestTButtonWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -77,12 +76,6 @@ class TestTButtonWidget < Minitest::Test
 
     errors << "ok default failed" unless ok_btn.cget(:default) == "active"
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TButton test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TButton test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

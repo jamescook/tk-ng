@@ -19,7 +19,6 @@ class TestButtonWidget < Minitest::Test
     require 'tk'
     require 'tk/button'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic creation and text ---
@@ -87,10 +86,8 @@ class TestButtonWidget < Minitest::Test
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Button test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

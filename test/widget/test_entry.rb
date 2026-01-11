@@ -21,7 +21,6 @@ class TestEntryWidget < Minitest::Test
     require 'tk/frame'
     require 'tk/label'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # Create a form-like layout
@@ -138,10 +137,8 @@ class TestEntryWidget < Minitest::Test
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Entry test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

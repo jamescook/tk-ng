@@ -18,7 +18,6 @@ class TestTkImgPng < Minitest::Test
     require "tk"
     require "tkextlib/tkimg/png"
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # Test package info
@@ -27,8 +26,8 @@ class TestTkImgPng < Minitest::Test
     version = Tk::Img::PNG.package_version
     errors << "package_version is empty" if version.nil? || version.empty?
 
-    # Test loading a real PNG file (path passed via env var, with fallback)
-    fixture_path = ENV["TEST_FIXTURE_PNG"] || File.join(FIXTURES_PATH, "sample.png")
+    # Test loading a real PNG file (path passed via env var)
+    fixture_path = ENV["TEST_FIXTURE_PNG"]
     begin
       img = TkPhotoImage.new(file: fixture_path, format: "png")
       errors << "image width should be > 0" unless img.width > 0
@@ -37,7 +36,6 @@ class TestTkImgPng < Minitest::Test
       errors << "Failed to load PNG image: #{e.message}"
     end
 
-    tk_end(root)
     raise "Failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

@@ -19,7 +19,7 @@ class TestMultiInterp < Minitest::Test
   # Test creating and destroying a slave interpreter
   # Exercises ip_create_slave and delete_slaves
   def test_create_and_destroy_slave
-    assert_tk_test("should create and destroy slave interpreter") do
+    assert_tk_subprocess("should create and destroy slave interpreter") do
       <<~RUBY
         require 'tk'
         root = TkRoot.new { withdraw }
@@ -44,7 +44,7 @@ class TestMultiInterp < Minitest::Test
   # Test that slave is cleaned up when parent is destroyed
   # Exercises delete_slaves code path
   def test_slave_cleanup_on_parent_destroy
-    assert_tk_test("slave should be deleted when parent is destroyed") do
+    assert_tk_subprocess("slave should be deleted when parent is destroyed") do
       <<~RUBY
         require 'tk'
         root = TkRoot.new { withdraw }
@@ -68,7 +68,7 @@ class TestMultiInterp < Minitest::Test
 
   # Test basic slave interpreter operations
   def test_slave_eval
-    assert_tk_test("should be able to eval in slave interpreter") do
+    assert_tk_subprocess("should be able to eval in slave interpreter") do
       <<~RUBY
         require 'tk'
         root = TkRoot.new { withdraw }
@@ -90,7 +90,7 @@ class TestMultiInterp < Minitest::Test
   # The Tk event loop is global (Tcl_DoOneEvent processes events for ALL
   # interpreters). TclTkLib.mainloop should not require a single interpreter.
   def test_mainloop_works_with_multiple_interpreters
-    assert_tk_test("TclTkLib.mainloop should work with multiple interpreters") do
+    assert_tk_subprocess("TclTkLib.mainloop should work with multiple interpreters") do
       <<~RUBY
         require 'tcltklib'
 
@@ -122,7 +122,7 @@ class TestMultiInterp < Minitest::Test
 
   # Test that TclTkLib.thread_timer_ms is a global setting
   def test_thread_timer_ms_is_global
-    assert_tk_test("thread_timer_ms should be configurable globally") do
+    assert_tk_subprocess("thread_timer_ms should be configurable globally") do
       <<~RUBY
         require 'tcltklib'
 
@@ -143,7 +143,7 @@ class TestMultiInterp < Minitest::Test
 
   # Test that TclTkLib.do_one_event is global
   def test_do_one_event_is_global
-    assert_tk_test("do_one_event should work without requiring an interpreter") do
+    assert_tk_subprocess("do_one_event should work without requiring an interpreter") do
       <<~RUBY
         require 'tcltklib'
 
@@ -175,7 +175,7 @@ class TestMultiInterp < Minitest::Test
   # Without CallWhenDeleted, the Ruby object thinks it's still valid
   # and using it will crash or produce undefined behavior.
   def test_tcl_delete_updates_ruby_state
-    assert_tk_test("Ruby should know when Tcl deletes interpreter") do
+    assert_tk_subprocess("Ruby should know when Tcl deletes interpreter") do
       <<~RUBY
         require 'tk'
         root = TkRoot.new { withdraw }

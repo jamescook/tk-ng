@@ -20,7 +20,6 @@ class TestTRadiobuttonWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -142,11 +141,6 @@ class TestTRadiobuttonWidget < Minitest::Test
     cb_style = cb1.cget(:style)
     errors << "cb style cget failed" if cb_style.nil?
 
-    unless errors.empty?
-      root.destroy
-      raise "TRadioButton/TCheckButton test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TRadioButton/TCheckButton test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

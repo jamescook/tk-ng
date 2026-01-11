@@ -19,7 +19,6 @@ class TestTNotebookWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -132,12 +131,6 @@ class TestTNotebookWidget < Minitest::Test
 
     notebook.tabconfigure(tab3, state: "normal")
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TNotebook test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TNotebook test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

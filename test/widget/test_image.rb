@@ -20,7 +20,6 @@ class TestImageWidget < Minitest::Test
     require 'tk'
     require 'tk/image'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- TkImage.types ---
@@ -73,10 +72,8 @@ class TestImageWidget < Minitest::Test
 
     # Check errors before tk_end
     unless errors.empty?
-      root.destroy
       raise "Image test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

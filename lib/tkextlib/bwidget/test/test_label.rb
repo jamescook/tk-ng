@@ -18,7 +18,6 @@ class TestBWidgetLabel < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic label ---
@@ -47,11 +46,6 @@ class TestBWidgetLabel < Minitest::Test
     errors << "foreground failed" if label.cget(:foreground).to_s.empty?
     errors << "background failed" if label.cget(:background).to_s.empty?
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget Label test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget Label test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

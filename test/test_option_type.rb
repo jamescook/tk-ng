@@ -27,6 +27,23 @@ class TestOptionType < Minitest::Test
     assert_nil Tk::OptionType[:integer].from_tcl("")
   end
 
+  # Tcl dimension strings: c=centimeters, i=inches, m=millimeters, p=points
+  def test_integer_from_tcl_dimension_strings
+    assert_equal 10, Tk::OptionType[:integer].from_tcl("10c")  # centimeters
+    assert_equal 5, Tk::OptionType[:integer].from_tcl("5i")    # inches
+    assert_equal 20, Tk::OptionType[:integer].from_tcl("20m")  # millimeters
+    assert_equal 72, Tk::OptionType[:integer].from_tcl("72p")  # points
+  end
+
+  def test_integer_from_tcl_with_whitespace
+    assert_equal 42, Tk::OptionType[:integer].from_tcl(" 42 ")
+    assert_equal 0, Tk::OptionType[:integer].from_tcl("   ")
+  end
+
+  def test_integer_from_tcl_zero
+    assert_equal 0, Tk::OptionType[:integer].from_tcl("0")
+  end
+
   # Float type
   def test_float_to_tcl
     assert_equal "3.14", Tk::OptionType[:float].to_tcl(3.14)
@@ -35,6 +52,17 @@ class TestOptionType < Minitest::Test
   def test_float_from_tcl
     assert_in_delta 3.14, Tk::OptionType[:float].from_tcl("3.14"), 0.001
     assert_nil Tk::OptionType[:float].from_tcl("")
+  end
+
+  # Tcl dimension strings for floats
+  def test_float_from_tcl_dimension_strings
+    assert_in_delta 1.5, Tk::OptionType[:float].from_tcl("1.5i"), 0.001  # inches
+    assert_in_delta 2.5, Tk::OptionType[:float].from_tcl("2.5c"), 0.001  # centimeters
+  end
+
+  def test_float_from_tcl_zero
+    assert_in_delta 0.0, Tk::OptionType[:float].from_tcl("0"), 0.001
+    assert_in_delta 0.0, Tk::OptionType[:float].from_tcl("0.0"), 0.001
   end
 
   # Boolean type

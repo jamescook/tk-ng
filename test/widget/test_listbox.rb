@@ -21,7 +21,6 @@ class TestListboxWidget < Minitest::Test
     require 'tk/frame'
     require 'tk/label'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic creation with size ---
@@ -159,10 +158,8 @@ class TestListboxWidget < Minitest::Test
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Listbox test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

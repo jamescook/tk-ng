@@ -19,7 +19,6 @@ class TestTreeviewWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -259,11 +258,6 @@ class TestTreeviewWidget < Minitest::Test
     tree2.tag_configure("important", background: "lightblue")
     tree2.itemconfigure(item2, tags: ["important"])
 
-    unless errors.empty?
-      root.destroy
-      raise "Treeview test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "Treeview test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

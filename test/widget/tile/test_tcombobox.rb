@@ -19,7 +19,6 @@ class TestTComboboxWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -125,12 +124,6 @@ class TestTComboboxWidget < Minitest::Test
       errors << "postcommand dynamic values failed" unless values_after.include?("Dynamic 1") || values_after.to_s.include?("Dynamic")
     end
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TCombobox test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TCombobox test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

@@ -72,7 +72,13 @@ RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
     fi
 
 WORKDIR /app
-COPY . .
+
+# Copy only what's needed for compilation (not tests/samples)
+# This way test changes don't invalidate the compile cache
+COPY Gemfile Gemfile.lock *.gemspec ./
+COPY Rakefile ./
+COPY ext/ ext/
+COPY lib/ lib/
 
 ENV BUNDLE_PATH=/usr/local/bundle
 RUN --mount=type=cache,target=/bundle-cache \
@@ -186,7 +192,23 @@ ENV PATH="/usr/local/bin:${PATH}"
 ENV BUNDLE_PATH=/usr/local/bundle
 
 WORKDIR /app
-COPY --from=builder /app /app
+
+# Copy compiled extension and build state from builder
+# - lib/ contains the final .so files
+# - ext/ contains extconf.rb (needed by Rakefile)
+# - tmp/ contains rake-compiler build state (prevents recompilation)
+COPY --from=builder /app/lib /app/lib
+COPY --from=builder /app/ext /app/ext
+COPY --from=builder /app/tmp /app/tmp
+COPY --from=builder /app/Rakefile /app/Rakefile
+COPY --from=builder /app/Gemfile /app/Gemfile
+COPY --from=builder /app/Gemfile.lock /app/Gemfile.lock
+COPY --from=builder /app/*.gemspec /app/
+
+# Copy tests and samples directly from context (not cached with compilation)
+# This allows test changes without recompiling
+COPY test/ test/
+COPY sample/ sample/
 
 # Screenshots will be in /app/screenshots/unverified/linux/tcl{version}/
 # exec replaces bash so SIGINT (Ctrl+C) goes directly to rake

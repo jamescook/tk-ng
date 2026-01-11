@@ -19,7 +19,6 @@ class TestTScrollbarWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -72,12 +71,6 @@ class TestTScrollbarWidget < Minitest::Test
     first, last = vscroll.get
     errors << "set/get failed" unless first.to_f >= 0.0 && last.to_f <= 1.0
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TScrollbar test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TScrollbar test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

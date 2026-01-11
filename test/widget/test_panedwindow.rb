@@ -22,7 +22,6 @@ class TestPanedWindowWidget < Minitest::Test
     require 'tk/label'
     require 'tk/button'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Horizontal paned window ---
@@ -95,10 +94,8 @@ class TestPanedWindowWidget < Minitest::Test
 
     # Check errors before tk_end
     unless errors.empty?
-      root.destroy
       raise "PanedWindow test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

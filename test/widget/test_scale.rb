@@ -21,7 +21,6 @@ class TestScaleWidget < Minitest::Test
     require 'tk/frame'
     require 'tk/label'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = TkFrame.new(root, padx: 20, pady: 20)
@@ -114,10 +113,8 @@ class TestScaleWidget < Minitest::Test
 
     # Check errors before tk_end
     unless errors.empty?
-      root.destroy
       raise "Scale test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

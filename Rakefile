@@ -573,6 +573,11 @@ namespace :docker do
   task :prune do
     sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
   end
+
+  # Auto-prune after test tasks
+  ['docker:test', 'docker:test:widget'].each do |t|
+    Rake::Task[t].enhance { Rake::Task['docker:prune'].invoke }
+  end
 end
 
 # Option generation from Tk introspection

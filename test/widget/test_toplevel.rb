@@ -21,7 +21,6 @@ class TestToplevelWidget < Minitest::Test
     require 'tk/label'
     require 'tk/button'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Root window options ---
@@ -117,11 +116,9 @@ class TestToplevelWidget < Minitest::Test
     # Check errors before tk_end
     unless errors.empty?
       top.destroy rescue nil
-      root.destroy
       raise "Toplevel test failures:\n  " + errors.join("\n  ")
     end
 
     top.destroy
-    tk_end(root)
   end
 end

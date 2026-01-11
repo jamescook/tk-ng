@@ -22,7 +22,6 @@ class TestLabelFrameWidget < Minitest::Test
     require 'tk/entry'
     require 'tk/checkbutton'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic labelframe with text ---
@@ -90,10 +89,8 @@ class TestLabelFrameWidget < Minitest::Test
 
     # Check errors before tk_end
     unless errors.empty?
-      root.destroy
       raise "LabelFrame test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

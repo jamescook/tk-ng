@@ -29,7 +29,6 @@ class TestTkDND < Minitest::Test
     require 'tk'
     require 'tkextlib/tkDND'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # Verify package loaded (DND access triggers autoload of tkdnd.rb)
@@ -77,12 +76,6 @@ class TestTkDND < Minitest::Test
     target.dnd_cleartarget
     source.dnd_clearsource
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TkDND test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TkDND test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

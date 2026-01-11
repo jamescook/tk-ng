@@ -19,7 +19,6 @@ class TestTFrameWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic ttk frame ---
@@ -61,12 +60,6 @@ class TestTFrameWidget < Minitest::Test
 
     errors << "label in frame failed" unless label.cget(:text) == "Content inside TFrame"
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TFrame test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TFrame test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

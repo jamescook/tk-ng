@@ -19,7 +19,6 @@ class TestLabelWidget < Minitest::Test
     require 'tk'
     require 'tk/label'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic creation and text ---
@@ -80,12 +79,8 @@ class TestLabelWidget < Minitest::Test
       errors << "compound #{compound} not set" unless lbl.cget(:compound) == compound
     end
 
-    # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?
-      root.destroy
       raise "Label test failures:\n  " + errors.join("\n  ")
     end
-
-    tk_end(root)
   end
 end

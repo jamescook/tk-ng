@@ -21,7 +21,6 @@ class TestScrollbarWidget < Minitest::Test
     require 'tk/frame'
     require 'tk/listbox'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = TkFrame.new(root, padx: 10, pady: 10)
@@ -93,10 +92,8 @@ class TestScrollbarWidget < Minitest::Test
 
     # Check errors before tk_end
     unless errors.empty?
-      root.destroy
       raise "Scrollbar test failures:\n  " + errors.join("\n  ")
     end
 
-    tk_end(root)
   end
 end

@@ -18,7 +18,6 @@ class TestBWidgetEntry < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Basic entry ---
@@ -63,11 +62,6 @@ class TestBWidgetEntry < Minitest::Test
     entry.insert(0, "Hello World")
     errors << "insert/get failed" unless entry.get == "Hello World"
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget Entry test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget Entry test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

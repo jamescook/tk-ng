@@ -18,7 +18,6 @@ class TestBWidgetSpinBox < Minitest::Test
     require 'tk'
     require 'tkextlib/bwidget'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- SpinBox with values list ---
@@ -57,11 +56,6 @@ class TestBWidgetSpinBox < Minitest::Test
     idx = spinbox.get_index_of_value
     errors << "set/get value index failed" unless idx == 2
 
-    unless errors.empty?
-      root.destroy
-      raise "BWidget SpinBox test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "BWidget SpinBox test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

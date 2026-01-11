@@ -18,7 +18,6 @@ class TestTkImgJpeg < Minitest::Test
     require "tk"
     require "tkextlib/tkimg/jpeg"
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # Test package info
@@ -27,8 +26,8 @@ class TestTkImgJpeg < Minitest::Test
     version = Tk::Img::JPEG.package_version
     errors << "package_version is empty" if version.nil? || version.empty?
 
-    # Test loading a real JPEG file (path passed via env var, with fallback)
-    fixture_path = ENV["TEST_FIXTURE_JPEG"] || File.join(FIXTURES_PATH, "sample.jpg")
+    # Test loading a real JPEG file (path passed via env var)
+    fixture_path = ENV["TEST_FIXTURE_JPEG"]
     begin
       img = TkPhotoImage.new(file: fixture_path, format: "jpeg")
       errors << "image width should be > 0" unless img.width > 0
@@ -37,7 +36,6 @@ class TestTkImgJpeg < Minitest::Test
       errors << "Failed to load JPEG image: #{e.message}"
     end
 
-    tk_end(root)
     raise "Failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

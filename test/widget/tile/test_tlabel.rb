@@ -19,7 +19,6 @@ class TestTLabelWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -83,12 +82,6 @@ class TestTLabelWidget < Minitest::Test
     errors << "title anchor failed" unless title_lbl.cget(:anchor).to_s == "center"
     errors << "info justify failed" unless info_lbl.cget(:justify) == "left"
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TLabel test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TLabel test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

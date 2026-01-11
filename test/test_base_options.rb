@@ -28,7 +28,6 @@ class TestBaseOptions < Minitest::Test
     require 'tk/listbox'
     require 'tk/scrollbar'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- exportselection (Entry, Listbox, Text, Spinbox) ---
@@ -69,12 +68,7 @@ class TestBaseOptions < Minitest::Test
     tf_false = entry2.cget(:takefocus)
     errors << "takefocus false failed: got #{tf_false.inspect}" unless tf_false == false || tf_false == "" || tf_false == "0" || tf_false == 0
 
-    unless errors.empty?
-      root.destroy
-      raise "Base boolean options failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "Base boolean options failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 
   def base_string_app
@@ -84,7 +78,6 @@ class TestBaseOptions < Minitest::Test
     require 'tk/scrollbar'
     require 'tk/scale'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- text ---
@@ -124,12 +117,7 @@ class TestBaseOptions < Minitest::Test
     scrollbar = TkScrollbar.new(root, troughcolor: "lightgray")
     errors << "troughcolor failed" unless scrollbar.cget(:troughcolor).to_s == "lightgray"
 
-    unless errors.empty?
-      root.destroy
-      raise "Base string options failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "Base string options failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 
   def types_app
@@ -138,7 +126,6 @@ class TestBaseOptions < Minitest::Test
     require 'tk/entry'
     require 'tk/frame'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- color type (returns string) ---
@@ -164,11 +151,6 @@ class TestBaseOptions < Minitest::Test
     ht = entry.cget(:highlightthickness)
     errors << "pixels highlightthickness failed" unless ht.to_i == 1
 
-    unless errors.empty?
-      root.destroy
-      raise "Color/relief/pixels type failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "Color/relief/pixels type failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

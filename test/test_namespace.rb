@@ -20,7 +20,6 @@ class TestNamespace < Minitest::Test
     require 'tk'
     require 'tk/namespace'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     # --- Create ensemble with explicit command name ---
@@ -47,12 +46,6 @@ class TestNamespace < Minitest::Test
     errors << "exist? should return true" unless TkNamespace::Ensemble.exist?(ensemble.path)
     errors << "exists? should return true" unless ensemble.exists?
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "Namespace test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "Namespace test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

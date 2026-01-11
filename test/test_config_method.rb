@@ -18,301 +18,277 @@ class TestConfigMethod < Minitest::Test
 
   # Test cget with various option types using a real button widget
   def test_cget_string_option
-    assert_tk_test("cget should return string for text option") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("cget should return string for text option", method(:app_cget_string_option))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Hello")
+  def app_cget_string_option
+    require 'tk'
+    require 'tk/button'
 
-        result = btn.cget(:text)
-        raise "Expected 'Hello', got \#{result.inspect}" unless result == "Hello"
-
-        root.destroy
-      RUBY
-    end
+    btn = TkButton.new(root, text: "Hello")
+    result = btn.cget(:text)
+    raise "Expected 'Hello', got #{result.inspect}" unless result == "Hello"
   end
 
   def test_cget_numeric_option
-    assert_tk_test("cget should return number for numeric options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("cget should return number for numeric options", method(:app_cget_numeric_option))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, width: 20)
+  def app_cget_numeric_option
+    require 'tk'
+    require 'tk/button'
 
-        result = btn.cget(:width)
-        raise "Expected Integer, got \#{result.class}" unless result.is_a?(Integer)
-        raise "Expected 20, got \#{result}" unless result == 20
-
-        root.destroy
-      RUBY
-    end
+    btn = TkButton.new(root, width: 20)
+    result = btn.cget(:width)
+    raise "Expected Integer, got #{result.class}" unless result.is_a?(Integer)
+    raise "Expected 20, got #{result}" unless result == 20
   end
 
   def test_cget_boolean_option
-    assert_tk_test("cget should return boolean for boolean options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/checkbutton'
+    assert_tk_app("cget should return boolean for boolean options", method(:app_cget_boolean_option))
+  end
 
-        root = TkRoot.new { withdraw }
-        cb = TkCheckButton.new(root)
+  def app_cget_boolean_option
+    require 'tk'
+    require 'tk/checkbutton'
 
-        # takefocus is a boolean-ish option
-        result = cb.cget(:takefocus)
-        # Should be truthy/falsy, not raise
-
-        root.destroy
-      RUBY
-    end
+    cb = TkCheckButton.new(root)
+    # takefocus is a boolean-ish option
+    result = cb.cget(:takefocus)
+    # Should be truthy/falsy, not raise
   end
 
   def test_cget_tkstring_returns_raw
-    assert_tk_test("cget_tkstring should return raw Tcl string") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("cget_tkstring should return raw Tcl string", method(:app_cget_tkstring_returns_raw))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, width: 20)
+  def app_cget_tkstring_returns_raw
+    require 'tk'
+    require 'tk/button'
 
-        result = btn.cget_tkstring(:width)
-        raise "Expected String, got \#{result.class}" unless result.is_a?(String)
-        raise "Expected '20', got \#{result.inspect}" unless result == "20"
-
-        root.destroy
-      RUBY
-    end
+    btn = TkButton.new(root, width: 20)
+    result = btn.cget_tkstring(:width)
+    raise "Expected String, got #{result.class}" unless result.is_a?(String)
+    raise "Expected '20', got #{result.inspect}" unless result == "20"
   end
 
   def test_cget_unknown_option_raises
-    assert_tk_test("cget should raise for unknown option") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("cget should raise for unknown option", method(:app_cget_unknown_option_raises))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
+  def app_cget_unknown_option_raises
+    require 'tk'
+    require 'tk/button'
 
-        raised = false
-        begin
-          btn.cget(:nonexistent_option_xyz)
-        rescue
-          raised = true
-        end
-
-        raise "Expected error for unknown option" unless raised
-
-        root.destroy
-      RUBY
+    btn = TkButton.new(root)
+    raised = false
+    begin
+      btn.cget(:nonexistent_option_xyz)
+    rescue
+      raised = true
     end
+    raise "Expected error for unknown option" unless raised
+  end
+
+  # Test dimension strings (e.g., "10c" for centimeters) round-trip correctly
+  def test_canvas_dimension_string_roundtrip
+    assert_tk_app("canvas width with dimension string should round-trip", method(:app_canvas_dimension_roundtrip))
+  end
+
+  def app_canvas_dimension_roundtrip
+    require 'tk'
+    require 'tk/canvas'
+
+    # Configure with dimension string (centimeters)
+    canvas = TkCanvas.new(root, width: "5c", height: "3c")
+
+    # cget should return integer (pixels) - Tk converts dimensions to pixels internally
+    width = canvas.cget(:width)
+    height = canvas.cget(:height)
+
+    raise "width should be Integer, got #{width.class}" unless width.is_a?(Integer)
+    raise "height should be Integer, got #{height.class}" unless height.is_a?(Integer)
+    raise "width should be > 0, got #{width}" unless width > 0
+    raise "height should be > 0, got #{height}" unless height > 0
+
+    # Configure with plain integer
+    canvas.configure(width: 200, height: 150)
+    raise "width should be 200, got #{canvas.cget(:width)}" unless canvas.cget(:width) == 200
+    raise "height should be 150, got #{canvas.cget(:height)}" unless canvas.cget(:height) == 150
   end
 
   # Test configure
   def test_configure_single_option
-    assert_tk_test("configure should set single option") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("configure should set single option", method(:app_configure_single_option))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Before")
+  def app_configure_single_option
+    require 'tk'
+    require 'tk/button'
 
-        btn.configure(:text, "After")
-        result = btn.cget(:text)
+    btn = TkButton.new(root, text: "Before")
 
-        raise "Expected 'After', got \#{result.inspect}" unless result == "After"
+    btn.configure(:text, "After")
+    result = btn.cget(:text)
 
-        root.destroy
-      RUBY
-    end
+    raise "Expected 'After', got #{result.inspect}" unless result == "After"
   end
 
   def test_configure_hash
-    assert_tk_test("configure should accept hash of options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("configure should accept hash of options", method(:app_configure_hash))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
+  def app_configure_hash
+    require 'tk'
+    require 'tk/button'
 
-        btn.configure(text: "New Text", width: 30)
+    btn = TkButton.new(root)
 
-        raise "text not set" unless btn.cget(:text) == "New Text"
-        raise "width not set" unless btn.cget(:width) == 30
+    btn.configure(text: "New Text", width: 30)
 
-        root.destroy
-      RUBY
-    end
+    raise "text not set" unless btn.cget(:text) == "New Text"
+    raise "width not set" unless btn.cget(:width) == 30
   end
 
   def test_configure_returns_self
-    assert_tk_test("configure should return self for chaining") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("configure should return self for chaining", method(:app_configure_returns_self))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
+  def app_configure_returns_self
+    require 'tk'
+    require 'tk/button'
 
-        result = btn.configure(text: "Test")
-        raise "Expected self, got \#{result.class}" unless result == btn
+    btn = TkButton.new(root)
 
-        root.destroy
-      RUBY
-    end
+    result = btn.configure(text: "Test")
+    raise "Expected self, got #{result.class}" unless result == btn
   end
 
   def test_configure_optkey_alias
-    assert_tk_test("configure should resolve __optkey_aliases") do
-      <<~RUBY
-        require 'tk'
-        require 'tkextlib/tile/tentry'
+    assert_tk_app("configure should resolve __optkey_aliases", method(:app_configure_optkey_alias))
+  end
 
-        root = TkRoot.new { withdraw }
-        entry = Tk::Tile::TEntry.new(root)
+  def app_configure_optkey_alias
+    require 'tk'
+    require 'tkextlib/tile/tentry'
 
-        # Configure using alias :vcmd instead of :validatecommand
-        # This hits __optkey_aliases.each branch in __configure_core
-        # Using a simple proc name as the validation command
-        entry.configure(vcmd: "myvalidator")
+    entry = Tk::Tile::TEntry.new(root)
 
-        # Verify it was set via the real option name
-        result = entry.cget(:validatecommand)
-        raise "Expected 'myvalidator', got \#{result.inspect}" unless result == "myvalidator"
+    # Configure using alias :vcmd instead of :validatecommand
+    # This hits __optkey_aliases.each branch in __configure_core
+    # Using a simple proc name as the validation command
+    entry.configure(vcmd: "myvalidator")
 
-        root.destroy
-      RUBY
-    end
+    # Verify it was set via the real option name
+    result = entry.cget(:validatecommand)
+    raise "Expected 'myvalidator', got #{result.inspect}" unless result == "myvalidator"
   end
 
   def test_configure_methodcall_optkeys
-    assert_tk_test("configure should use __methodcall_optkeys for method-based options") do
-      <<~RUBY
-        require 'tk'
+    assert_tk_app("configure should use __methodcall_optkeys for method-based options", method(:app_configure_methodcall_optkeys))
+  end
 
-        root = TkRoot.new { withdraw }
+  def app_configure_methodcall_optkeys
+    require 'tk'
 
-        # Configure title via hash - this hits __methodcall_optkeys.each
-        # since 'title' maps to the title() method, not a Tk option
-        root.configure(title: "Test Title")
+    # Configure title via hash - this hits __methodcall_optkeys.each
+    # since 'title' maps to the title() method, not a Tk option
+    root.configure(title: "Test Title")
 
-        result = root.title
-        raise "Expected 'Test Title', got \#{result.inspect}" unless result == "Test Title"
-
-        root.destroy
-      RUBY
-    end
+    result = root.title
+    raise "Expected 'Test Title', got #{result.inspect}" unless result == "Test Title"
   end
 
   def test_configure_ruby2val_optkeys
-    assert_tk_test("configure should use __ruby2val_optkeys for value conversion") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/radiobutton'
-        require 'tk/variable'
+    assert_tk_app("configure should use __ruby2val_optkeys for value conversion", method(:app_configure_ruby2val_optkeys))
+  end
 
-        root = TkRoot.new { withdraw }
-        var = TkVariable.new
+  def app_configure_ruby2val_optkeys
+    require 'tk'
+    require 'tk/radiobutton'
+    require 'tk/variable'
 
-        # TkRadioButton has __ruby2val_optkeys for 'variable' option
-        # The proc calls tk_trace_variable(v) to convert the Ruby object
-        rb = TkRadioButton.new(root)
-        rb.configure(variable: var)
+    var = TkVariable.new
 
-        # Should not raise - the conversion happened
-        root.destroy
-      RUBY
-    end
+    # TkRadioButton has __ruby2val_optkeys for 'variable' option
+    # The proc calls tk_trace_variable(v) to convert the Ruby object
+    rb = TkRadioButton.new(root)
+    rb.configure(variable: var)
+
+    # Should not raise - the conversion happened
   end
 
   # Single-slot form tests: widget.configure(:slot, value)
 
   def test_configure_single_slot_ruby2val
-    assert_tk_test("configure(:slot, value) should use __ruby2val_optkeys") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/radiobutton'
-        require 'tk/variable'
+    assert_tk_app("configure(:slot, value) should use __ruby2val_optkeys", method(:app_configure_single_slot_ruby2val))
+  end
 
-        root = TkRoot.new { withdraw }
-        var = TkVariable.new
+  def app_configure_single_slot_ruby2val
+    require 'tk'
+    require 'tk/radiobutton'
+    require 'tk/variable'
 
-        rb = TkRadioButton.new(root)
-        # Single-slot form: configure(:variable, var) instead of configure(variable: var)
-        rb.configure(:variable, var)
+    var = TkVariable.new
 
-        root.destroy
-      RUBY
-    end
+    rb = TkRadioButton.new(root)
+    # Single-slot form: configure(:variable, var) instead of configure(variable: var)
+    rb.configure(:variable, var)
   end
 
   def test_configure_single_slot_methodcall
-    assert_tk_test("configure(:slot, value) should use __methodcall_optkeys") do
-      <<~RUBY
-        require 'tk'
+    assert_tk_app("configure(:slot, value) should use __methodcall_optkeys", method(:app_configure_single_slot_methodcall))
+  end
 
-        root = TkRoot.new { withdraw }
+  def app_configure_single_slot_methodcall
+    require 'tk'
 
-        # Single-slot form: configure(:title, value) instead of configure(title: value)
-        root.configure(:title, "Single Slot Title")
+    # Single-slot form: configure(:title, value) instead of configure(title: value)
+    root.configure(:title, "Single Slot Title")
 
-        result = root.title
-        raise "Expected 'Single Slot Title', got \#{result.inspect}" unless result == "Single Slot Title"
-
-        root.destroy
-      RUBY
-    end
+    result = root.title
+    raise "Expected 'Single Slot Title', got #{result.inspect}" unless result == "Single Slot Title"
   end
 
   def test_configure_single_slot_font
-    assert_tk_test("configure(:font, value) should use font_configure") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("configure(:font, value) should use font_configure", method(:app_configure_single_slot_font))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Test")
+  def app_configure_single_slot_font
+    require 'tk'
+    require 'tk/button'
 
-        # Single-slot form for font option
-        btn.configure(:font, "Helvetica 12")
+    btn = TkButton.new(root, text: "Test")
 
-        # Verify font was set (returns a TkFont or string)
-        result = btn.cget(:font)
-        raise "Font not set" if result.nil? || result.to_s.empty?
+    # Single-slot form for font option
+    btn.configure(:font, "Helvetica 12")
 
-        root.destroy
-      RUBY
-    end
+    # Verify font was set (returns a TkFont or string)
+    result = btn.cget(:font)
+    raise "Font not set" if result.nil? || result.to_s.empty?
   end
 
   def test_configure_single_slot_regular
-    assert_tk_test("configure(:slot, value) should use tk_call for regular options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("configure(:slot, value) should use tk_call for regular options", method(:app_configure_single_slot_regular))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Original")
+  def app_configure_single_slot_regular
+    require 'tk'
+    require 'tk/button'
 
-        # Single-slot form for regular option (hits the else branch)
-        btn.configure(:text, "Updated")
+    btn = TkButton.new(root, text: "Original")
 
-        result = btn.cget(:text)
-        raise "Expected 'Updated', got \#{result.inspect}" unless result == "Updated"
+    # Single-slot form for regular option (hits the else branch)
+    btn.configure(:text, "Updated")
 
-        root.destroy
-      RUBY
-    end
+    result = btn.cget(:text)
+    raise "Expected 'Updated', got #{result.inspect}" unless result == "Updated"
   end
 
   # Test configinfo
+  # NOTE: These tests manipulate constants, which requires eval (subprocess mode)
   def test_configinfo_single_slot
-    assert_tk_test("configinfo(slot) works in both array and hash modes") do
+    assert_tk_subprocess("configinfo(slot) works in both array and hash modes") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -346,7 +322,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_all
-    assert_tk_test("configinfo() works in both array and hash modes") do
+    assert_tk_subprocess("configinfo() works in both array and hash modes") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -395,7 +371,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_hash_mode_single_slot
-    assert_tk_test("configinfo(slot) in hash mode returns {opt => details}") do
+    assert_tk_subprocess("configinfo(slot) in hash mode returns {opt => details}") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -422,7 +398,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_hash_mode_all_options
-    assert_tk_test("configinfo() in hash mode returns hash of all options") do
+    assert_tk_subprocess("configinfo() in hash mode returns hash of all options") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -449,7 +425,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_hash_mode_numeric_option
-    assert_tk_test("configinfo in hash mode handles numeric options correctly") do
+    assert_tk_subprocess("configinfo in hash mode handles numeric options correctly") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -476,7 +452,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_hash_mode_boolean_option
-    assert_tk_test("configinfo in hash mode handles boolean options correctly") do
+    assert_tk_subprocess("configinfo in hash mode handles boolean options correctly") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -500,7 +476,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_current_configinfo_hash_mode
-    assert_tk_test("current_configinfo works in hash mode") do
+    assert_tk_subprocess("current_configinfo works in hash mode") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -524,7 +500,7 @@ class TestConfigMethod < Minitest::Test
 
   # Test current_configinfo
   def test_current_configinfo_single_slot
-    assert_tk_test("current_configinfo(slot) returns {option => value}") do
+    assert_tk_subprocess("current_configinfo(slot) returns {option => value}") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -543,7 +519,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_current_configinfo_all
-    assert_tk_test("current_configinfo() returns hash of all current values") do
+    assert_tk_subprocess("current_configinfo() returns hash of all current values") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -571,7 +547,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_font_option
-    assert_tk_test("configinfo font tests font handling in both modes") do
+    assert_tk_subprocess("configinfo font tests font handling in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -613,7 +589,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_option_alias
-    assert_tk_test("configinfo option aliases work in both modes") do
+    assert_tk_subprocess("configinfo option aliases work in both modes") do
       <<~RUBY
         require 'tk'
         require 'tkextlib/tile/tentry'
@@ -644,24 +620,21 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_cget_option_alias
-    assert_tk_test("cget should resolve option aliases") do
-      <<~RUBY
-        require 'tk'
-        require 'tkextlib/tile/tentry'
+    assert_tk_app("cget should resolve option aliases", method(:app_cget_option_alias))
+  end
 
-        root = TkRoot.new { withdraw }
-        entry = Tk::Tile::TEntry.new(root)
+  def app_cget_option_alias
+    require 'tk'
+    require 'tkextlib/tile/tentry'
 
-        # Set via real name, get via alias
-        entry.configure(:validatecommand, "")
+    entry = Tk::Tile::TEntry.new(root)
 
-        # cget using alias should work
-        result = entry.cget(:vcmd)
-        # Should not raise - alias resolved to validatecommand
+    # Set via real name, get via alias
+    entry.configure(:validatecommand, "")
 
-        root.destroy
-      RUBY
-    end
+    # cget using alias should work
+    entry.cget(:vcmd)
+    # Should not raise - alias resolved to validatecommand
   end
 
   # ==========================================================================
@@ -675,7 +648,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_tk_builtin_alias_in_full_list
-    assert_tk_test("configinfo full list includes Tk aliases in both modes") do
+    assert_tk_subprocess("configinfo full list includes Tk aliases in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -723,34 +696,30 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_val2ruby_labelwidget
-    assert_tk_test("cget should use __val2ruby_optkeys to convert labelwidget to Ruby object") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/labelframe'
-        require 'tk/label'
+    assert_tk_app("cget should use __val2ruby_optkeys to convert labelwidget to Ruby object", method(:app_cget_val2ruby_labelwidget))
+  end
 
-        root = TkRoot.new { withdraw }
+  def app_cget_val2ruby_labelwidget
+    require 'tk'
+    require 'tk/labelframe'
+    require 'tk/label'
 
-        # Create a label to use as the labelwidget
-        lbl = TkLabel.new(root, text: "Header")
+    # Create a label to use as the labelwidget
+    lbl = TkLabel.new(root, text: "Header")
 
-        # Create labelframe with the label as its labelwidget
-        lf = TkLabelFrame.new(root, labelwidget: lbl)
+    # Create labelframe with the label as its labelwidget
+    lf = TkLabelFrame.new(root, labelwidget: lbl)
 
-        # cget(:labelwidget) should return the Ruby TkLabel object,
-        # not the raw Tk path string like ".label1"
-        result = lf.cget(:labelwidget)
+    # cget(:labelwidget) should return the Ruby TkLabel object,
+    # not the raw Tk path string like ".label1"
+    result = lf.cget(:labelwidget)
 
-        raise "Expected TkLabel, got \#{result.class}" unless result.is_a?(TkLabel)
-        raise "Expected same object" unless result == lbl
-
-        root.destroy
-      RUBY
-    end
+    raise "Expected TkLabel, got #{result.class}" unless result.is_a?(TkLabel)
+    raise "Expected same object" unless result == lbl
   end
 
   def test_configinfo_val2ruby_labelwidget
-    assert_tk_test("configinfo labelwidget tests __val2ruby_optkeys in both modes") do
+    assert_tk_subprocess("configinfo labelwidget tests __val2ruby_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/labelframe'
@@ -807,43 +776,37 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_methodcall_title
-    assert_tk_test("cget(:title) should call title() method, not query Tcl option") do
-      <<~RUBY
-        require 'tk'
+    assert_tk_app("cget(:title) should call title() method, not query Tcl option", method(:app_cget_methodcall_title))
+  end
 
-        root = TkRoot.new { withdraw }
-        root.title("My Window Title")
+  def app_cget_methodcall_title
+    require 'tk'
 
-        # cget(:title) calls self.title() which is a wm command wrapper
-        result = root.cget(:title)
+    root.title("My Window Title")
 
-        raise "Expected 'My Window Title', got \#{result.inspect}" unless result == "My Window Title"
+    # cget(:title) calls self.title() which is a wm command wrapper
+    result = root.cget(:title)
 
-        root.destroy
-      RUBY
-    end
+    raise "Expected 'My Window Title', got #{result.inspect}" unless result == "My Window Title"
   end
 
   def test_cget_methodcall_geometry
-    assert_tk_test("cget(:geometry) should call geometry() method") do
-      <<~RUBY
-        require 'tk'
+    assert_tk_app("cget(:geometry) should call geometry() method", method(:app_cget_methodcall_geometry))
+  end
 
-        root = TkRoot.new { withdraw }
-        root.geometry("400x300+100+50")
+  def app_cget_methodcall_geometry
+    require 'tk'
 
-        result = root.cget(:geometry)
+    root.geometry("400x300+100+50")
 
-        # Result should be a geometry string like "400x300+100+50"
-        raise "Expected geometry string, got \#{result.inspect}" unless result =~ /\\d+x\\d+/
+    result = root.cget(:geometry)
 
-        root.destroy
-      RUBY
-    end
+    # Result should be a geometry string like "400x300+100+50"
+    raise "Expected geometry string, got #{result.inspect}" unless result =~ /\d+x\d+/
   end
 
   def test_configinfo_methodcall_title
-    assert_tk_test("configinfo title tests __methodcall_optkeys in both modes") do
+    assert_tk_subprocess("configinfo title tests __methodcall_optkeys in both modes") do
       <<~RUBY
         require 'tk'
 
@@ -886,26 +849,23 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_numval_closeenough
-    assert_tk_test("cget should convert __numval_optkeys to numbers (canvas closeenough)") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/canvas'
+    assert_tk_app("cget should convert __numval_optkeys to numbers (canvas closeenough)", method(:app_cget_numval_closeenough))
+  end
 
-        root = TkRoot.new { withdraw }
-        canvas = TkCanvas.new(root, closeenough: 2.5)
+  def app_cget_numval_closeenough
+    require 'tk'
+    require 'tk/canvas'
 
-        result = canvas.cget(:closeenough)
+    canvas = TkCanvas.new(root, closeenough: 2.5)
 
-        raise "Expected Numeric, got \#{result.class}" unless result.is_a?(Numeric)
-        raise "Expected 2.5, got \#{result}" unless result == 2.5
+    result = canvas.cget(:closeenough)
 
-        root.destroy
-      RUBY
-    end
+    raise "Expected Numeric, got #{result.class}" unless result.is_a?(Numeric)
+    raise "Expected 2.5, got #{result}" unless result == 2.5
   end
 
   def test_configinfo_numval_closeenough
-    assert_tk_test("configinfo closeenough tests __numval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo closeenough tests __numval_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -959,30 +919,27 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_boolval_confine
-    assert_tk_test("cget should convert __boolval_optkeys to boolean (canvas confine)") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/canvas'
+    assert_tk_app("cget should convert __boolval_optkeys to boolean (canvas confine)", method(:app_cget_boolval_confine))
+  end
 
-        root = TkRoot.new { withdraw }
-        canvas = TkCanvas.new(root, confine: true)
+  def app_cget_boolval_confine
+    require 'tk'
+    require 'tk/canvas'
 
-        result = canvas.cget(:confine)
+    canvas = TkCanvas.new(root, confine: true)
 
-        # Should be boolean true, not string "1" or integer 1
-        raise "Expected true, got \#{result.inspect}" unless result == true
+    result = canvas.cget(:confine)
 
-        canvas.configure(confine: false)
-        result = canvas.cget(:confine)
-        raise "Expected false, got \#{result.inspect}" unless result == false
+    # Should be boolean true, not string "1" or integer 1
+    raise "Expected true, got #{result.inspect}" unless result == true
 
-        root.destroy
-      RUBY
-    end
+    canvas.configure(confine: false)
+    result = canvas.cget(:confine)
+    raise "Expected false, got #{result.inspect}" unless result == false
   end
 
   def test_configinfo_boolval_confine
-    assert_tk_test("configinfo confine tests __boolval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo confine tests __boolval_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -1035,32 +992,28 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_tkvariable_textvariable
-    assert_tk_test("cget should wrap __tkvariable_optkeys in TkVarAccess") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/entry'
-        require 'tk/variable'
+    assert_tk_app("cget should wrap __tkvariable_optkeys in TkVarAccess", method(:app_cget_tkvariable_textvariable))
+  end
 
-        root = TkRoot.new { withdraw }
+  def app_cget_tkvariable_textvariable
+    require 'tk'
+    require 'tk/entry'
+    require 'tk/variable'
 
-        # Create a TkVariable and bind it to an entry
-        var = TkVariable.new("initial value")
-        entry = TkEntry.new(root, textvariable: var)
+    # Create a TkVariable and bind it to an entry
+    var = TkVariable.new("initial value")
+    entry = TkEntry.new(root, textvariable: var)
 
-        # cget(:textvariable) should return a TkVarAccess (or similar)
-        result = entry.cget(:textvariable)
+    # cget(:textvariable) should return a TkVarAccess (or similar)
+    result = entry.cget(:textvariable)
 
-        raise "Expected truthy result, got nil" if result.nil?
-        # The result should let us access the variable's value
-        raise "Variable access failed" unless result.value == "initial value"
-
-        root.destroy
-      RUBY
-    end
+    raise "Expected truthy result, got nil" if result.nil?
+    # The result should let us access the variable's value
+    raise "Variable access failed" unless result.value == "initial value"
   end
 
   def test_configinfo_tkvariable_textvariable
-    assert_tk_test("configinfo textvariable tests __tkvariable_optkeys in both modes") do
+    assert_tk_subprocess("configinfo textvariable tests __tkvariable_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/entry'
@@ -1108,39 +1061,35 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_tkvariable_accepts_string_or_tkvariable
-    assert_tk_test("tkvariable options accept both string and TkVariable") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/entry'
-        require 'tk/variable'
+    assert_tk_app("tkvariable options accept both string and TkVariable", method(:app_tkvariable_accepts_string_or_tkvariable))
+  end
 
-        root = TkRoot.new { withdraw }
+  def app_tkvariable_accepts_string_or_tkvariable
+    require 'tk'
+    require 'tk/entry'
+    require 'tk/variable'
 
-        # Test 1: Pass a TkVariable instance
-        var = TkVariable.new("from_tkvariable")
-        entry1 = TkEntry.new(root, textvariable: var)
-        result1 = entry1.cget(:textvariable)
-        raise "Expected TkVariable result" unless result1.respond_to?(:value)
-        raise "Expected 'from_tkvariable', got '\#{result1.value}'" unless result1.value == "from_tkvariable"
+    # Test 1: Pass a TkVariable instance
+    var = TkVariable.new("from_tkvariable")
+    entry1 = TkEntry.new(root, textvariable: var)
+    result1 = entry1.cget(:textvariable)
+    raise "Expected TkVariable result" unless result1.respond_to?(:value)
+    raise "Expected 'from_tkvariable', got '#{result1.value}'" unless result1.value == "from_tkvariable"
 
-        # Test 2: Pass a raw string (Tcl variable name)
-        # First set up a Tcl variable with a value
-        Tk.ip_eval('set my_tcl_var "from_string"')
-        entry2 = TkEntry.new(root, textvariable: "my_tcl_var")
-        result2 = entry2.cget(:textvariable)
-        raise "Expected TkVarAccess result" unless result2.respond_to?(:value)
-        raise "Expected 'from_string', got '\#{result2.value}'" unless result2.value == "from_string"
+    # Test 2: Pass a raw string (Tcl variable name)
+    # First set up a Tcl variable with a value
+    Tk.ip_eval('set my_tcl_var "from_string"')
+    entry2 = TkEntry.new(root, textvariable: "my_tcl_var")
+    result2 = entry2.cget(:textvariable)
+    raise "Expected TkVarAccess result" unless result2.respond_to?(:value)
+    raise "Expected 'from_string', got '#{result2.value}'" unless result2.value == "from_string"
 
-        # Test 3: Verify the returned object works for both cases
-        result1.value = "updated1"
-        raise "TkVariable update failed" unless entry1.get == "updated1"
+    # Test 3: Verify the returned object works for both cases
+    result1.value = "updated1"
+    raise "TkVariable update failed" unless entry1.get == "updated1"
 
-        result2.value = "updated2"
-        raise "String var update failed" unless entry2.get == "updated2"
-
-        root.destroy
-      RUBY
-    end
+    result2.value = "updated2"
+    raise "String var update failed" unless entry2.get == "updated2"
   end
 
   # ==========================================================================
@@ -1151,7 +1100,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_strval_text
-    assert_tk_test("configinfo text tests __strval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo text tests __strval_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -1204,27 +1153,24 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_cget_listval_values
-    assert_tk_test("cget(:values) should convert to Ruby array (spinbox values)") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/spinbox'
+    assert_tk_app("cget(:values) should convert to Ruby array (spinbox values)", method(:app_cget_listval_values))
+  end
 
-        root = TkRoot.new { withdraw }
-        spinbox = TkSpinbox.new(root, values: ["one", "two", "three"])
+  def app_cget_listval_values
+    require 'tk'
+    require 'tk/spinbox'
 
-        result = spinbox.cget(:values)
+    spinbox = TkSpinbox.new(root, values: ["one", "two", "three"])
 
-        raise "Expected Array, got \#{result.class}" unless result.is_a?(Array)
-        raise "Expected 3 values, got \#{result.size}" unless result.size == 3
-        raise "Expected ['one', 'two', 'three']" unless result == ["one", "two", "three"]
+    result = spinbox.cget(:values)
 
-        root.destroy
-      RUBY
-    end
+    raise "Expected Array, got #{result.class}" unless result.is_a?(Array)
+    raise "Expected 3 values, got #{result.size}" unless result.size == 3
+    raise "Expected ['one', 'two', 'three']" unless result == ["one", "two", "three"]
   end
 
   def test_configinfo_listval_values
-    assert_tk_test("configinfo values tests __listval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo values tests __listval_optkeys in both modes") do
       <<~RUBY
         require 'tk'
         require 'tk/spinbox'
@@ -1284,24 +1230,21 @@ class TestConfigMethod < Minitest::Test
 
   # Test type coercion edge cases
   def test_cget_state_option
-    assert_tk_test("cget should handle state option") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
+    assert_tk_app("cget should handle state option", method(:app_cget_state_option))
+  end
 
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
+  def app_cget_state_option
+    require 'tk'
+    require 'tk/button'
 
-        # Default state should be normal
-        state = btn.cget(:state)
-        raise "Expected 'normal', got \#{state.inspect}" unless state == "normal"
+    btn = TkButton.new(root)
 
-        btn.configure(state: "disabled")
-        state = btn.cget(:state)
-        raise "Expected 'disabled', got \#{state.inspect}" unless state == "disabled"
+    # Default state should be normal
+    state = btn.cget(:state)
+    raise "Expected 'normal', got #{state.inspect}" unless state == "normal"
 
-        root.destroy
-      RUBY
-    end
+    btn.configure(state: "disabled")
+    state = btn.cget(:state)
+    raise "Expected 'disabled', got #{state.inspect}" unless state == "disabled"
   end
 end

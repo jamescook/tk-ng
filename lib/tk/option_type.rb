@@ -53,12 +53,14 @@ module Tk
 
       Integer = OptionType.new(:integer,
         to_tcl: ->(v) { v.to_i.to_s },
-        from_tcl: ->(v) { v.to_s.empty? ? nil : Integer(v) }
+        # Use to_i to handle Tcl dimension strings like "10c" (centimeters)
+        from_tcl: ->(v) { v.to_s.empty? ? nil : v.to_s.to_i }
       )
 
       Float = OptionType.new(:float,
         to_tcl: ->(v) { v.to_f.to_s },
-        from_tcl: ->(v) { v.to_s.empty? ? nil : Float(v) }
+        # Use to_f to handle Tcl dimension strings like "1.5i" (inches)
+        from_tcl: ->(v) { v.to_s.empty? ? nil : v.to_s.to_f }
       )
 
       Boolean = OptionType.new(:boolean,

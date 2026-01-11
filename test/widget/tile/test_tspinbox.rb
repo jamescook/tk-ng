@@ -19,7 +19,6 @@ class TestTSpinboxWidget < Minitest::Test
     require 'tk'
     require 'tkextlib/tile'
 
-    root = TkRoot.new { withdraw }
     errors = []
 
     frame = Tk::Tile::TFrame.new(root, padding: 20)
@@ -114,12 +113,6 @@ class TestTSpinboxWidget < Minitest::Test
     original_style = numeric.cget(:style)
     errors << "style cget failed" if original_style.nil?
 
-    # Check errors before tk_end
-    unless errors.empty?
-      root.destroy
-      raise "TSpinbox test failures:\n  " + errors.join("\n  ")
-    end
-
-    tk_end(root)
+    raise "TSpinbox test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end
