@@ -16,9 +16,16 @@ module Tk
 end
 
 class Tk::BWidget::Label
+  extend Tk::OptionDSL
+
   TkCommandNames = ['Label'.freeze].freeze
   WidgetClassName = 'Label'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # BWidget Label options
+  option :helptext, type: :string
+  option :dragenabled, type: :boolean
+  option :dropenabled, type: :boolean
 
   def __strval_optkeys
     super() << 'helptext'

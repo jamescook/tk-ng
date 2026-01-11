@@ -16,11 +16,19 @@ module Tk
 end
 
 class Tk::BWidget::Entry
+  extend Tk::OptionDSL
   include Scrollable
 
   TkCommandNames = ['Entry'.freeze].freeze
   WidgetClassName = 'Entry'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # BWidget Entry options
+  option :helptext, type: :string
+  option :insertbackground, type: :string
+  option :editable, type: :boolean
+  option :dragenabled, type: :boolean
+  option :dropenabled, type: :boolean
 
   def __strval_optkeys
     super() << 'helptext' << 'insertbackground'

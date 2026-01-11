@@ -2,8 +2,9 @@
 
 # Persistent Tk worker process for fast test execution.
 #
-# Instead of spawning a new Ruby process for each test (with ~200ms startup),
-# this keeps a single Tk interpreter alive and resets state between tests.
+# Instead of spawning a new Ruby process for each test this class keeps a single Tk interpreter
+# alive and resets state between tests. Trad-off is dealing with tests/code that mutate
+# global state.
 #
 # Uses pipe-based IPC (no threads) to avoid Tk threading issues.
 #
@@ -81,8 +82,10 @@ class TkWorker
       response = @stdout_r.gets
       unless response
         # Try to get error info
-        err = @stderr_r.read_nonblock(4096) rescue ""
-        raise "Worker died#{err.empty? ? '' : ": #{err}"}"
+        err = @stderr_r.read_nonblock(4096) rescue "[no output]"
+        err_text = "Worker died: #{err}"
+
+        raise err_text
       end
 
       JSON.parse(response, symbolize_names: true)

@@ -17,11 +17,22 @@ module Tk
 end
 
 class Tk::BWidget::SpinBox
+  extend Tk::OptionDSL
   include Scrollable
 
   TkCommandNames = ['SpinBox'.freeze].freeze
   WidgetClassName = 'SpinBox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # BWidget SpinBox options
+  option :helptext, type: :string
+  option :insertbackground, type: :string
+  option :entryfg, type: :string
+  option :entrybg, type: :string
+  option :dragenabled, type: :boolean
+  option :dropenabled, type: :boolean
+  option :editable, type: :boolean
+  option :values, type: :list
 
   def __strval_optkeys
     super() << 'helptext' << 'insertbackground' << 'entryfg' << 'entrybg'

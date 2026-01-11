@@ -18,11 +18,16 @@ module Tk
 end
 
 class Tk::BWidget::ComboBox
+  extend Tk::OptionDSL
   include Scrollable
 
   TkCommandNames = ['ComboBox'.freeze].freeze
   WidgetClassName = 'ComboBox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # BWidget ComboBox-specific options
+  option :autocomplete, type: :boolean
+  option :autopost, type: :boolean
 
   def __boolval_optkeys
     super() << 'autocomplete' << 'autopost'

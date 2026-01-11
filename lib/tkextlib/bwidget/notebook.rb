@@ -16,11 +16,15 @@ module Tk
 end
 
 class Tk::BWidget::NoteBook
+  extend Tk::OptionDSL
   include TkItemConfigMethod
 
   TkCommandNames = ['NoteBook'.freeze].freeze
   WidgetClassName = 'NoteBook'.freeze
   WidgetClassNames[WidgetClassName] ||= self
+
+  # BWidget NoteBook options
+  option :homogeneous, type: :boolean
 
   class Event_for_Tabs < TkEvent::Event
     def self._get_extra_args_tbl
