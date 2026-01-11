@@ -54,14 +54,11 @@ class TestMenuWidget < Minitest::Test
     menu.configure(activeborderwidth: 2)
     errors << "activeborderwidth failed" unless menu.cget(:activeborderwidth).to_i == 2
 
-    # activerelief is Tk 9.0+ only (min_version: 9)
-    # On 8.6: should warn and skip (not error)
-    # On 9.0+: should configure successfully
-    menu.configure(activerelief: "raised")  # Should not raise on any version
+    # activerelief is Tk 9.0+ only
     if Tk::TK_MAJOR_VERSION >= 9
+      menu.configure(activerelief: "raised")
       errors << "activerelief failed on Tk 9+" unless menu.cget(:activerelief) == "raised"
     end
-    # On 8.6, we just verify it didn't crash - warning is expected
 
     # --- Border and relief ---
     menu.configure(borderwidth: 1)

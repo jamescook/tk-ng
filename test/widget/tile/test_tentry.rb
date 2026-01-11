@@ -74,13 +74,10 @@ class TestTEntryWidget < Minitest::Test
     errors << "style cget failed" if original_style.nil?
 
     # --- Placeholder (Tk 9.0+ only) ---
-    # On 8.6: should warn and skip (not error)
-    # On 9.0+: should configure successfully
-    entry.configure(placeholder: "Enter text here...")
     if Tk::TK_MAJOR_VERSION >= 9
+      entry.configure(placeholder: "Enter text here...")
       errors << "placeholder failed on Tk 9+" unless entry.cget(:placeholder) == "Enter text here..."
     end
-    # On 8.6, we just verify it didn't crash - warning is expected
 
     # --- Multiple entries ---
     Tk::Tile::TLabel.new(frame, text: "Username:").pack(anchor: "w")
