@@ -9,8 +9,6 @@ class TestTkImgPng < Minitest::Test
   include TkTestHelper
 
   def test_png_package
-    # Pass fixture path to subprocess via env var
-    ENV["TEST_FIXTURE_PNG"] = File.join(FIXTURES_PATH, "sample.png")
     assert_tk_app("TkImg PNG package test", method(:png_app))
   end
 
@@ -26,8 +24,9 @@ class TestTkImgPng < Minitest::Test
     version = Tk::Img::PNG.package_version
     errors << "package_version is empty" if version.nil? || version.empty?
 
-    # Test loading a real PNG file (path passed via env var)
-    fixture_path = ENV["TEST_FIXTURE_PNG"]
+    # Test loading a real PNG file
+    # Compute path inside method - worker subprocess doesn't have access to test constants
+    fixture_path = File.expand_path("test/fixtures/sample.png")
     begin
       img = TkPhotoImage.new(file: fixture_path, format: "png")
       errors << "image width should be > 0" unless img.width > 0
