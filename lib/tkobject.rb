@@ -125,11 +125,6 @@ class TkObject<TkKernel
     opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
     slot = opt.tcl_name if opt
 
-    # Method call options (wm commands like title, geometry)
-    if (method = _methodcall_optkey(slot))
-      return self.__send__(method)
-    end
-
     # Font options (complex, keep special handling)
     if _font_optkey?(slot)
       fnt = tk_tcl2ruby(tk_call_without_enc(path, 'cget', "-#{slot}"), true)
@@ -168,12 +163,6 @@ class TkObject<TkKernel
         end
       end
 
-      # Method call options
-      __methodcall_optkeys.each do |key, method|
-        v = slot.delete(key.to_s)
-        self.__send__(method, v) if v
-      end
-
       # Font options
       font_keys = slot.select { |k, _| k =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/ }
       if font_keys.any?
@@ -194,9 +183,7 @@ class TkObject<TkKernel
 
       return self if _skip_version_restricted?(slot)
 
-      if (method = _methodcall_optkey(slot))
-        self.__send__(method, value)
-      elsif slot =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/
+      if slot =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/
         value == None ? fontobj($2) : font_configure({slot => value})
       else
         tk_call(path, 'configure', "-#{slot}", value)
@@ -258,16 +245,6 @@ class TkObject<TkKernel
     slot =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/
   end
 
-  # Method call options - override in subclasses (e.g., Toplevel for wm commands)
-  # Returns hash { key => method_name }
-  def __methodcall_optkeys
-    {}
-  end
-
-  def _methodcall_optkey(slot)
-    _symbolkey2str(__methodcall_optkeys)[slot]
-  end
-
   def _skip_version_restricted?(option_name)
     return false unless self.class.respond_to?(:option_version_required)
     required = self.class.option_version_required(option_name)
@@ -283,11 +260,6 @@ class TkObject<TkKernel
       if self.class.respond_to?(:declared_optkey_aliases)
         _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
         slot = real_name.to_s if real_name
-      end
-
-      # Method call options
-      if (method = _methodcall_optkey(slot))
-        return [slot, '', '', '', self.__send__(method)]
       end
 
       # Font options
@@ -332,8 +304,6 @@ class TkObject<TkKernel
         conf
       end
 
-      # Add method call options
-      __methodcall_optkeys.each { |optkey, m| ret << [optkey.to_s, '', '', '', self.__send__(m)] }
       ret
     end
   end
@@ -344,10 +314,6 @@ class TkObject<TkKernel
       if self.class.respond_to?(:declared_optkey_aliases)
         _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
         slot = real_name.to_s if real_name
-      end
-
-      if (method = _methodcall_optkey(slot))
-        return { slot => ['', '', '', self.__send__(method)] }
       end
 
       conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true)
@@ -383,7 +349,6 @@ class TkObject<TkKernel
         ret[conf.shift] = conf
       end
 
-      __methodcall_optkeys.each { |optkey, m| ret[optkey.to_s] = ['', '', '', self.__send__(m)] }
       ret
     end
   end

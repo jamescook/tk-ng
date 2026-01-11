@@ -184,15 +184,15 @@ class TestConfigMethod < Minitest::Test
     raise "Expected 'myvalidator', got #{result.inspect}" unless result == "myvalidator"
   end
 
-  def test_configure_methodcall_optkeys
-    assert_tk_app("configure should use __methodcall_optkeys for method-based options", method(:app_configure_methodcall_optkeys))
+  def test_configure_wm_shim
+    assert_tk_app("configure should use wm shim for wm properties", method(:app_configure_wm_shim))
   end
 
-  def app_configure_methodcall_optkeys
+  def app_configure_wm_shim
     require 'tk'
 
-    # Configure title via hash - this hits __methodcall_optkeys.each
-    # since 'title' maps to the title() method, not a Tk option
+    # Configure title via hash - this hits the wm shim in Root
+    # since 'title' is a wm property, not a Tk widget option
     root.configure(title: "Test Title")
 
     result = root.title
@@ -236,11 +236,11 @@ class TestConfigMethod < Minitest::Test
     rb.configure(:variable, var)
   end
 
-  def test_configure_single_slot_methodcall
-    assert_tk_app("configure(:slot, value) should use __methodcall_optkeys", method(:app_configure_single_slot_methodcall))
+  def test_configure_single_slot_wm_shim
+    assert_tk_app("configure(:slot, value) should use wm shim for wm properties", method(:app_configure_single_slot_wm_shim))
   end
 
-  def app_configure_single_slot_methodcall
+  def app_configure_single_slot_wm_shim
     require 'tk'
 
     # Single-slot form: configure(:title, value) instead of configure(title: value)
@@ -766,20 +766,20 @@ class TestConfigMethod < Minitest::Test
   end
 
   # ==========================================================================
-  # __methodcall_optkeys tests
+  # WM Shim tests
   #
-  # Some "options" aren't real Tk widget options - they're virtual options
-  # that call Ruby methods instead of querying Tcl. Example: TkRoot's
+  # Some "options" aren't real Tk widget options - they're wm commands
+  # that the wm shim in Root/Toplevel intercepts. Example: TkRoot's
   # 'title' and 'geometry' are actually wm commands, not widget options.
-  # When you call cget(:title), it calls self.title() instead of
-  # querying "-title" from Tcl.
+  # When you call cget(:title), the wm shim intercepts it and calls
+  # tk_call('wm', 'title', path) directly.
   # ==========================================================================
 
-  def test_cget_methodcall_title
-    assert_tk_app("cget(:title) should call title() method, not query Tcl option", method(:app_cget_methodcall_title))
+  def test_cget_wm_shim_title
+    assert_tk_app("cget(:title) should use wm shim, not query Tcl option", method(:app_cget_wm_shim_title))
   end
 
-  def app_cget_methodcall_title
+  def app_cget_wm_shim_title
     require 'tk'
 
     root.title("My Window Title")
@@ -790,11 +790,11 @@ class TestConfigMethod < Minitest::Test
     raise "Expected 'My Window Title', got #{result.inspect}" unless result == "My Window Title"
   end
 
-  def test_cget_methodcall_geometry
-    assert_tk_app("cget(:geometry) should call geometry() method", method(:app_cget_methodcall_geometry))
+  def test_cget_wm_shim_geometry
+    assert_tk_app("cget(:geometry) should use wm shim", method(:app_cget_wm_shim_geometry))
   end
 
-  def app_cget_methodcall_geometry
+  def app_cget_wm_shim_geometry
     require 'tk'
 
     root.geometry("400x300+100+50")
@@ -805,8 +805,8 @@ class TestConfigMethod < Minitest::Test
     raise "Expected geometry string, got #{result.inspect}" unless result =~ /\d+x\d+/
   end
 
-  def test_configinfo_methodcall_title
-    assert_tk_subprocess("configinfo title tests __methodcall_optkeys in both modes") do
+  def test_configinfo_wm_shim_title
+    assert_tk_subprocess("configinfo title tests wm shim in both modes") do
       <<~RUBY
         require 'tk'
 

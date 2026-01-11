@@ -25,21 +25,6 @@ class TkWindow<TkObject
   end
   private :__optkey_aliases
 
-  # Returns hash { option_name => method_symbol } for options handled by method calls.
-  # Subclasses can either:
-  #   1. Use OptionDSL: `option :title, method_call: :title` (preferred)
-  #   2. Override this method (legacy, deprecated)
-  #
-  def __methodcall_optkeys
-    # Get method-call options from OptionDSL if available
-    if self.class.respond_to?(:declared_methodcall_optkeys)
-      self.class.declared_methodcall_optkeys
-    else
-      {}
-    end
-  end
-  private :__methodcall_optkeys
-
   def __ruby2val_optkeys
     # Override in subclasses for custom value conversion
     # Returns hash { key => proc }
@@ -129,7 +114,6 @@ class TkWindow<TkObject
     else
       p 'create_self has args' if $DEBUG
       fontkeys = {}
-      methodkeys = {}
       if keys
         #['font', 'kanjifont', 'latinfont', 'asciifont'].each{|key|
         #  fontkeys[key] = keys.delete(key) if keys.key?(key)
@@ -155,11 +139,6 @@ class TkWindow<TkObject
           end
         }
 
-        __methodcall_optkeys.each{|key|
-          key = key.to_s
-          methodkeys[key] = keys.delete(key) if keys.key?(key)
-        }
-
         __ruby2val_optkeys.each{|key, method|
           key = key.to_s
           keys[key] = method.call(keys[key]) if keys.has_key?(key)
@@ -173,7 +152,6 @@ class TkWindow<TkObject
         create_self(__conv_keyonly_opts(keys))
       end
       font_configure(fontkeys) unless fontkeys.empty?
-      configure(methodkeys) unless methodkeys.empty?
     end
   end
 

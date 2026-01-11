@@ -561,12 +561,6 @@ module TkConfigMethod
   end
   private :__ruby2val_optkeys
 
-  def __methodcall_optkeys  # { key=>method, ... }
-    # The method is used to both of get and set.
-    # Usually, the 'key' will not be a widget option.
-    {}
-  end
-  private :__methodcall_optkeys
 
   def __keyonly_optkeys  # { def_key=>undef_key or nil, ... }
     {}
@@ -624,11 +618,6 @@ module TkConfigMethod
     # Resolve via Option registry (handles aliases too)
     opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
     slot = opt.tcl_name if opt
-
-    # Method call options (wm commands like title, geometry, etc.)
-    if ( method = _symbolkey2str(__methodcall_optkeys)[slot] )
-      return self.__send__(method)
-    end
 
     # Font options (complex, keep for now)
     if slot =~ /^(#{__font_optkeys.join('|')})$/
@@ -688,11 +677,6 @@ module TkConfigMethod
         end
       }
 
-      __methodcall_optkeys.each{|key, method|
-        value = slot.delete(key.to_s)
-        self.__send__(method, value) if value
-      }
-
       __ruby2val_optkeys.each{|key, method|
         key = key.to_s
         slot[key] = method.call(slot[key]) if slot.has_key?(key)
@@ -745,8 +729,6 @@ module TkConfigMethod
       # :nocov:
       elsif ( method = _symbolkey2str(__ruby2val_optkeys)[slot] )
         tk_call(*(__config_cmd << "-#{slot}" << method.call(value)))
-      elsif ( method = _symbolkey2str(__methodcall_optkeys)[slot] )
-        self.__send__(method, value)
       elsif (slot =~ /^(|latin|ascii|kanji)(#{__font_optkeys.join('|')})$/)
         if value == None
           fontobj($2)
@@ -822,11 +804,6 @@ module TkConfigMethod
       _, real_name = __optkey_aliases.find { |k, _| k.to_s == slot }
       slot = real_name.to_s if real_name
 
-      # Method call options (wm commands like title, geometry)
-      if (method = _symbolkey2str(__methodcall_optkeys)[slot])
-        return [slot, '', '', '', self.__send__(method)]
-      end
-
       # TkVariable options
       if __tkvariable_optkeys.include?(slot)
         conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
@@ -892,8 +869,6 @@ module TkConfigMethod
         end
       end
 
-      # Add method call options
-      __methodcall_optkeys.each { |optkey, m| ret << [optkey.to_s, '', '', '', self.__send__(m)] }
       ret
     end
   end
@@ -923,11 +898,6 @@ module TkConfigMethod
       slot = slot.to_s
       _, real_name = __optkey_aliases.find { |k, _| k.to_s == slot }
       slot = real_name.to_s if real_name
-
-      # Method call options
-      if (method = _symbolkey2str(__methodcall_optkeys)[slot])
-        return { slot => ['', '', '', self.__send__(method)] }
-      end
 
       # TkVariable options
       if __tkvariable_optkeys.include?(slot)
@@ -990,8 +960,6 @@ module TkConfigMethod
         ret[optkey][__configinfo_struct[:current_value] - 1] = fontobj(optkey) rescue nil
       end
 
-      # Add method call options
-      __methodcall_optkeys.each { |optkey, m| ret[optkey.to_s] = ['', '', '', self.__send__(m)] }
       ret
     end
   end
