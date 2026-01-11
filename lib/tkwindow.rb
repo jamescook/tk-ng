@@ -25,13 +25,6 @@ class TkWindow<TkObject
   end
   private :__optkey_aliases
 
-  def __ruby2val_optkeys
-    # Override in subclasses for custom value conversion
-    # Returns hash { key => proc }
-    {}
-  end
-  private :__ruby2val_optkeys
-
   @@WIDGET_INSPECT_FULL = false
   def TkWindow._widget_inspect_full_?
     @@WIDGET_INSPECT_FULL
@@ -106,11 +99,6 @@ class TkWindow<TkObject
           if keys.has_key?(alias_name)
             keys[real_name.to_s] = keys.delete(alias_name)
           end
-        }
-
-        __ruby2val_optkeys.each{|key, method|
-          key = key.to_s
-          keys[key] = method.call(keys[key]) if keys.has_key?(key)
         }
       end
       if without_creating && keys

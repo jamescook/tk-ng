@@ -25,15 +25,8 @@ class Tk::BWidget::MainFrame
 
   # BWidget MainFrame options
   option :progressvar, type: :tkvariable
-
-  def __val2ruby_optkeys  # { key=>proc, ... }
-    # The method is used to convert a opt-value to a ruby's object.
-    # When get the value of the option "key", "proc.call(value)" is called.
-    {
-      'menu'=>proc{|v| simplelist(v).collect!{|elem| simplelist(v)}}
-    }
-  end
-  private :__val2ruby_optkeys
+  # Note: original code had `simplelist(v)` twice - preserving behavior
+  option :menu, from_tcl: ->(v, widget:) { TkComm.simplelist(v).collect! { |_elem| TkComm.simplelist(v) } }
 
   def add_indicator(keys={}, &b)
     win = window(tk_send('addindicator', *hash_kv(keys)))

@@ -326,13 +326,6 @@ module Tk
     module TileWidget
       include Tk::Tile::ParseStyleLayout
 
-      def __val2ruby_optkeys  # { key=>proc, ... }
-        # The method is used to convert a opt-value to a ruby's object.
-        # When get the value of the option "key", "proc.call(value)" is called.
-        super().update('style'=>proc{|v| _style_layout(list(v))})
-      end
-      private :__val2ruby_optkeys
-
       def ttk_instate(state, script=nil, &b)
         if script
           tk_send('instate', state, script)

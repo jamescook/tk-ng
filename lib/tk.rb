@@ -498,20 +498,6 @@ module TkConfigMethod
   end
   private :__convert_to_tcl
 
-  def __val2ruby_optkeys  # { key=>proc, ... }
-    # The method is used to convert a opt-value to a ruby's object.
-    # When get the value of the option "key", "proc.call(value)" is called.
-    {}
-  end
-  private :__val2ruby_optkeys
-
-  def __ruby2val_optkeys  # { key=>proc, ... }
-    # The method is used to convert a ruby's object to a opt-value.
-    # When set the value of the option "key", "proc.call(value)" is called.
-    # That is, "-#{key} #{proc.call(value)}".
-    {}
-  end
-  private :__ruby2val_optkeys
 
 
   ################################
@@ -591,11 +577,6 @@ module TkConfigMethod
         end
       }
 
-      __ruby2val_optkeys.each{|key, method|
-        key = key.to_s
-        slot[key] = method.call(slot[key]) if slot.has_key?(key)
-      }
-
       if (slot.find{|k, v| k =~ /^(|latin|ascii|kanji)(#{__font_optkeys.join('|')})$/})
         font_configure(slot)
       elsif slot.size > 0
@@ -617,9 +598,7 @@ module TkConfigMethod
       # Check version restriction before attempting to configure
       return self if __skip_version_restricted_option?(slot)
 
-      if ( method = _symbolkey2str(__ruby2val_optkeys)[slot] )
-        tk_call(*(__config_cmd << "-#{slot}" << method.call(value)))
-      elsif (slot =~ /^(|latin|ascii|kanji)(#{__font_optkeys.join('|')})$/)
+      if (slot =~ /^(|latin|ascii|kanji)(#{__font_optkeys.join('|')})$/)
         if value == None
           fontobj($2)
         else
