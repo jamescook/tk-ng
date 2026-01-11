@@ -286,9 +286,8 @@ class TestConfigMethod < Minitest::Test
   end
 
   # Test configinfo
-  # NOTE: These tests manipulate constants, which requires eval (subprocess mode)
   def test_configinfo_single_slot
-    assert_tk_subprocess("configinfo(slot) works in both array and hash modes") do
+    assert_tk_subprocess("configinfo(slot) returns array") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -296,25 +295,11 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         btn = TkButton.new(root, text: "Hello")
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        info = btn.configinfo(:text)
 
-          info = btn.configinfo(:text)
-
-          if array_mode
-            raise "Expected Array, got \#{info.class}" unless info.is_a?(Array)
-            raise "Expected first element to be 'text'" unless info[0] == "text"
-            raise "Expected last element to be 'Hello'" unless info[-1] == "Hello"
-          else
-            raise "Expected Hash, got \#{info.class}" unless info.is_a?(Hash)
-            raise "Missing 'text' key" unless info.has_key?("text")
-          end
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        raise "Expected Array, got \#{info.class}" unless info.is_a?(Array)
+        raise "Expected first element to be 'text'" unless info[0] == "text"
+        raise "Expected last element to be 'Hello'" unless info[-1] == "Hello"
 
         root.destroy
       RUBY
@@ -322,7 +307,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_all
-    assert_tk_subprocess("configinfo() works in both array and hash modes") do
+    assert_tk_subprocess("configinfo() returns array of arrays") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -330,174 +315,22 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         btn = TkButton.new(root)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
-
-          info = btn.configinfo
-
-          if array_mode
-            raise "Expected Array, got \#{info.class}" unless info.is_a?(Array)
-            raise "Expected non-empty array" if info.empty?
-            raise "Expected array of arrays" unless info[0].is_a?(Array)
-            option_names = info.map { |i| i[0] }
-          else
-            raise "Expected Hash, got \#{info.class}" unless info.is_a?(Hash)
-            option_names = info.keys
-          end
-
-          raise "Missing 'text' option" unless option_names.include?("text")
-          raise "Missing 'width' option" unless option_names.include?("width")
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  # ==========================================================================
-  # GET_CONFIGINFO_AS_ARRAY = false (Hash mode) tests
-  #
-  # This global flag changes configinfo's return format:
-  #   true  => Array:  [["text", "text", "Text", "", "Hello"], ...]
-  #   false => Hash:   {"text" => ["text", "Text", "", "Hello"], ...}
-  #
-  # The ENTIRE __configinfo_core method is duplicated for each mode (~380
-  # lines each), so we need explicit tests for the false branch.
-  # ==========================================================================
-
-  def test_configinfo_hash_mode_single_slot
-    assert_tk_subprocess("configinfo(slot) in hash mode returns {opt => details}") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        # Must set BEFORE creating widgets (affects parsing)
-        TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-        TkComm::GET_CONFIGINFO_AS_ARRAY = false
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Hello")
-
-        info = btn.configinfo(:text)
-
-        raise "Expected Hash, got \#{info.class}" unless info.is_a?(Hash)
-        raise "Missing 'text' key" unless info.has_key?("text")
-
-        # Value should be array of config details (without the key)
-        details = info["text"]
-        raise "Expected Array value, got \#{details.class}" unless details.is_a?(Array)
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  def test_configinfo_hash_mode_all_options
-    assert_tk_subprocess("configinfo() in hash mode returns hash of all options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-        TkComm::GET_CONFIGINFO_AS_ARRAY = false
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Hello", width: 20)
-
         info = btn.configinfo
 
-        raise "Expected Hash, got \#{info.class}" unless info.is_a?(Hash)
-        raise "Missing 'text' key" unless info.has_key?("text")
-        raise "Missing 'width' key" unless info.has_key?("width")
+        raise "Expected Array, got \#{info.class}" unless info.is_a?(Array)
+        raise "Expected non-empty array" if info.empty?
+        raise "Expected array of arrays" unless info[0].is_a?(Array)
+        option_names = info.map { |i| i[0] }
 
-        # Each value should be an array of config details
-        raise "text value not Array" unless info["text"].is_a?(Array)
-        raise "width value not Array" unless info["width"].is_a?(Array)
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  def test_configinfo_hash_mode_numeric_option
-    assert_tk_subprocess("configinfo in hash mode handles numeric options correctly") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/canvas'
-
-        TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-        TkComm::GET_CONFIGINFO_AS_ARRAY = false
-
-        root = TkRoot.new { withdraw }
-        canvas = TkCanvas.new(root, closeenough: 5.0)
-
-        info = canvas.configinfo(:closeenough)
-
-        raise "Expected Hash" unless info.is_a?(Hash)
-        raise "Missing closeenough" unless info.has_key?("closeenough")
-
-        # Current value (last element) should be numeric
-        details = info["closeenough"]
-        current_val = details.last
-        raise "Expected numeric current value, got \#{current_val.class}" unless current_val.is_a?(Numeric)
+        raise "Missing 'text' option" unless option_names.include?("text")
+        raise "Missing 'width' option" unless option_names.include?("width")
 
         root.destroy
       RUBY
     end
   end
 
-  def test_configinfo_hash_mode_boolean_option
-    assert_tk_subprocess("configinfo in hash mode handles boolean options correctly") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/canvas'
-
-        TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-        TkComm::GET_CONFIGINFO_AS_ARRAY = false
-
-        root = TkRoot.new { withdraw }
-        canvas = TkCanvas.new(root, confine: true)
-
-        info = canvas.configinfo(:confine)
-
-        raise "Expected Hash" unless info.is_a?(Hash)
-        details = info["confine"]
-        current_val = details.last
-        raise "Expected boolean, got \#{current_val.inspect}" unless current_val == true
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  def test_current_configinfo_hash_mode
-    assert_tk_subprocess("current_configinfo works in hash mode") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-        TkComm::GET_CONFIGINFO_AS_ARRAY = false
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Hello", width: 15)
-
-        info = btn.current_configinfo
-
-        raise "Expected Hash" unless info.is_a?(Hash)
-        raise "text wrong: \#{info['text'].inspect}" unless info["text"] == "Hello"
-        raise "width wrong: \#{info['width'].inspect}" unless info["width"] == 15
-
-        root.destroy
-      RUBY
-    end
-  end
-
+  # ==========================================================================
   # Test current_configinfo
   def test_current_configinfo_single_slot
     assert_tk_subprocess("current_configinfo(slot) returns {option => value}") do
@@ -547,7 +380,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_font_option
-    assert_tk_subprocess("configinfo font tests font handling in both modes") do
+    assert_tk_subprocess("configinfo font tests font handling") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -555,25 +388,11 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         btn = TkButton.new(root, text: "Hello")
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
-
-          info = btn.configinfo(:font)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'font'" unless info[0] == "font"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["font"][-1]
-          end
-          raise "Font value is nil" if current.nil?
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        info = btn.configinfo(:font)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'font'" unless info[0] == "font"
+        current = info[-1]
+        raise "Font value is nil" if current.nil?
 
         root.destroy
       RUBY
@@ -589,7 +408,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_option_alias
-    assert_tk_subprocess("configinfo option aliases work in both modes") do
+    assert_tk_subprocess("configinfo option aliases work") do
       <<~RUBY
         require 'tk'
         require 'tkextlib/tile/tentry'
@@ -597,22 +416,9 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         entry = Tk::Tile::TEntry.new(root)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
-
-          # Query using the alias - should resolve to real option
-          info = entry.configinfo(:vcmd)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-          end
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Query using the alias - should resolve to real option
+        info = entry.configinfo(:vcmd)
+        raise "Expected Array" unless info.is_a?(Array)
 
         root.destroy
       RUBY
@@ -648,7 +454,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_tk_builtin_alias_in_full_list
-    assert_tk_subprocess("configinfo full list includes Tk aliases in both modes") do
+    assert_tk_subprocess("configinfo full list includes Tk aliases") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -656,30 +462,14 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         btn = TkButton.new(root)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        all_info = btn.configinfo
 
-          all_info = btn.configinfo
-
-          if array_mode
-            # Find the 'bd' alias entry in the full list
-            bd_entry = all_info.find { |entry| entry[0] == "bd" }
-            raise "No 'bd' entry found" if bd_entry.nil?
-            # Alias entries have 2 elements: [name, target]
-            raise "Expected 2-element alias entry" unless bd_entry.size == 2
-            raise "Expected 'borderwidth' as target" unless bd_entry[1] == "borderwidth"
-          else
-            raise "Expected Hash" unless all_info.is_a?(Hash)
-            raise "Missing 'bd' key" unless all_info.has_key?("bd")
-            # In hash mode, alias value is just the target name
-            raise "Expected 'borderwidth'" unless all_info["bd"] == "borderwidth"
-          end
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Find the 'bd' alias entry in the full list
+        bd_entry = all_info.find { |entry| entry[0] == "bd" }
+        raise "No 'bd' entry found" if bd_entry.nil?
+        # Alias entries have 2 elements: [name, target]
+        raise "Expected 2-element alias entry" unless bd_entry.size == 2
+        raise "Expected 'borderwidth' as target" unless bd_entry[1] == "borderwidth"
 
         root.destroy
       RUBY
@@ -719,7 +509,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_val2ruby_labelwidget
-    assert_tk_subprocess("configinfo labelwidget tests __val2ruby_optkeys in both modes") do
+    assert_tk_subprocess("configinfo labelwidget tests __val2ruby_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/labelframe'
@@ -729,36 +519,18 @@ class TestConfigMethod < Minitest::Test
         lbl = TkLabel.new(root, text: "Header")
         lf = TkLabelFrame.new(root, labelwidget: lbl)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = lf.configinfo(:labelwidget)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'labelwidget'" unless info[0] == "labelwidget"
+        current = info[-1]
+        raise "Expected TkLabel, got \#{current.class}" unless current.is_a?(TkLabel)
 
-          # Test single slot
-          info = lf.configinfo(:labelwidget)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'labelwidget'" unless info[0] == "labelwidget"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["labelwidget"][-1]
-          end
-          raise "Expected TkLabel, got \#{current.class}" unless current.is_a?(TkLabel)
-
-          # Test full list (else branch)
-          all_info = lf.configinfo
-          if array_mode
-            lw_entry = all_info.find { |e| e[0] == "labelwidget" }
-            current = lw_entry[-1]
-          else
-            current = all_info["labelwidget"][-1]
-          end
-          raise "Expected TkLabel in full list" unless current.is_a?(TkLabel)
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = lf.configinfo
+        lw_entry = all_info.find { |e| e[0] == "labelwidget" }
+        current = lw_entry[-1]
+        raise "Expected TkLabel in full list" unless current.is_a?(TkLabel)
 
         root.destroy
       RUBY
@@ -806,33 +578,19 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_wm_shim_title
-    assert_tk_subprocess("configinfo title tests wm shim in both modes") do
+    assert_tk_subprocess("configinfo title tests wm shim") do
       <<~RUBY
         require 'tk'
 
         root = TkRoot.new { withdraw }
         root.title("Test Window")
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
-
-          # Test single slot
-          info = root.configinfo(:title)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'title'" unless info[0] == "title"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["title"][-1]
-          end
-          raise "Expected 'Test Window'" unless current == "Test Window"
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test single slot
+        info = root.configinfo(:title)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'title'" unless info[0] == "title"
+        current = info[-1]
+        raise "Expected 'Test Window'" unless current == "Test Window"
 
         root.destroy
       RUBY
@@ -865,7 +623,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_numval_closeenough
-    assert_tk_subprocess("configinfo closeenough tests __numval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo closeenough tests __numval_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -873,37 +631,19 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         canvas = TkCanvas.new(root, closeenough: 3.5)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = canvas.configinfo(:closeenough)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'closeenough'" unless info[0] == "closeenough"
+        current = info[-1]
+        raise "Expected Numeric, got \#{current.class}" unless current.is_a?(Numeric)
+        raise "Expected 3.5" unless current == 3.5
 
-          # Test single slot
-          info = canvas.configinfo(:closeenough)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'closeenough'" unless info[0] == "closeenough"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["closeenough"][-1]
-          end
-          raise "Expected Numeric, got \#{current.class}" unless current.is_a?(Numeric)
-          raise "Expected 3.5" unless current == 3.5
-
-          # Test full list (else branch)
-          all_info = canvas.configinfo
-          if array_mode
-            ce_entry = all_info.find { |entry| entry[0] == "closeenough" }
-            current = ce_entry[-1]
-          else
-            current = all_info["closeenough"][-1]
-          end
-          raise "Expected Numeric in full list" unless current.is_a?(Numeric)
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = canvas.configinfo
+        ce_entry = all_info.find { |entry| entry[0] == "closeenough" }
+        current = ce_entry[-1]
+        raise "Expected Numeric in full list" unless current.is_a?(Numeric)
 
         root.destroy
       RUBY
@@ -939,7 +679,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_boolval_confine
-    assert_tk_subprocess("configinfo confine tests __boolval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo confine tests __boolval_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/canvas'
@@ -947,36 +687,18 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         canvas = TkCanvas.new(root, confine: true)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = canvas.configinfo(:confine)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'confine'" unless info[0] == "confine"
+        current = info[-1]
+        raise "Expected true, got \#{current.inspect}" unless current == true
 
-          # Test single slot
-          info = canvas.configinfo(:confine)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'confine'" unless info[0] == "confine"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["confine"][-1]
-          end
-          raise "Expected true, got \#{current.inspect}" unless current == true
-
-          # Test full list (else branch)
-          all_info = canvas.configinfo
-          if array_mode
-            cf_entry = all_info.find { |entry| entry[0] == "confine" }
-            current = cf_entry[-1]
-          else
-            current = all_info["confine"][-1]
-          end
-          raise "Expected boolean in full list" unless current == true
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = canvas.configinfo
+        cf_entry = all_info.find { |entry| entry[0] == "confine" }
+        current = cf_entry[-1]
+        raise "Expected boolean in full list" unless current == true
 
         root.destroy
       RUBY
@@ -1013,7 +735,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_tkvariable_textvariable
-    assert_tk_subprocess("configinfo textvariable tests __tkvariable_optkeys in both modes") do
+    assert_tk_subprocess("configinfo textvariable tests __tkvariable_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/entry'
@@ -1023,37 +745,19 @@ class TestConfigMethod < Minitest::Test
         var = TkVariable.new("test value")
         entry = TkEntry.new(root, textvariable: var)
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = entry.configinfo(:textvariable)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'textvariable'" unless info[0] == "textvariable"
+        current = info[-1]
+        raise "Expected TkVariable, got nil" if current.nil?
+        raise "Variable access failed" unless current.value == "test value"
 
-          # Test single slot
-          info = entry.configinfo(:textvariable)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'textvariable'" unless info[0] == "textvariable"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["textvariable"][-1]
-          end
-          raise "Expected TkVariable, got nil" if current.nil?
-          raise "Variable access failed" unless current.value == "test value"
-
-          # Test full list (else branch)
-          all_info = entry.configinfo
-          if array_mode
-            tv_entry = all_info.find { |e| e[0] == "textvariable" }
-            current = tv_entry[-1]
-          else
-            current = all_info["textvariable"][-1]
-          end
-          raise "Expected TkVariable in full list" if current.nil?
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = entry.configinfo
+        tv_entry = all_info.find { |e| e[0] == "textvariable" }
+        current = tv_entry[-1]
+        raise "Expected TkVariable in full list" if current.nil?
 
         root.destroy
       RUBY
@@ -1100,7 +804,7 @@ class TestConfigMethod < Minitest::Test
   # ==========================================================================
 
   def test_configinfo_strval_text
-    assert_tk_subprocess("configinfo text tests __strval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo text tests __strval_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/button'
@@ -1108,37 +812,19 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         btn = TkButton.new(root, text: "Hello World")
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = btn.configinfo(:text)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'text'" unless info[0] == "text"
+        current = info[-1]
+        raise "Expected String" unless current.is_a?(String)
+        raise "Expected 'Hello World'" unless current == "Hello World"
 
-          # Test single slot
-          info = btn.configinfo(:text)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'text'" unless info[0] == "text"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["text"][-1]
-          end
-          raise "Expected String" unless current.is_a?(String)
-          raise "Expected 'Hello World'" unless current == "Hello World"
-
-          # Test full list (else branch)
-          all_info = btn.configinfo
-          if array_mode
-            text_entry = all_info.find { |e| e[0] == "text" }
-            current = text_entry[-1]
-          else
-            current = all_info["text"][-1]
-          end
-          raise "Expected String in full list" unless current.is_a?(String)
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = btn.configinfo
+        text_entry = all_info.find { |e| e[0] == "text" }
+        current = text_entry[-1]
+        raise "Expected String in full list" unless current.is_a?(String)
 
         root.destroy
       RUBY
@@ -1170,7 +856,7 @@ class TestConfigMethod < Minitest::Test
   end
 
   def test_configinfo_listval_values
-    assert_tk_subprocess("configinfo values tests __listval_optkeys in both modes") do
+    assert_tk_subprocess("configinfo values tests __listval_optkeys") do
       <<~RUBY
         require 'tk'
         require 'tk/spinbox'
@@ -1178,37 +864,19 @@ class TestConfigMethod < Minitest::Test
         root = TkRoot.new { withdraw }
         spinbox = TkSpinbox.new(root, values: ["a", "b", "c"])
 
-        [true, false].each do |array_mode|
-          original = TkComm::GET_CONFIGINFO_AS_ARRAY
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = array_mode
+        # Test single slot
+        info = spinbox.configinfo(:values)
+        raise "Expected Array" unless info.is_a?(Array)
+        raise "First element should be 'values'" unless info[0] == "values"
+        current = info[-1]
+        raise "Expected Array value" unless current.is_a?(Array)
+        raise "Expected ['a', 'b', 'c']" unless current == ["a", "b", "c"]
 
-          # Test single slot
-          info = spinbox.configinfo(:values)
-          if array_mode
-            raise "Expected Array" unless info.is_a?(Array)
-            raise "First element should be 'values'" unless info[0] == "values"
-            current = info[-1]
-          else
-            raise "Expected Hash" unless info.is_a?(Hash)
-            current = info["values"][-1]
-          end
-          raise "Expected Array value" unless current.is_a?(Array)
-          raise "Expected ['a', 'b', 'c']" unless current == ["a", "b", "c"]
-
-          # Test full list (else branch)
-          all_info = spinbox.configinfo
-          if array_mode
-            vals_entry = all_info.find { |e| e[0] == "values" }
-            current = vals_entry[-1]
-          else
-            current = all_info["values"][-1]
-          end
-          raise "Expected Array in full list" unless current.is_a?(Array)
-
-          TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
-          TkComm::GET_CONFIGINFO_AS_ARRAY = original
-        end
+        # Test full list
+        all_info = spinbox.configinfo
+        vals_entry = all_info.find { |e| e[0] == "values" }
+        current = vals_entry[-1]
+        raise "Expected Array in full list" unless current.is_a?(Array)
 
         root.destroy
       RUBY

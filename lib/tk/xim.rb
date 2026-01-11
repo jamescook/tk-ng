@@ -52,11 +52,7 @@ module TkXIM
   end
 
   def TkXIM.configinfo(win, slot=nil)
-    if TkComm::GET_CONFIGINFOwoRES_AS_ARRAY
-      []
-    else
-      TkXIM.current_configinfo(win, slot)
-    end
+    []
   end
 
   def TkXIM.current_configinfo(win, slot=nil)

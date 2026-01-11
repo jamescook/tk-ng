@@ -522,110 +522,39 @@ class Tk::Text<TkTextWin
   end
 
   def image_configinfo(index, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        case slot.to_s
-        when 'text', 'label', 'show', 'data', 'file'
-          #conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}")))
-          conf = tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), false, true)
-        else
-          #conf = tk_split_list(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}")))
-          conf = tk_split_list(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), 0, false, true)
-        end
+    if slot
+      case slot.to_s
+      when 'text', 'label', 'show', 'data', 'file'
+        conf = tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), false, true)
+      else
+        conf = tk_split_list(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), 0, false, true)
+      end
+      conf[0] = conf[0][1..-1]
+      conf
+    else
+      tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)), false, false).collect{|conflist|
+        conf = tk_split_simplelist(conflist, false, true)
         conf[0] = conf[0][1..-1]
-        conf
-      else
-        # tk_split_simplelist(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)))).collect{|conflist|
-        #  conf = tk_split_simplelist(conflist)
-        tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)), false, false).collect{|conflist|
-          conf = tk_split_simplelist(conflist, false, true)
-          conf[0] = conf[0][1..-1]
-          case conf[0]
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-            if conf[4]
-              if conf[4].index('{')
-                conf[4] = tk_split_list(conf[4])
-              else
-                conf[4] = tk_tcl2ruby(conf[4])
-              end
-            end
-          end
-          conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
-          conf
-        }
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        case slot.to_s
+        case conf[0]
         when 'text', 'label', 'show', 'data', 'file'
-          #conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}")))
-          conf = tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), false, true)
         else
-          #conf = tk_split_list(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}")))
-          conf = tk_split_list(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), 0, false, true)
+          conf[3] = conf[3].index('{') ? tk_split_list(conf[3]) : tk_tcl2ruby(conf[3]) if conf[3]
+          conf[4] = conf[4].index('{') ? tk_split_list(conf[4]) : tk_tcl2ruby(conf[4]) if conf[4]
         end
-        key = conf.shift[1..-1]
-        { key => conf }
-      else
-        ret = {}
-        #tk_split_simplelist(_fromUTF8(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)))).each{|conflist|
-        #  conf = tk_split_simplelist(conflist)
-        tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)), false, false).each{|conflist|
-          conf = tk_split_simplelist(conflist, false, true)
-          key = conf.shift[1..-1]
-          case key
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[2]
-              if conf[2].index('{')
-                conf[2] = tk_split_list(conf[2])
-              else
-                conf[2] = tk_tcl2ruby(conf[2])
-              end
-            end
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-          end
-          if conf.size == 1
-            ret[key] = conf[0][1..-1]  # alias info
-          else
-            ret[key] = conf
-          end
-        }
-        ret
-      end
+        conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
+        conf
+      }
     end
   end
 
   def current_image_configinfo(index, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        conf = image_configinfo(index, slot)
-        {conf[0] => conf[4]}
-      else
-        ret = {}
-        image_configinfo(index).each{|conf|
-          ret[conf[0]] = conf[4] if conf.size > 2
-        }
-        ret
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    if slot
+      conf = image_configinfo(index, slot)
+      {conf[0] => conf[4]}
+    else
       ret = {}
-      image_configinfo(index, slot).each{|k, conf|
-        ret[k] = conf[-1] if conf.kind_of?(Array)
+      image_configinfo(index).each{|conf|
+        ret[conf[0]] = conf[4] if conf.size > 2
       }
       ret
     end
@@ -859,182 +788,6 @@ class Tk::Text<TkTextWin
     _bindinfo([@path, 'tag', 'bind', tag], context)
   end
 
-=begin
-  def tag_cget(tag, key)
-    case key.to_s
-    when 'text', 'label', 'show', 'data', 'file'
-      tk_call_without_enc(@path, 'tag', 'cget',
-                          _get_eval_enc_str(tag), "-#{key}")
-    when 'font', 'kanjifont'
-      #fnt = tk_tcl2ruby(tk_send('tag', 'cget', tag, "-#{key}"))
-      fnt = tk_tcl2ruby(_fromUTF8(tk_send_without_enc('tag','cget',_get_eval_enc_str(tag),'-font')))
-      unless fnt.kind_of?(TkFont)
-        fnt = tagfontobj(tag, fnt)
-      end
-      if key.to_s == 'kanjifont' && JAPANIZED_TK && TK_VERSION =~ /^4\.*/
-        # obsolete; just for compatibility
-        fnt.kanji_font
-      else
-        fnt
-      end
-    else
-      tk_tcl2ruby(_fromUTF8(tk_call_without_enc(@path,'tag','cget',_get_eval_enc_str(tag),"-#{key}")))
-    end
-  end
-
-  def tag_configure(tag, key, val=None)
-    if key.kind_of?(Hash)
-      key = _symbolkey2str(key)
-      if ( key['font'] || key['kanjifont'] \
-          || key['latinfont'] || key['asciifont'] )
-        tagfont_configure(tag, key)
-      else
-        tk_send_without_enc('tag', 'configure', _get_eval_enc_str(tag),
-                            *hash_kv(key, true))
-      end
-
-    else
-      if  key == 'font' || key == :font ||
-          key == 'kanjifont' || key == :kanjifont ||
-          key == 'latinfont' || key == :latinfont ||
-          key == 'asciifont' || key == :asciifont
-        if val == None
-          tagfontobj(tag)
-        else
-          tagfont_configure(tag, {key=>val})
-        end
-      else
-        tk_send_without_enc('tag', 'configure', _get_eval_enc_str(tag),
-                            "-#{key}", _get_eval_enc_str(val))
-      end
-    end
-    self
-  end
-
-  def tag_configinfo(tag, key=nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if key
-        case key.to_s
-        when 'text', 'label', 'show', 'data', 'file'
-          conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-        when 'font', 'kanjifont'
-          conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-          conf[4] = tagfont_configinfo(tag, conf[4])
-        else
-          conf = tk_split_list(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-        end
-        conf[0] = conf[0][1..-1]
-        conf
-      else
-        ret = tk_split_simplelist(_fromUTF8(tk_send('tag','configure',_get_eval_enc_str(tag)))).collect{|conflist|
-          conf = tk_split_simplelist(conflist)
-          conf[0] = conf[0][1..-1]
-          case conf[0]
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-            if conf[4]
-              if conf[4].index('{')
-                conf[4] = tk_split_list(conf[4])
-              else
-                conf[4] = tk_tcl2ruby(conf[4])
-              end
-            end
-          end
-          conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
-          conf
-        }
-        fontconf = ret.assoc('font')
-        if fontconf
-          ret.delete_if{|item| item[0] == 'font' || item[0] == 'kanjifont'}
-          fontconf[4] = tagfont_configinfo(tag, fontconf[4])
-          ret.push(fontconf)
-        else
-          ret
-        end
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      if key
-        case key.to_s
-        when 'text', 'label', 'show', 'data', 'file'
-          conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-        when 'font', 'kanjifont'
-          conf = tk_split_simplelist(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-          conf[4] = tagfont_configinfo(tag, conf[4])
-        else
-          conf = tk_split_list(_fromUTF8(tk_send_without_enc('tag','configure',_get_eval_enc_str(tag),"-#{key}")))
-        end
-        key = conf.shift[1..-1]
-        { key => conf }
-      else
-        ret = {}
-        tk_split_simplelist(_fromUTF8(tk_send('tag','configure',_get_eval_enc_str(tag)))).each{|conflist|
-          conf = tk_split_simplelist(conflist)
-          key = conf.shift[1..-1]
-          case key
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[2]
-              if conf[2].index('{')
-                conf[2] = tk_split_list(conf[2])
-              else
-                conf[2] = tk_tcl2ruby(conf[2])
-              end
-            end
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-          end
-          if conf.size == 1
-            ret[key] = conf[0][1..-1]  # alias info
-          else
-            ret[key] = conf
-          end
-        }
-        fontconf = ret['font']
-        if fontconf
-          ret.delete('font')
-          ret.delete('kanjifont')
-          fontconf[3] = tagfont_configinfo(tag, fontconf[3])
-          ret['font'] = fontconf
-        end
-        ret
-      end
-    end
-  end
-
-  def current_tag_configinfo(tag, key=nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if key
-        conf = tag_configinfo(tag, key)
-        {conf[0] => conf[4]}
-      else
-        ret = {}
-        tag_configinfo(tag).each{|conf|
-          ret[conf[0]] = conf[4] if conf.size > 2
-        }
-        ret
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      ret = {}
-      tag_configinfo(tag, key).each{|k, conf|
-        ret[k] = conf[-1] if conf.kind_of?(Array)
-      }
-      ret
-    end
-  end
-=end
-
   def tag_raise(tag, above=None)
     tk_send_without_enc('tag', 'raise', _get_eval_enc_str(tag),
                         _get_eval_enc_str(above))
@@ -1083,190 +836,6 @@ class Tk::Text<TkTextWin
       Tk::Text::IndexString.new(idx)
     }
   end
-
-=begin
-  def window_cget(index, slot)
-    case slot.to_s
-    when 'text', 'label', 'show', 'data', 'file'
-      _fromUTF8(tk_send_without_enc('window', 'cget',
-                                    _get_eval_enc_str(index), "-#{slot}"))
-    when 'font', 'kanjifont'
-      #fnt = tk_tcl2ruby(tk_send('window', 'cget', index, "-#{slot}"))
-      fnt = tk_tcl2ruby(_fromUTF8(tk_send_without_enc('window', 'cget', _get_eval_enc_str(index), '-font')))
-      unless fnt.kind_of?(TkFont)
-        fnt = tagfontobj(index, fnt)
-      end
-      if slot.to_s == 'kanjifont' && JAPANIZED_TK && TK_VERSION =~ /^4\.*/
-        # obsolete; just for compatibility
-        fnt.kanji_font
-      else
-        fnt
-      end
-    else
-      tk_tcl2ruby(_fromUTF8(tk_send_without_enc('window', 'cget', _get_eval_enc_str(index), "-#{slot}")))
-    end
-  end
-
-  def window_configure(index, slot, value=None)
-    if index.kind_of?(TkTextWindow)
-      index.configure(slot, value)
-    else
-      if slot.kind_of?(Hash)
-        slot = _symbolkey2str(slot)
-        win = slot['window']
-        # slot['window'] = win.epath if win.kind_of?(TkWindow)
-        slot['window'] = _epath(win) if win
-        if slot['create']
-          p_create = slot['create']
-          if p_create.kind_of?(Proc)
-#=begin
-            slot['create'] = install_cmd(proc{
-                                           id = p_create.call
-                                           if id.kind_of?(TkWindow)
-                                             id.epath
-                                           else
-                                             id
-                                           end
-                                         })
-#=end
-            slot['create'] = install_cmd(proc{_epath(p_create.call)})
-          end
-        end
-        tk_send_without_enc('window', 'configure',
-                            _get_eval_enc_str(index),
-                            *hash_kv(slot, true))
-      else
-        if slot == 'window' || slot == :window
-          # id = value
-          # value = id.epath if id.kind_of?(TkWindow)
-          value = _epath(value)
-        end
-        if slot == 'create' || slot == :create
-          p_create = value
-          if p_create.kind_of?(Proc)
-#=begin
-            value = install_cmd(proc{
-                                  id = p_create.call
-                                  if id.kind_of?(TkWindow)
-                                    id.epath
-                                  else
-                                    id
-                                  end
-                                })
-#=end
-            value = install_cmd(proc{_epath(p_create.call)})
-          end
-        end
-        tk_send_without_enc('window', 'configure',
-                            _get_eval_enc_str(index),
-                            "-#{slot}", _get_eval_enc_str(value))
-      end
-    end
-    self
-  end
-
-  def window_configinfo(win, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        case slot.to_s
-        when 'text', 'label', 'show', 'data', 'file'
-          conf = tk_split_simplelist(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win), "-#{slot}")))
-        else
-          conf = tk_split_list(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win), "-#{slot}")))
-        end
-        conf[0] = conf[0][1..-1]
-        conf
-      else
-        tk_split_simplelist(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win)))).collect{|conflist|
-          conf = tk_split_simplelist(conflist)
-          conf[0] = conf[0][1..-1]
-          case conf[0]
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-            if conf[4]
-              if conf[4].index('{')
-                conf[4] = tk_split_list(conf[4])
-              else
-                conf[4] = tk_tcl2ruby(conf[4])
-              end
-            end
-          end
-          conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
-          conf
-        }
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        case slot.to_s
-        when 'text', 'label', 'show', 'data', 'file'
-          conf = tk_split_simplelist(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win), "-#{slot}")))
-        else
-          conf = tk_split_list(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win), "-#{slot}")))
-        end
-        key = conf.shift[1..-1]
-        { key => conf }
-      else
-        ret = {}
-        tk_split_simplelist(_fromUTF8(tk_send('window', 'configure', _get_eval_enc_str(win)))).each{|conflist|
-          conf = tk_split_simplelist(conflist)
-          key = conf.shift[1..-1]
-          case key
-          when 'text', 'label', 'show', 'data', 'file'
-          else
-            if conf[2]
-              if conf[2].index('{')
-                conf[2] = tk_split_list(conf[2])
-              else
-                conf[2] = tk_tcl2ruby(conf[2])
-              end
-            end
-            if conf[3]
-              if conf[3].index('{')
-                conf[3] = tk_split_list(conf[3])
-              else
-                conf[3] = tk_tcl2ruby(conf[3])
-              end
-            end
-          end
-          if conf.size == 1
-            ret[key] = conf[0][1..-1]  # alias info
-          else
-            ret[key] = conf
-          end
-        }
-        ret
-      end
-    end
-  end
-
-  def current_window_configinfo(win, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        conf = window_configinfo(win, slot)
-        {conf[0] => conf[4]}
-      else
-        ret = {}
-        window_configinfo(win).each{|conf|
-          ret[conf[0]] = conf[4] if conf.size > 2
-        }
-        ret
-      end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      ret = {}
-      window_configinfo(win, slot).each{|k, conf|
-        ret[k] = conf[-1] if conf.kind_of?(Array)
-      }
-      ret
-    end
-  end
-=end
 
   def window_names
     # tk_split_simplelist(_fromUTF8(tk_send_without_enc('window', 'names'))).collect{|elt|

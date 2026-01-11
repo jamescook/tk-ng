@@ -428,13 +428,6 @@ module TkConfigMethod
   end
   private :__confinfo_cmd
 
-  def __configinfo_struct
-    {:key=>0, :alias=>1, :db_name=>1, :db_class=>2,
-      :default_value=>3, :current_value=>4}
-  end
-  private :__configinfo_struct
-
-
   # Look up a declared option and convert value using its from_tcl converter.
   # Returns [converted_value, true] if option is declared, [original_value, false] otherwise.
   def __convert_from_tcl(slot, value)
@@ -564,189 +557,41 @@ module TkConfigMethod
     configure(slot, install_cmd(value))
   end
 
-  # Apply Option registry type conversion to configinfo array values.
-  # Converts default_value and current_value slots using the Option's from_tcl method.
-  def __apply_configinfo_conversion(conf, slot)
-    return conf unless self.class.respond_to?(:resolve_option)
-    opt = self.class.resolve_option(slot)
-    return conf unless opt
-
-    dv_idx = __configinfo_struct[:default_value]
-    cv_idx = __configinfo_struct[:current_value]
-
-    if dv_idx && conf[dv_idx]
-      conf[dv_idx] = opt.from_tcl(conf[dv_idx], widget: self) rescue conf[dv_idx]
-    end
-    if cv_idx && conf[cv_idx]
-      conf[cv_idx] = opt.from_tcl(conf[cv_idx], widget: self) rescue conf[cv_idx]
-    end
-    conf
-  end
-  private :__apply_configinfo_conversion
-
-  def __configinfo_core(slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      __configinfo_core_array(slot)
-    else
-      __configinfo_core_hash(slot)
-    end
-  end
-
-  # Array mode: returns [key, dbname, dbclass, default_value, current_value]
-  def __configinfo_core_array(slot)
-    if slot
-      slot = slot.to_s
-      # Resolve aliases via OptionDSL
-      if self.class.respond_to?(:declared_optkey_aliases)
-        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
-        slot = real_name.to_s if real_name
-      end
-
-      # Try Option registry first
-      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
-      if opt
-        conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
-        conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-        conf = __apply_configinfo_conversion(conf, slot)
-        return __strip_alias_dash(conf)
-      end
-
-      # No Option declared - return raw values with warning
-      warn "#{self.class}#configinfo(:#{slot}) - option not declared, returning raw"
-      conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
-      conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-      __strip_alias_dash(conf)
-    else
-      # All options
-      tk_split_simplelist(tk_call_without_enc(*__confinfo_cmd), false, false).collect do |conflist|
-        conf = tk_split_simplelist(conflist, false, true)
-        conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-        optkey = conf[__configinfo_struct[:key]]
-
-        # Try Option registry first
-        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
-        if opt
-          conf = __apply_configinfo_conversion(conf, optkey)
-        else
-          # No Option declared - leave raw values (warn once per class)
-          @__undeclared_options_warned ||= {}
-          unless @__undeclared_options_warned[optkey]
-            warn "#{self.class}#configinfo - option '#{optkey}' not declared"
-            @__undeclared_options_warned[optkey] = true
-          end
-        end
-        __strip_alias_dash(conf)
-      end
-    end
-  end
-  private :__configinfo_core_array
-
-  # Hash mode: returns {key => [dbname, dbclass, default_value, current_value]}
-  def __configinfo_core_hash(slot)
-    if slot
-      slot = slot.to_s
-      # Resolve aliases via OptionDSL
-      if self.class.respond_to?(:declared_optkey_aliases)
-        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
-        slot = real_name.to_s if real_name
-      end
-
-      # Try Option registry
-      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
-      if opt
-        conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
-        conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-        conf = __apply_configinfo_conversion(conf, slot)
-        return __format_hash_result(conf)
-      end
-
-      # No Option declared - return raw values with warning
-      warn "#{self.class}#configinfo(:#{slot}) - option not declared, returning raw"
-      conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
-      conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-      __format_hash_result(conf)
-    else
-      ret = {}
-      tk_split_simplelist(tk_call_without_enc(*__confinfo_cmd), false, false).each do |conflist|
-        conf = tk_split_simplelist(conflist, false, true)
-        conf[__configinfo_struct[:key]] = conf[__configinfo_struct[:key]][1..-1]
-        optkey = conf[__configinfo_struct[:key]]
-
-        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
-        if opt
-          conf = __apply_configinfo_conversion(conf, optkey)
-        else
-          # No Option declared - leave raw values (warn once per class)
-          @__undeclared_options_warned ||= {}
-          unless @__undeclared_options_warned[optkey]
-            warn "#{self.class}#configinfo - option '#{optkey}' not declared"
-            @__undeclared_options_warned[optkey] = true
-          end
-        end
-        ret.merge!(__format_hash_result(conf))
-      end
-      ret
-    end
-  end
-  private :__configinfo_core_hash
-
-  # Strip leading dash from alias target if present
-  # Alias entries are 2-element arrays: ["bd", "-borderwidth"] -> ["bd", "borderwidth"]
-  def __strip_alias_dash(conf)
-    if conf.size == 2 && conf[1].is_a?(String) && conf[1].start_with?('-')
-      conf[1] = conf[1][1..-1]
-    end
-    conf
-  end
-  private :__strip_alias_dash
-
-  # Format config array as hash result
-  def __format_hash_result(conf)
-    if __configinfo_struct[:alias] && conf.size == __configinfo_struct[:alias] + 1
-      conf[__configinfo_struct[:alias]] = conf[__configinfo_struct[:alias]][1..-1] if conf[__configinfo_struct[:alias]][0] == ?-
-      { conf[0] => conf[1] }
-    else
-      { conf.shift => conf }
-    end
-  end
-  private :__format_hash_result
-
-  private :__configinfo_core
-
+  # Get Tcl configure info for option(s)
+  # Returns [option, dbname, dbclass, default, current] for single option
+  # Returns array of above for all options (when slot is nil)
+  # Alias entries return just [option, target]
   def configinfo(slot = nil)
-    __configinfo_core(slot)
+    if slot
+      slot = slot.to_s
+      conf = tk_split_simplelist(tk_call_without_enc(*(__confinfo_cmd << "-#{slot}")), false, true)
+      conf[TkComm::CONF_KEY] = conf[TkComm::CONF_KEY][1..-1]  # strip leading dash
+      # Alias entries: strip dash from target (position 1 holds alias target)
+      conf[TkComm::CONF_DBNAME] = conf[TkComm::CONF_DBNAME][1..-1] if conf.size == 2 && conf[TkComm::CONF_DBNAME]&.start_with?('-')
+      conf
+    else
+      tk_split_simplelist(tk_call_without_enc(*__confinfo_cmd), false, false).map do |conflist|
+        conf = tk_split_simplelist(conflist, false, true)
+        conf[TkComm::CONF_KEY] = conf[TkComm::CONF_KEY][1..-1]  # strip leading dash
+        conf[TkComm::CONF_DBNAME] = conf[TkComm::CONF_DBNAME][1..-1] if conf.size == 2 && conf[TkComm::CONF_DBNAME]&.start_with?('-')
+        conf
+      end
+    end
   end
 
+  # Get current values for option(s)
+  # Returns {option => value} hash
+  # Uses cget() which handles type conversion via Option registry
   def current_configinfo(slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        org_slot = slot
-        begin
-          conf = configinfo(slot)
-          if ( ! __configinfo_struct[:alias] \
-              || conf.size > __configinfo_struct[:alias] + 1 )
-            return {conf[0] => conf[-1]}
-          end
-          slot = conf[__configinfo_struct[:alias]]
-        end while(org_slot != slot)
-        fail RuntimeError,
-          "there is a configure alias loop about '#{org_slot}'"
-      else
-        ret = {}
-        configinfo().each{|cnf|
-          if ( ! __configinfo_struct[:alias] \
-              || cnf.size > __configinfo_struct[:alias] + 1 )
-            ret[cnf[0]] = cnf[-1]
-          end
-        }
-        ret
+    if slot
+      {slot.to_s => cget(slot)}
+    else
+      result = {}
+      configinfo.each do |conf|
+        # Skip alias entries (2 elements), only include real options
+        result[conf[TkComm::CONF_KEY]] = cget(conf[TkComm::CONF_KEY]) if conf.size > 2
       end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-      ret = {}
-      configinfo(slot).each{|key, cnf|
-        ret[key] = cnf[-1] if cnf.kind_of?(Array)
-      }
-      ret
+      result
     end
   end
 end

@@ -28,7 +28,7 @@ module Tk::Tile::TreeviewConfig
   private :__item_configinfo_struct
 
   def __itemconfiginfo_core(tagOrId, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
+    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
       if (slot && slot.to_s =~ /^(|latin|ascii|kanji)(#{__item_font_optkeys(tagid(tagOrId)).join('|')})$/)
         fontkey  = $2
         return [slot.to_s, tagfontobj(tagid(tagOrId), fontkey)]
@@ -199,7 +199,7 @@ module Tk::Tile::TreeviewConfig
         end
       end
 
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    else # ! true
       if (slot && slot.to_s =~ /^(|latin|ascii|kanji)(#{__item_font_optkeys(tagid(tagOrId)).join('|')})$/)
         fontkey  = $2
         return {slot.to_s => tagfontobj(tagid(tagOrId), fontkey)}
@@ -489,7 +489,7 @@ module Tk::Tile::TreeviewConfig
   end
 
   def current_itemconfiginfo(tagOrId, slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
+    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
       if slot
         org_slot = slot
         begin
@@ -512,7 +512,7 @@ module Tk::Tile::TreeviewConfig
         }
         ret
       end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    else # ! true
       ret = {}
       __itemconfiginfo_core(tagOrId, slot).each{|key, conf|
         ret[key] = conf[-1] if conf.kind_of?(Array)

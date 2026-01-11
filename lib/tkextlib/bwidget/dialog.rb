@@ -95,7 +95,7 @@ class Tk::BWidget::Dialog
       end
     else
       ret = super()
-      if TkComm::GET_CONFIGINFO_AS_ARRAY
+      if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
         ret << ['relative', 'parent']
       else
         ret['relative'] = 'parent'

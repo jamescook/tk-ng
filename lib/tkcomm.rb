@@ -47,20 +47,15 @@ module TkComm
     @cmdtbl = []
   }
 
-  unless const_defined?(:GET_CONFIGINFO_AS_ARRAY)
-    # GET_CONFIGINFO_AS_ARRAY = false => returns a Hash { opt =>val, ... }
-    #                           true  => returns an Array [[opt,val], ... ]
-    # val is a list which includes resource info.
-    GET_CONFIGINFO_AS_ARRAY = true
-  end
-  unless const_defined?(:GET_CONFIGINFOwoRES_AS_ARRAY)
-    # for configinfo without resource info; list of [opt, value] pair
-    #           false => returns a Hash { opt=>val, ... }
-    #           true  => returns an Array [[opt,val], ... ]
-    GET_CONFIGINFOwoRES_AS_ARRAY = true
-  end
-  #  *** ATTENTION ***
-  # 'current_configinfo' method always returns a Hash under all cases of above.
+  # Tcl configure output array positions: {-option dbName DbClass default current}
+  # Example: ["-text", "text", "Text", "", "Hello"]
+  CONF_KEY = 0       # Option name (with leading dash stripped in Ruby)
+  CONF_DBNAME = 1    # Database name
+  CONF_DBCLASS = 2   # Database class
+  CONF_DEFAULT = 3   # Default value
+  CONF_CURRENT = 4   # Current value
+  # Alias entries have only 2 elements: [option, target]
+  # conf.size == 2 indicates an alias
 
   def error_at
     frames = caller()

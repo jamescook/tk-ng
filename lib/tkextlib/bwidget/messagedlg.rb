@@ -80,7 +80,7 @@ class Tk::BWidget::MessageDlg
       if @info
         # update @info
         slot.each{|k, v|
-          if TkComm::GET_CONFIGINFO_AS_ARRAY
+          if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
             if (inf = @info.assoc(k))
               inf[-1] = v
             else
@@ -103,7 +103,7 @@ class Tk::BWidget::MessageDlg
 
       if @info
         # update @info
-        if TkComm::GET_CONFIGINFO_AS_ARRAY
+        if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
           if (inf = @info.assoc(slot))
             inf[-1] = value
           else
@@ -125,14 +125,14 @@ class Tk::BWidget::MessageDlg
   def configinfo(slot=nil)
     if winfo_exist?
       @info = super()
-      if TkComm::GET_CONFIGINFO_AS_ARRAY
+      if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
         @info << ['relative', 'parent']
       else
         @info['relative'] = 'parent'
       end
     end
 
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
+    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
       if @info
         if winfo_exist?
           # update @keys
@@ -152,7 +152,7 @@ class Tk::BWidget::MessageDlg
         @info.dup
       end
 
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    else # ! true
       if @info
         if winfo_exist?
           # update @keys

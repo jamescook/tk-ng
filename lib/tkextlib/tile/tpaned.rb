@@ -111,7 +111,7 @@ class Tk::Tile::TPaned < TkWindow
   alias pane_configure paneconfigure
 
   def paneconfiginfo(win)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
+    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
       win = _epath(win)
       if key
         conf = tk_split_list(tk_send_without_enc('pane', win, "-#{key}"))
@@ -148,7 +148,7 @@ class Tk::Tile::TPaned < TkWindow
           conf
         }
       end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    else # ! true
       win = _epath(win)
       if key
         conf = tk_split_list(tk_send_without_enc('pane', win, "-#{key}"))
@@ -195,7 +195,7 @@ class Tk::Tile::TPaned < TkWindow
   alias pane_configinfo paneconfiginfo
 
   def current_paneconfiginfo(win, key=nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
+    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
       if key
         conf = paneconfiginfo(win, key)
         {conf[0] => conf[4]}
@@ -206,7 +206,7 @@ class Tk::Tile::TPaned < TkWindow
         }
         ret
       end
-    else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
+    else # ! true
       ret = {}
       paneconfiginfo(win, key).each{|k, conf|
         ret[k] = conf[-1] if conf.kind_of?(Array)

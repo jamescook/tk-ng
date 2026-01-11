@@ -74,11 +74,7 @@ class Tk::Toplevel<TkWindow
       if WM_PROPERTIES.include?(slot_s)
         wm_cmd = slot_s.sub(/^wm_/, '')
         val = tk_call('wm', wm_cmd, path)
-        if TkComm::GET_CONFIGINFO_AS_ARRAY
-          [slot_s, '', '', '', val]
-        else
-          {slot_s => ['', '', '', val]}
-        end
+        [slot_s, '', '', '', val]
       else
         super
       end
@@ -88,11 +84,7 @@ class Tk::Toplevel<TkWindow
       WM_PROPERTIES.each do |prop|
         begin
           val = tk_call('wm', prop.sub(/^wm_/, ''), path)
-          if TkComm::GET_CONFIGINFO_AS_ARRAY
-            result << [prop, '', '', '', val]
-          else
-            result[prop] = ['', '', '', val]
-          end
+          result << [prop, '', '', '', val]
         rescue
           # Some wm commands may not be available, skip them
         end

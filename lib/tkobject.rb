@@ -190,40 +190,56 @@ class TkObject<TkKernel
     configure(slot, install_cmd(value))
   end
 
+  # Get Tcl configure info for option(s)
+  # Returns [option, dbname, dbclass, default, current] for single option
+  # Returns array of above for all options (when slot is nil)
+  # Alias entries return just [option, target]
   def configinfo(slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      _configinfo_array(slot)
+    if slot
+      slot = slot.to_s
+      opt = self.class.resolve_option(slot)
+      slot = opt.tcl_name if opt
+      _process_conf(tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true))
     else
-      _configinfo_hash(slot)
+      tk_split_simplelist(tk_call_without_enc(path, 'configure'), false, false).map do |conflist|
+        _process_conf(tk_split_simplelist(conflist, false, true))
+      end
     end
   end
 
+  # Get current values for option(s)
+  # Returns {option => value} hash
+  # Uses cget() which handles type conversion via Option registry
   def current_configinfo(slot = nil)
-    if TkComm::GET_CONFIGINFO_AS_ARRAY
-      if slot
-        conf = configinfo(slot)
-        { conf[0] => conf[-1] }
-      else
-        ret = {}
-        configinfo.each { |cnf| ret[cnf[0]] = cnf[-1] if cnf.size > 2 }
-        ret
-      end
+    if slot
+      {slot.to_s => cget(slot)}
     else
-      ret = {}
-      configinfo(slot).each { |key, cnf| ret[key] = cnf[-1] if cnf.kind_of?(Array) }
-      ret
+      result = {}
+      configinfo.each do |conf|
+        result[conf[TkComm::CONF_KEY]] = cget(conf[TkComm::CONF_KEY]) if conf.size > 2
+      end
+      result
     end
   end
 
   private
 
-  # Config command array for Tcl calls
-  def __config_cmd
-    [self.path, 'configure']
+  # Process a raw Tcl configure array: strip dashes, convert current value
+  def _process_conf(conf)
+    conf[TkComm::CONF_KEY] = conf[TkComm::CONF_KEY][1..-1]  # strip leading dash
+    if conf.size == 2
+      # Alias entry: strip dash from target
+      conf[TkComm::CONF_DBNAME] = conf[TkComm::CONF_DBNAME][1..-1] if conf[TkComm::CONF_DBNAME]&.start_with?('-')
+    else
+      conf[TkComm::CONF_CURRENT] = _convert_value(conf[TkComm::CONF_KEY], conf[TkComm::CONF_CURRENT])
+    end
+    conf
   end
 
-  def __confinfo_cmd
-    __config_cmd
+  # Convert a raw Tcl value to Ruby using the Option registry
+  def _convert_value(option_name, raw_value)
+    opt = self.class.resolve_option(option_name)
+    opt ? opt.from_tcl(raw_value, widget: self) : raw_value
   end
 
   def _skip_version_restricted?(option_name)
@@ -232,95 +248,5 @@ class TkObject<TkKernel
     return false unless required
     warn "#{self.class}: option '#{option_name}' requires Tcl/Tk #{required}.0+ (current: #{Tk::TK_VERSION}). Option ignored."
     true
-  end
-
-  def _configinfo_array(slot)
-    if slot
-      slot = slot.to_s
-      # Resolve alias
-      if self.class.respond_to?(:declared_optkey_aliases)
-        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
-        slot = real_name.to_s if real_name
-      end
-
-      conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true)
-      conf[0] = conf[0][1..-1]
-
-      # Apply type conversion via Option registry
-      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
-      if opt
-        conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
-        conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
-      end
-      conf
-    else
-      # All options
-      ret = tk_split_simplelist(tk_call_without_enc(path, 'configure'), false, false).map do |conflist|
-        conf = tk_split_simplelist(conflist, false, true)
-        conf[0] = conf[0][1..-1]  # strip leading dash from option name
-
-        # Alias entries are 2-element arrays: ["-bd", "-borderwidth"]
-        # Strip the dash from the target too
-        if conf.size == 2 && conf[1].is_a?(String) && conf[1].start_with?('-')
-          conf[1] = conf[1][1..-1]
-        end
-
-        optkey = conf[0]
-
-        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
-        if opt
-          conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
-          conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
-        end
-        conf
-      end
-
-      ret
-    end
-  end
-
-  def _configinfo_hash(slot)
-    if slot
-      slot = slot.to_s
-      if self.class.respond_to?(:declared_optkey_aliases)
-        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
-        slot = real_name.to_s if real_name
-      end
-
-      conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true)
-      conf[0] = conf[0][1..-1]
-
-      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
-      if opt
-        conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
-        conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
-      end
-      { conf.shift => conf }
-    else
-      ret = {}
-      tk_split_simplelist(tk_call_without_enc(path, 'configure'), false, false).each do |conflist|
-        conf = tk_split_simplelist(conflist, false, true)
-        conf[0] = conf[0][1..-1]  # strip leading dash from option name
-        optkey = conf[0]
-
-        # Alias entries are 2-element arrays: ["-bd", "-borderwidth"]
-        # In hash mode: { "bd" => "borderwidth" }
-        if conf.size == 2
-          target = conf[1]
-          target = target[1..-1] if target.is_a?(String) && target.start_with?('-')
-          ret[optkey] = target
-          next
-        end
-
-        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
-        if opt
-          conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
-          conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
-        end
-        ret[conf.shift] = conf
-      end
-
-      ret
-    end
   end
 end

@@ -186,6 +186,22 @@ rescue TclTkLib::TclError
 end
 ```
 
+### Removed: `GET_CONFIGINFO_AS_ARRAY` constant
+
+The `TkComm::GET_CONFIGINFO_AS_ARRAY` and `TkComm::GET_CONFIGINFOwoRES_AS_ARRAY` constants have been removed. These controlled whether `configinfo` returned arrays or hashes - unnecessary complexity since arrays were the default and hash mode was rarely used.
+
+`configinfo` now always returns arrays:
+```ruby
+widget.configinfo(:text)  # => ["text", "text", "Text", "", "Hello"]
+widget.configinfo         # => [["text", ...], ["width", ...], ...]
+```
+
+Use `current_configinfo` for a hash of current values:
+```ruby
+widget.current_configinfo(:text)  # => {"text" => "Hello"}
+widget.current_configinfo         # => {"text" => "Hello", "width" => 100, ...}
+```
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
