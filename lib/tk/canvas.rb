@@ -41,37 +41,49 @@ module TkCanvasItemConfig
 end
 
 class Tk::Canvas<TkWindow
-  extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
   include TkCanvasItemConfig
   include Tk::Scrollable
+  include Tk::Generated::Canvas
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :background
+  #   :bd
+  #   :bg
+  #   :borderwidth
+  #   :closeenough
+  #   :confine
+  #   :cursor
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :insertbackground
+  #   :insertborderwidth
+  #   :insertofftime
+  #   :insertontime
+  #   :insertwidth
+  #   :offset
+  #   :relief
+  #   :scrollregion
+  #   :selectbackground
+  #   :selectborderwidth
+  #   :selectforeground
+  #   :state
+  #   :takefocus
+  #   :width
+  #   :xscrollcommand
+  #   :xscrollincrement
+  #   :yscrollcommand
+  #   :yscrollincrement
+  # @generated:options:end
+
+
 
   TkCommandNames = ['canvas'.freeze].freeze
   WidgetClassName = 'Canvas'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Standard options
-  option :borderwidth,       type: :pixels, aliases: [:bd]
-  option :highlightthickness, type: :pixels
-  option :insertbackground,  type: :color
-  option :insertborderwidth, type: :pixels
-  option :insertofftime,     type: :integer
-  option :insertontime,      type: :integer
-  option :insertwidth,       type: :pixels
-  option :relief,            type: :relief
-  option :selectbackground,  type: :color
-  option :selectborderwidth, type: :pixels
-  option :selectforeground,  type: :color
-
-  # Widget-specific options
-  option :closeenough,       type: :float      # mouse proximity threshold
-  option :confine,           type: :boolean    # restrict view to scroll region
-  option :height,            type: :pixels
-  option :scrollregion,      type: :list       # bounding box for scrolling
-  option :state,             type: :string     # normal, disabled, hidden
-  option :width,             type: :pixels
-  option :xscrollincrement,  type: :pixels
-  option :yscrollincrement,  type: :pixels
 
   # ================================================================
   # Item options (for canvas items: rectangles, ovals, lines, etc.)

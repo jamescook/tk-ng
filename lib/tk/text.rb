@@ -78,6 +78,53 @@ module TkTextTagConfig
 end
 
 class Tk::Text<TkTextWin
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :autoseparators
+  #   :background
+  #   :blockcursor
+  #   :borderwidth
+  #   :cursor
+  #   :endline
+  #   :exportselection
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :inactiveselectbackground
+  #   :insertbackground
+  #   :insertborderwidth
+  #   :insertofftime
+  #   :insertontime
+  #   :insertunfocussed
+  #   :insertwidth
+  #   :maxundo
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :selectbackground
+  #   :selectborderwidth
+  #   :selectforeground
+  #   :setgrid
+  #   :spacing1
+  #   :spacing2
+  #   :spacing3
+  #   :startline
+  #   :state
+  #   :tabs
+  #   :tabstyle
+  #   :takefocus
+  #   :undo
+  #   :width
+  #   :wrap
+  #   :xscrollcommand
+  #   :yscrollcommand
+  # @generated:options:end
+
+
   ItemConfCMD = ['tag'.freeze, 'configure'.freeze].freeze
   #include TkTreatTextTagFont
   include TkTextTagConfig
@@ -261,50 +308,14 @@ class Tk::Text<TkTextWin
 
   #######################################
 
-  extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
+  include Tk::Generated::Text
 
   TkCommandNames = ['text'.freeze].freeze
   WidgetClassName = 'Text'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Standard options
-  option :borderwidth,        type: :pixels, aliases: [:bd]
-  option :exportselection,    type: :boolean
-  option :highlightthickness, type: :pixels
-  option :insertbackground,   type: :color
-  option :insertborderwidth,  type: :pixels
-  option :insertofftime,      type: :integer
-  option :insertontime,       type: :integer
-  option :insertwidth,        type: :pixels
-  option :padx,               type: :pixels
-  option :pady,               type: :pixels
-  option :relief,             type: :relief
-  option :selectbackground,   type: :color
-  option :selectborderwidth,  type: :pixels
-  option :selectforeground,   type: :color
-  option :setgrid,            type: :boolean
-
-  # Widget-specific options
-  option :autoseparators,     type: :boolean
-  option :blockcursor,        type: :boolean
-  option :height,             type: :integer   # in lines
-  option :inactiveselectbackground, type: :color
-  option :insertunfocussed,   type: :string    # none, hollow, solid
-  option :maxundo,            type: :integer
-  option :spacing1,           type: :pixels
-  option :spacing2,           type: :pixels
-  option :spacing3,           type: :pixels
-  option :state,              type: :string    # normal, disabled
-  option :tabs,               type: :list
-  option :tabstyle,           type: :string    # tabular, wordprocessor
-  option :undo,               type: :boolean
-  option :width,              type: :integer   # in characters
-  option :wrap,               type: :string    # none, char, word
-
-  # ================================================================
   # Item options (for text tags)
-  # ================================================================
 
   # Colors
   item_option :background,      type: :string
@@ -495,25 +506,7 @@ class Tk::Text<TkTextWin
   end
 
   def image_cget(index, slot)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      image_cget_strict(index, slot)
-    else
-      begin
-        image_cget_strict(index, slot)
-      rescue => e
-        begin
-          if current_image_configinfo(index).has_key?(slot.to_s)
-            # not tag error & option is known -> error on known option
-            fail e
-          else
-            # not tag error & option is unknown
-            nil
-          end
-        rescue
-          fail e  # tag error
-        end
-      end
-    end
+    image_cget_strict(index, slot)
   end
 
   def image_configure(index, slot, value=None)

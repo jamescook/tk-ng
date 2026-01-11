@@ -140,13 +140,6 @@ module TkItemConfigMethod
   include TkTreatItemFont
   include TkItemConfigOptkeys
 
-  def TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-    @mode || false
-  end
-  def TkItemConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(mode)
-    @mode = (mode)? true: false
-  end
-
   def __item_cget_cmd(id)
     # maybe need to override
     [self.path, 'itemcget', id]
@@ -271,30 +264,9 @@ module TkItemConfigMethod
   private :__itemcget_core
 
   def itemcget(tagOrId, option)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      __itemcget_core(tagOrId, option)
-    else
-      begin
-        __itemcget_core(tagOrId, option)
-      rescue => e
-        begin
-          if __current_itemconfiginfo(tagOrId).has_key?(option.to_s)
-            # not tag error & option is known -> error on known option
-            fail e
-          else
-            # not tag error & option is unknown
-            nil
-          end
-        rescue
-          fail e  # tag error
-        end
-      end
-    end
-  end
-  def itemcget_strict(tagOrId, option)
-    # never use TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
     __itemcget_core(tagOrId, option)
   end
+  alias itemcget_strict itemcget
 
   def __itemconfigure_core(tagOrId, slot, value=None)
     if slot.kind_of? Hash
@@ -373,53 +345,8 @@ module TkItemConfigMethod
   end
   private :__itemconfigure_core
 
-  def __check_available_itemconfigure_options(tagOrId, keys)
-    id = tagid(tagOrId)
-
-    availables = self.__current_itemconfiginfo(id).keys
-
-    # add non-standard keys
-    availables |= __font_optkeys.map{|k|
-      [k.to_s, "latin#{k}", "ascii#{k}", "kanji#{k}"]
-    }.flatten
-    availables |= __item_methodcall_optkeys(id).keys.map{|k| k.to_s}
-    availables |= __item_keyonly_optkeys(id).keys.map{|k| k.to_s}
-
-    keys = _symbolkey2str(keys)
-
-    keys.delete_if{|k, v| !(availables.include?(k))}
-  end
-
   def itemconfigure(tagOrId, slot, value=None)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      __itemconfigure_core(tagOrId, slot, value)
-    else
-      if slot.kind_of?(Hash)
-        begin
-          __itemconfigure_core(tagOrId, slot)
-        rescue
-          slot = __check_available_itemconfigure_options(tagOrId, slot)
-          __itemconfigure_core(tagOrId, slot) unless slot.empty?
-        end
-      else
-        begin
-          __itemconfigure_core(tagOrId, slot, value)
-        rescue => e
-          begin
-            if __current_itemconfiginfo(tagOrId).has_key?(slot.to_s)
-              # not tag error & option is known -> error on known option
-              fail e
-            else
-              # not tag error & option is unknown
-              nil
-            end
-          rescue
-            fail e  # tag error
-          end
-        end
-      end
-    end
-    self
+    __itemconfigure_core(tagOrId, slot, value)
   end
 
   def __itemconfiginfo_core(tagOrId, slot = nil)
@@ -1184,21 +1111,7 @@ module TkItemConfigMethod
   private :__itemconfiginfo_core
 
   def itemconfiginfo(tagOrId, slot = nil)
-    if slot && TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      begin
-        __itemconfiginfo_core(tagOrId, slot)
-      rescue => e
-        begin
-          __itemconfiginfo_core(tagOrId)
-          # not tag error -> option is unknown
-          Array.new(__item_configinfo_struct.values.max).unshift(slot.to_s)
-        rescue
-          fail e  # tag error
-        end
-      end
-    else
-      __itemconfiginfo_core(tagOrId, slot)
-    end
+    __itemconfiginfo_core(tagOrId, slot)
   end
 
   def __current_itemconfiginfo(tagOrId, slot = nil)

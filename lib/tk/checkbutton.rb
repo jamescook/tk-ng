@@ -8,21 +8,53 @@ require 'tk' unless defined?(Tk)
 require 'tk/radiobutton'
 
 class Tk::CheckButton<Tk::RadioButton
+  include Tk::Generated::Checkbutton
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :activeforeground
+  #   :anchor
+  #   :background
+  #   :bitmap
+  #   :borderwidth
+  #   :command (callback)
+  #   :compound
+  #   :cursor
+  #   :disabledforeground
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :image
+  #   :indicatoron
+  #   :justify
+  #   :offrelief
+  #   :offvalue
+  #   :onvalue
+  #   :overrelief
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :selectcolor
+  #   :selectimage
+  #   :state
+  #   :takefocus
+  #   :text
+  #   :textvariable (tkvariable)
+  #   :tristateimage
+  #   :tristatevalue
+  #   :underline
+  #   :variable (tkvariable)
+  #   :width
+  #   :wraplength
+  # @generated:options:end
+
   TkCommandNames = ['checkbutton'.freeze].freeze
   WidgetClassName = 'Checkbutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # CheckButton-specific options (inherits from Tk::RadioButton)
-  option :offvalue,  type: :string
-  option :onvalue,   type: :string
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('checkbutton', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('checkbutton', @path)
-  #  end
-  #end
-  #private :create_self
 
   def toggle
     tk_send_without_enc('toggle')

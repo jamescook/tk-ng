@@ -36,6 +36,9 @@ class TkNamespace < TkObject
 
   #####################################
 
+  # TODO: Rewrite Ensemble to not depend on OptionDSL (it's not a widget).
+  # See: https://www.tcl-lang.org/man/tcl8.6/TclCmd/namespace.htm#M28
+  # Ensemble options: -command, -map, -namespace, -parameters, -prefixes, -subcommands, -unknown
   class Ensemble < TkObject
     extend Tk::OptionDSL
 
@@ -44,107 +47,47 @@ class TkNamespace < TkObject
     option :subcommands, type: :list
     option :unknown,     type: :list
 
-    # NOTE: __boolval_optkeys override for 'prefixes' removed - now declared via OptionDSL
-    # NOTE: __listval_optkeys override for 'map', 'subcommands', 'unknown' removed - now declared via OptionDSL
-
-    def __cget_cmd
-      ['namespace', 'ensemble', 'configure', self.path]
-    end
-    private :__cget_cmd
-
-    def __config_cmd
-      ['namespace', 'ensemble', 'configure', self.path]
-    end
-    private :__config_cmd
-
-    def __configinfo_struct
-      {:key=>0, :alias=>nil, :db_name=>nil, :db_class=>nil,
-        :default_value=>nil, :current_value=>2}
-    end
-    private :__configinfo_struct
-
     def self.exist?(ensemble)
       bool(tk_call('namespace', 'ensemble', 'exists', ensemble))
     end
 
     def initialize(keys = {})
-      @ensemble = @path = tk_call('namespace', 'ensemble', 'create', keys)
+      @ensemble = @path = tk_call('namespace', 'ensemble', 'create', *hash_kv(keys))
+    end
+
+    def configure(slot, value = None)
+      if slot.is_a?(Hash)
+        slot.each { |k, v| configure(k, v) }
+        self
+      else
+        slot = slot.to_s
+        if self.class.respond_to?(:options)
+          opt = self.class.options[slot.to_sym]
+          value = opt.to_tcl(value) if opt && value != None
+        end
+        tk_call('namespace', 'ensemble', 'configure', @path, "-#{slot}", value)
+        self
+      end
     end
 
     def cget(slot)
-      if slot == :namespace || slot == 'namespace'
-        ns = super(slot)
+      slot = slot.to_s
+      val = tk_call('namespace', 'ensemble', 'configure', @path, "-#{slot}")
+
+      if slot == 'namespace'
         Tk_Namespace_ID_TBL.mutex.synchronize{
-          if TkNamespace::Tk_Namespace_ID_TBL.key?(ns)
-            TkNamespace::Tk_Namespace_ID_TBL[ns]
-          else
-            ns
-          end
+          return TkNamespace::Tk_Namespace_ID_TBL[val] if TkNamespace::Tk_Namespace_ID_TBL.key?(val)
         }
-      else
-        super(slot)
+        return val
       end
-    end
-    def cget_strict(slot)
-      if slot == :namespace || slot == 'namespace'
-        ns = super(slot)
-        Tk_Namespace_ID_TBL.mutex.synchronize{
-          if TkNamespace::Tk_Namespace_ID_TBL.key?(ns)
-            TkNamespace::Tk_Namespace_ID_TBL[ns]
-          else
-            ns
-          end
-        }
-      else
-        super(slot)
+
+      if self.class.respond_to?(:options)
+        opt = self.class.options[slot.to_sym]
+        return opt.from_tcl(val) if opt
       end
+      val
     end
-
-    def configinfo(slot = nil)
-      if slot
-        if slot == :namespace || slot == 'namespace'
-          val = super(slot)
-          Tk_Namespace_ID_TBL.mutex.synchronize{
-            if TkNamespace::Tk_Namespace_ID_TBL.key?(val)
-              val = TkNamespace::Tk_Namespace_ID_TBL[val]
-            end
-          }
-        else
-          val = super(slot)
-        end
-
-        if TkComm::GET_CONFIGINFO_AS_ARRAY
-          [slot.to_s, val]
-        else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-          {slot.to_s => val}
-        end
-
-      else
-        info = super()
-
-        if TkComm::GET_CONFIGINFO_AS_ARRAY
-          Tk_Namespace_ID_TBL.mutex.synchronize{
-            info.map!{|inf|
-              if inf[0] == 'namespace' &&
-                  TkNamespace::Tk_Namespace_ID_TBL.key?(inf[-1])
-                [inf[0], TkNamespace::Tk_Namespace_ID_TBL[inf[-1]]]
-              else
-                inf
-              end
-            }
-          }
-        else # ! TkComm::GET_CONFIGINFO_AS_ARRAY
-          val = info['namespace']
-          Tk_Namespace_ID_TBL.mutex.synchronize{
-            if TkNamespace::Tk_Namespace_ID_TBL.key?(val)
-              info['namespace'] = TkNamespace::Tk_Namespace_ID_TBL[val]
-            end
-          }
-        end
-
-        info
-      end
-    end
+    alias cget_strict cget
 
     def exists?
       bool(tk_call('namespace', 'ensemble', 'exists', @path))

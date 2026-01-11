@@ -9,21 +9,62 @@ require 'tk' unless defined?(Tk)
 require 'tk/entry'
 
 class Tk::Spinbox<Tk::Entry
+  include Tk::Generated::Spinbox
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :background
+  #   :borderwidth
+  #   :buttonbackground
+  #   :buttoncursor
+  #   :buttondownrelief
+  #   :buttonuprelief
+  #   :command (callback)
+  #   :cursor
+  #   :disabledbackground
+  #   :disabledforeground
+  #   :exportselection
+  #   :font
+  #   :foreground
+  #   :format
+  #   :from
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :increment
+  #   :insertbackground
+  #   :insertborderwidth
+  #   :insertofftime
+  #   :insertontime
+  #   :insertwidth
+  #   :invalidcommand
+  #   :justify
+  #   :placeholder
+  #   :placeholderforeground
+  #   :readonlybackground
+  #   :relief
+  #   :repeatdelay
+  #   :repeatinterval
+  #   :selectbackground
+  #   :selectborderwidth
+  #   :selectforeground
+  #   :state
+  #   :takefocus
+  #   :textvariable (tkvariable)
+  #   :to
+  #   :validate
+  #   :validatecommand
+  #   :values
+  #   :width
+  #   :wrap
+  #   :xscrollcommand
+  # @generated:options:end
+
+
   TkCommandNames = ['spinbox'.freeze].freeze
   WidgetClassName = 'Spinbox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Spinbox-specific options (inherits from Tk::Entry)
-  option :buttonbackground,   type: :color
-  option :buttoncursor,       type: :string
-  option :buttondownrelief,   type: :relief
-  option :buttonuprelief,     type: :relief
-  option :format,             type: :string
-  option :from,               type: :float
-  option :increment,          type: :float
-  option :to,                 type: :float
-  option :values,             type: :list
-  option :wrap,               type: :boolean
 
   class SpinCommand < TkValidateCommand
     class ValidateArgs < TkUtil::CallbackSubst

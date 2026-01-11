@@ -8,38 +8,52 @@ require 'tk' unless defined?(Tk)
 require 'tk/button'
 
 class Tk::RadioButton<Tk::Button
+  include Tk::Generated::Radiobutton
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :activeforeground
+  #   :anchor
+  #   :background
+  #   :bitmap
+  #   :borderwidth
+  #   :command (callback)
+  #   :compound
+  #   :cursor
+  #   :disabledforeground
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :image
+  #   :indicatoron
+  #   :justify
+  #   :offrelief
+  #   :overrelief
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :selectcolor
+  #   :selectimage
+  #   :state
+  #   :takefocus
+  #   :text
+  #   :textvariable (tkvariable)
+  #   :tristateimage
+  #   :tristatevalue
+  #   :underline
+  #   :value
+  #   :variable (tkvariable)
+  #   :width
+  #   :wraplength
+  # @generated:options:end
+
   TkCommandNames = ['radiobutton'.freeze].freeze
   WidgetClassName = 'Radiobutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # RadioButton-specific options (inherits from Tk::Button)
-  option :indicatoron,    type: :boolean
-  option :offrelief,      type: :relief
-  option :selectcolor,    type: :color
-  option :selectimage,    type: :string
-  option :tristateimage,  type: :string
-  option :tristatevalue,  type: :string
-  option :value,          type: :string
-  option :variable,       type: :string
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('radiobutton', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('radiobutton', @path)
-  #  end
-  #end
-  #private :create_self
-
-  # NOTE: __boolval_optkeys override for 'indicatoron' removed - now declared via OptionDSL
-  # NOTE: __strval_optkeys override for 'selectcolor' removed - now declared via OptionDSL
-
-  def __ruby2val_optkeys  # { key=>proc, ... }
-    {
-      'variable'=>proc{|v| tk_trace_variable(v)}  # for backward compatibility
-    }
-  end
-  private :__ruby2val_optkeys
-
 
   def deselect
     tk_send_without_enc('deselect')

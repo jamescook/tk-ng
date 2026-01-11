@@ -8,12 +8,35 @@ require 'tk' unless defined?(Tk)
 require 'tk/label'
 
 class Tk::Message<Tk::Label
+  include Tk::Generated::Message
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :anchor
+  #   :aspect
+  #   :background
+  #   :borderwidth
+  #   :cursor
+  #   :font
+  #   :foreground
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :justify
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :takefocus
+  #   :text
+  #   :textvariable (tkvariable)
+  #   :width
+  # @generated:options:end
+
+
   TkCommandNames = ['message'.freeze].freeze
   WidgetClassName = 'Message'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Message-specific options (inherits from Tk::Label)
-  option :aspect, type: :integer
   #def create_self(keys)
   #  if keys and keys != None
   #    tk_call_without_enc('message', @path, *hash_kv(keys, true))

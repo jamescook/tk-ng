@@ -52,25 +52,7 @@ class Tk::Tile::TNotebook < TkWindow
     tabconfiginfo(tagOrId, option)[-1]
   end
   def tabcget(tagOrId, option)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      tabcget_strict(tagOrId, option)
-    else
-      begin
-        tabcget_strict(tagOrId, option)
-      rescue => e
-        begin
-          if current_tabconfiginfo(tagOrId).has_key?(option.to_s)
-            # not tag error & option is known -> error on known option
-            fail e
-          else
-            # not tag error & option is unknown
-            nil
-          end
-        rescue
-          fail e  # tag error
-        end
-      end
-    end
+    tabcget_strict(tagOrId, option)
   end
   ################################
 

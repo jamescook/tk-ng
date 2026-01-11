@@ -47,35 +47,14 @@ class Tk::Menu<TkWindow
   include Wm
   include TkMenuEntryConfig
   extend TkMenuSpec
-  extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
+  include Tk::Generated::Menu
 
   TkCommandNames = ['menu'.freeze].freeze
   WidgetClassName = 'Menu'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Standard options
-  option :activebackground,   type: :color
-  option :activeborderwidth,  type: :pixels
-  option :activeforeground,   type: :color
-  option :activerelief,       type: :relief, min_version: 9
-  option :borderwidth,        type: :pixels, aliases: [:bd]
-  option :disabledforeground, type: :color
-  option :font,               type: :string
-  option :foreground,         type: :color, aliases: [:fg]
-  option :relief,             type: :relief
-
-  # Widget-specific options
-  option :postcommand,        type: :string
-  option :selectcolor,        type: :color
-  option :tearoff,            type: :boolean
-  option :tearoffcommand,     type: :string
-  option :title,              type: :string
-  option :type,               type: :string    # menubar, tearoff, normal
-
-  # ================================================================
   # Item options (for menu entries)
-  # ================================================================
 
   # String options
   item_option :label,           type: :string
@@ -573,37 +552,52 @@ Tk.__set_loaded_toplevel_aliases__('tk/menu.rb', :Tk, Tk::SysMenu_Apple,
 
 
 class Tk::Menubutton<Tk::Label
+  include Tk::Generated::Menubutton
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :activeforeground
+  #   :anchor
+  #   :background
+  #   :bitmap
+  #   :borderwidth
+  #   :compound
+  #   :cursor
+  #   :direction
+  #   :disabledforeground
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :image
+  #   :indicatoron
+  #   :justify
+  #   :menu
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :state
+  #   :takefocus
+  #   :text
+  #   :textvariable (tkvariable)
+  #   :underline
+  #   :width
+  #   :wraplength
+  # @generated:options:end
+
+
   TkCommandNames = ['menubutton'.freeze].freeze
   WidgetClassName = 'Menubutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Menubutton-specific options (inherits from Tk::Label)
-  option :direction,    type: :string    # above, below, left, right, flush
-  option :indicatoron,  type: :boolean
-  option :menu,         type: :string    # menu path
-
   def create_self(keys)
     if keys and keys != None
-      unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-        # tk_call_without_enc('menubutton', @path, *hash_kv(keys, true))
-        tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                            *hash_kv(keys, true))
-      else
-        begin
-          tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                              *hash_kv(keys, true))
-        rescue
-          tk_call_without_enc(self.class::TkCommandNames[0], @path)
-          keys = __check_available_configure_options(keys)
-          unless keys.empty?
-            tk_call_without_enc('destroy', @path) rescue nil
-            tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                                *hash_kv(keys, true))
-          end
-        end
-      end
+      tk_call_without_enc(self.class::TkCommandNames[0], @path,
+                          *hash_kv(keys, true))
     else
-      # tk_call_without_enc('menubutton', @path)
       tk_call_without_enc(self.class::TkCommandNames[0], @path)
     end
   end

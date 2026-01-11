@@ -89,15 +89,7 @@ module TkTreatFont
               next
             else
               fnt = hash_kv(fnt) if fnt.kind_of?(Hash)
-              unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-                tk_call(*(__config_cmd << "-#{optkey}" << fnt))
-              else
-                begin
-                  tk_call(*(__config_cmd << "-#{optkey}" << fnt))
-                rescue
-                  # ignore
-                end
-              end
+              tk_call(*(__config_cmd << "-#{optkey}" << fnt))
             end
           end
           next
@@ -151,15 +143,7 @@ module TkTreatFont
         fobj = fontobj          # create a new TkFont object
       else
         ltn = hash_kv(ltn) if ltn.kind_of?(Hash)
-        unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-          tk_call(*(__config_cmd << "-#{optkey}" << ltn))
-        else
-          begin
-            tk_call(*(__config_cmd << "-#{optkey}" << ltn))
-          rescue
-            # ignore
-          end
-        end
+        tk_call(*(__config_cmd << "-#{optkey}" << ltn))
         next
       end
 
@@ -211,15 +195,7 @@ module TkTreatFont
         fobj = fontobj          # create a new TkFont object
       else
         knj = hash_kv(knj) if knj.kind_of?(Hash)
-        unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-          tk_call(*(__config_cmd << "-#{optkey}" << knj))
-        else
-          begin
-            tk_call(*(__config_cmd << "-#{optkey}" << knj))
-          rescue
-            # ignore
-          end
-        end
+        tk_call(*(__config_cmd << "-#{optkey}" << knj))
         next
       end
 

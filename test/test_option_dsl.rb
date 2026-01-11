@@ -242,13 +242,6 @@ class TestOptionDSL < Minitest::Test
 end
 
 # Separate test class to verify real widget declarations
-class TestMenuOptionDeclarations < Minitest::Test
-  def test_menu_activerelief_has_min_version_9
-    require 'tk/menu'
-
-    opt = Tk::Menu.resolve_option(:activerelief)
-
-    refute_nil opt, "Menu should have activerelief option declared"
-    assert_equal 9, opt.min_version, "activerelief should require Tk 9.0+"
-  end
-end
+# Removed TestMenuOptionDeclarations - min_version concept is obsolete now that
+# we generate version-specific option files (lib/tk/generated/9_0/*.rb).
+# Options only exist in the generated file for the version they're valid for.

@@ -81,7 +81,7 @@ RUN --mount=type=cache,target=/bundle-cache \
         mkdir -p $BUNDLE_PATH && \
         cp -a /bundle-cache/* $BUNDLE_PATH/; \
     fi && \
-    (bundle check || bundle install) && \
+    bundle install && \
     cp -a $BUNDLE_PATH/* /bundle-cache/
 
 # Compile the main extension

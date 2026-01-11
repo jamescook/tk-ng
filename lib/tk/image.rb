@@ -216,21 +216,7 @@ class TkPhotoImage<TkImage
   # Example, display name of the file from which <tt>image</tt> was created:
   # 	puts image.cget :file
   def cget(option)
-    unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      cget_strict(option)
-    else
-      begin
-        cget_strict(option)
-      rescue => e
-        if current_configinfo.has_key?(option.to_s)
-          # error on known option
-          fail e
-        else
-          # unknown option
-          nil
-        end
-      end
-    end
+    cget_strict(option)
   end
 
   # Copies a region from the image called source to the image called

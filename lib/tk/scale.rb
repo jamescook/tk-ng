@@ -8,36 +8,47 @@ require 'tk' unless defined?(Tk)
 require 'tk/option_dsl'
 
 class Tk::Scale<TkWindow
-  extend Tk::OptionDSL
+  include Tk::Generated::Scale
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :background
+  #   :bigincrement
+  #   :borderwidth
+  #   :command (callback)
+  #   :cursor
+  #   :digits
+  #   :font
+  #   :foreground
+  #   :from
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :label
+  #   :length
+  #   :orient
+  #   :relief
+  #   :repeatdelay
+  #   :repeatinterval
+  #   :resolution
+  #   :showvalue
+  #   :sliderlength
+  #   :sliderrelief
+  #   :state
+  #   :takefocus
+  #   :tickinterval
+  #   :to
+  #   :troughcolor
+  #   :variable (tkvariable)
+  #   :width
+  # @generated:options:end
+
+
 
   TkCommandNames = ['scale'.freeze].freeze
   WidgetClassName = 'Scale'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Standard options
-  option :activebackground,   type: :color
-  option :borderwidth,        type: :pixels, aliases: [:bd]
-  option :highlightthickness, type: :pixels
-  option :orient,             type: :string    # horizontal, vertical
-  option :relief,             type: :relief
-  option :repeatdelay,        type: :integer
-  option :repeatinterval,     type: :integer
-  option :troughcolor,        type: :color
-
-  # Widget-specific options
-  option :bigincrement,       type: :float
-  option :digits,             type: :integer
-  option :from,               type: :float
-  option :label,              type: :string
-  option :length,             type: :pixels
-  option :resolution,         type: :float
-  option :showvalue,          type: :boolean
-  option :sliderlength,       type: :pixels
-  option :sliderrelief,       type: :relief
-  option :state,              type: :string    # normal, active, disabled
-  option :tickinterval,       type: :float
-  option :to,                 type: :float
-  option :width,              type: :pixels
 
   def create_self(keys)
     if keys and keys != None
@@ -45,33 +56,9 @@ class Tk::Scale<TkWindow
         cmd = keys.delete('command')
         keys['command'] = proc{|val| cmd.call(val.to_f)}
       end
-      unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-        #tk_call_without_enc('scale', @path, *hash_kv(keys, true))
-        tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                            *hash_kv(keys, true))
-      else
-        begin
-          tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                              *hash_kv(keys, true))
-        rescue
-          tk_call_without_enc(self.class::TkCommandNames[0], @path)
-          keys = __check_available_configure_options(keys)
-          unless keys.empty?
-            begin
-              tk_call_without_enc('destroy', @path)
-            rescue
-              # cannot destroy
-              configure(keys)
-            else
-              # re-create widget
-              tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                                  *hash_kv(keys, true))
-            end
-          end
-        end
-      end
+      tk_call_without_enc(self.class::TkCommandNames[0], @path,
+                          *hash_kv(keys, true))
     else
-      #tk_call_without_enc('scale', @path)
       tk_call_without_enc(self.class::TkCommandNames[0], @path)
     end
   end

@@ -32,12 +32,16 @@ module Tk
       color: :strval,    # colors treated as strings in legacy system
       relief: :strval,   # relief values treated as strings
       pixels: :strval,   # pixel values treated as strings (can be "10" or "10p")
+      anchor: :strval,   # anchor values treated as strings
       list: :listval,
+      widget: :strval,   # widget paths are strings, but from_tcl converts to objects
     }.freeze
 
     # Called when module is extended into a class
+    # Merge with existing options (from parent) instead of resetting
     def self.extended(base)
-      base.instance_variable_set(:@_options, {})
+      existing = base.instance_variable_get(:@_options) || {}
+      base.instance_variable_set(:@_options, existing.dup)
     end
 
     # Inherit options from parent class
@@ -53,11 +57,33 @@ module Tk
     # @param tcl_name [String, nil] Tcl option name if different from Ruby name
     # @param aliases [Array<Symbol>] Alternative names for this option
     # @param min_version [Integer, nil] Minimum Tcl/Tk major version required (e.g., 9 for Tk 9.0+)
+    # @param from_tcl [Proc, nil] Custom converter for Tcl->Ruby (receives value, widget: keyword)
+    # @param to_tcl [Proc, nil] Custom converter for Ruby->Tcl (receives value, widget: keyword)
     #
-    def option(name, type: :string, tcl_name: nil, aliases: [], min_version: nil)
-      opt = Option.new(name: name, tcl_name: tcl_name, type: type, aliases: aliases, min_version: min_version)
+    def option(name, type: :string, tcl_name: nil, alias: nil, aliases: [], min_version: nil,
+               from_tcl: nil, to_tcl: nil)
+      # Support both alias: :foo (single) and aliases: [:foo, :bar] (multiple)
+      all_aliases = Array(binding.local_variable_get(:alias)) + Array(aliases)
+      all_aliases.compact!
+
+      # Check for conflicts with existing option (e.g., from parent class)
+      existing = _options[name.to_sym]
+      if existing
+        if existing.type.name == type && existing.aliases.sort == all_aliases.sort
+          return # Same config, already inherited - skip silently
+        else
+          # Different config - warn but allow override (may be intentional)
+          class_name = self.name || self.inspect
+          warn "[ruby-tk] Option :#{name} redefined with different config in #{class_name}. " \
+            "Was: type=#{existing.type.name}, aliases=#{existing.aliases}. " \
+            "Now: type=#{type}, aliases=#{all_aliases}"
+        end
+      end
+
+      opt = Option.new(name: name, tcl_name: tcl_name, type: type, aliases: all_aliases,
+                       min_version: min_version, from_tcl: from_tcl, to_tcl: to_tcl)
       _options[opt.name] = opt
-      aliases.each { |a| _options[a.to_sym] = opt }
+      all_aliases.each { |a| _options[a.to_sym] = opt }
     end
 
     # All declared options (including aliases pointing to same Option)

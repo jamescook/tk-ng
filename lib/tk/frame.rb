@@ -8,22 +8,35 @@ require 'tk' unless defined?(Tk)
 require 'tk/option_dsl'
 
 class Tk::Frame<TkWindow
-  extend Tk::OptionDSL
+  include Tk::Generated::Frame
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :background
+  #   :backgroundimage
+  #   :borderwidth
+  #   :class
+  #   :colormap
+  #   :container
+  #   :cursor
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :takefocus
+  #   :tile
+  #   :visual
+  #   :width
+  # @generated:options:end
+
+
 
   TkCommandNames = ['frame'.freeze].freeze
   WidgetClassName = 'Frame'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Standard options
-  option :borderwidth, type: :pixels, aliases: [:bd]
-  option :padx,        type: :pixels
-  option :pady,        type: :pixels
-  option :relief,      type: :relief      # flat, raised, sunken, groove, ridge, solid
-
-  # Widget-specific options
-  option :container,   type: :boolean     # if true, frame is a container for embedding
-  option :height,      type: :pixels      # height in screen units
-  option :width,       type: :pixels      # width in screen units
 
 ################# old version
 #  def initialize(parent=nil, keys=nil)

@@ -96,15 +96,7 @@ module TkTreatItemFont
               next
             else
               fnt = hash_kv(fnt) if fnt.kind_of?(Hash)
-              unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-                tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << fnt))
-              else
-                begin
-                  tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << fnt))
-                rescue
-                  # ignore
-                end
-              end
+              tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << fnt))
             end
           end
           next
@@ -158,15 +150,7 @@ module TkTreatItemFont
         fobj = fontobj          # create a new TkFont object
       else
         ltn = hash_kv(ltn) if ltn.kind_of?(Hash)
-        unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-          tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << ltn))
-        else
-          begin
-            tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << ltn))
-          rescue
-            # ignore
-          end
-        end
+        tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << ltn))
         next
       end
 
@@ -218,15 +202,7 @@ module TkTreatItemFont
         fobj = fontobj          # create a new TkFont object
       else
         knj = hash_kv(knj) if knj.kind_of?(Hash)
-        unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-          tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << knj))
-        else
-          begin
-            tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << knj))
-          rescue
-            # ignore
-          end
-        end
+        tk_call(*(__item_config_cmd(tagid(tagOrId)) << "-#{optkey}" << knj))
         next
       end
 

@@ -8,31 +8,35 @@ require 'tk' unless defined?(Tk)
 require 'tk/option_dsl'
 
 class Tk::PanedWindow<TkWindow
-  extend Tk::OptionDSL
+  include Tk::Generated::Panedwindow
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :background
+  #   :borderwidth
+  #   :cursor
+  #   :handlepad
+  #   :handlesize
+  #   :height
+  #   :opaqueresize
+  #   :orient
+  #   :proxybackground
+  #   :proxyborderwidth
+  #   :proxyrelief
+  #   :relief
+  #   :sashcursor
+  #   :sashpad
+  #   :sashrelief
+  #   :sashwidth
+  #   :showhandle
+  #   :width
+  # @generated:options:end
+
 
   TkCommandNames = ['panedwindow'.freeze].freeze
   WidgetClassName = 'Panedwindow'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Standard options
-  option :borderwidth,      type: :pixels, aliases: [:bd]
-  option :orient,           type: :string    # horizontal, vertical
-  option :relief,           type: :relief
-
-  # Widget-specific options
-  option :handlepad,        type: :pixels
-  option :handlesize,       type: :pixels
-  option :height,           type: :pixels
-  option :opaqueresize,     type: :boolean
-  option :proxybackground,  type: :color
-  option :proxyborderwidth, type: :pixels
-  option :proxyrelief,      type: :relief
-  option :sashcursor,       type: :string
-  option :sashpad,          type: :pixels
-  option :sashrelief,       type: :relief
-  option :sashwidth,        type: :pixels
-  option :showhandle,       type: :boolean
-  option :width,            type: :pixels
   #def create_self(keys)
   #  if keys and keys != None
   #    tk_call_without_enc('panedwindow', @path, *hash_kv(keys, true))
@@ -108,25 +112,7 @@ class Tk::PanedWindow<TkWindow
     tk_tcl2ruby(tk_send_without_enc('panecget', win, "-#{key}"))
   end
   def panecget(win, key)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      panecget_strict(win, key)
-    else
-      begin
-        panecget_strict(win, key)
-      rescue => e
-        begin
-          if current_paneconfiginfo(win).has_key?(option.to_s)
-            # not tag error & option is known -> error on known option
-            fail e
-          else
-            # not tag error & option is unknown
-            nil
-          end
-        rescue
-          fail e  # tag error
-        end
-      end
-    end
+    panecget_strict(win, key)
   end
 
   def paneconfigure(win, key, value=nil)

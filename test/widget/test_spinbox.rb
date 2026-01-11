@@ -52,12 +52,26 @@ class TestSpinboxWidget < Minitest::Test
     val_list = day_spin.cget(:values)
     errors << "values failed" unless val_list.is_a?(Array) && val_list.size == 7
 
-    # --- Wrap option ---
+    # --- Wrap option (various input types) ---
+    # Note: Wrap dbClass is ambiguous (boolean for Spinbox, enum for Text)
+    # so we don't auto-convert. Verify all input types work correctly.
     num_spin.configure(wrap: true)
-    errors << "wrap true failed" unless num_spin.cget(:wrap)
+    errors << "wrap true failed" unless num_spin.cget(:wrap).to_s == "1"
 
     num_spin.configure(wrap: false)
-    errors << "wrap false failed" if num_spin.cget(:wrap)
+    errors << "wrap false failed" unless num_spin.cget(:wrap).to_s == "0"
+
+    num_spin.configure(wrap: "1")
+    errors << "wrap '1' failed" unless num_spin.cget(:wrap).to_s == "1"
+
+    num_spin.configure(wrap: "0")
+    errors << "wrap '0' failed" unless num_spin.cget(:wrap).to_s == "0"
+
+    num_spin.configure(wrap: 1)
+    errors << "wrap 1 failed" unless num_spin.cget(:wrap).to_s == "1"
+
+    num_spin.configure(wrap: 0)
+    errors << "wrap 0 failed" unless num_spin.cget(:wrap).to_s == "0"
 
     # --- Format ---
     TkLabel.new(frame, text: "Price:").pack(anchor: "w")

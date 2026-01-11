@@ -310,35 +310,6 @@ class TestConfigMethod < Minitest::Test
     end
   end
 
-  def test_configure_ignore_unknown_option_fallback
-    assert_tk_test("__IGNORE_UNKNOWN_CONFIGURE_OPTION__ fallback filters invalid options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root, text: "Original")
-
-        # Save original and enable ignore mode
-        original = TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-        begin
-          TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(true)
-
-          # Pass a mix of valid and invalid options - should not raise
-          # The fallback __check_available_configure_options filters out invalid ones
-          btn.configure(text: "Updated", totally_bogus_option: "ignored")
-
-          result = btn.cget(:text)
-          raise "Expected 'Updated', got \#{result.inspect}" unless result == "Updated"
-        ensure
-          TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(original)
-        end
-
-        root.destroy
-      RUBY
-    end
-  end
-
   # Test configinfo
   def test_configinfo_single_slot
     assert_tk_test("configinfo(slot) works in both array and hash modes") do
@@ -585,57 +556,6 @@ class TestConfigMethod < Minitest::Test
         raise "Expected Hash, got \#{info.class}" unless info.is_a?(Hash)
         raise "text value wrong" unless info["text"] == "Hello"
         raise "width value wrong" unless info["width"] == 25
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  # Test IGNORE_UNKNOWN_CONFIGURE_OPTION mode
-  def test_ignore_unknown_option_mode
-    assert_tk_test("IGNORE_UNKNOWN mode should return nil for unknown options") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
-
-        # Enable ignore mode
-        TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(true)
-
-        result = btn.cget(:totally_fake_option)
-        raise "Expected nil, got \#{result.inspect}" unless result.nil?
-
-        # Disable it
-        TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(false)
-
-        root.destroy
-      RUBY
-    end
-  end
-
-  def test_cget_strict_ignores_ignore_mode
-    assert_tk_test("cget_strict should raise even in IGNORE mode") do
-      <<~RUBY
-        require 'tk'
-        require 'tk/button'
-
-        root = TkRoot.new { withdraw }
-        btn = TkButton.new(root)
-
-        TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(true)
-
-        raised = false
-        begin
-          btn.cget_strict(:totally_fake_option)
-        rescue
-          raised = true
-        end
-
-        TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(false)
-
-        raise "cget_strict should have raised" unless raised
 
         root.destroy
       RUBY
@@ -1181,6 +1101,42 @@ class TestConfigMethod < Minitest::Test
           TkComm.send(:remove_const, :GET_CONFIGINFO_AS_ARRAY)
           TkComm::GET_CONFIGINFO_AS_ARRAY = original
         end
+
+        root.destroy
+      RUBY
+    end
+  end
+
+  def test_tkvariable_accepts_string_or_tkvariable
+    assert_tk_test("tkvariable options accept both string and TkVariable") do
+      <<~RUBY
+        require 'tk'
+        require 'tk/entry'
+        require 'tk/variable'
+
+        root = TkRoot.new { withdraw }
+
+        # Test 1: Pass a TkVariable instance
+        var = TkVariable.new("from_tkvariable")
+        entry1 = TkEntry.new(root, textvariable: var)
+        result1 = entry1.cget(:textvariable)
+        raise "Expected TkVariable result" unless result1.respond_to?(:value)
+        raise "Expected 'from_tkvariable', got '\#{result1.value}'" unless result1.value == "from_tkvariable"
+
+        # Test 2: Pass a raw string (Tcl variable name)
+        # First set up a Tcl variable with a value
+        Tk.ip_eval('set my_tcl_var "from_string"')
+        entry2 = TkEntry.new(root, textvariable: "my_tcl_var")
+        result2 = entry2.cget(:textvariable)
+        raise "Expected TkVarAccess result" unless result2.respond_to?(:value)
+        raise "Expected 'from_string', got '\#{result2.value}'" unless result2.value == "from_string"
+
+        # Test 3: Verify the returned object works for both cases
+        result1.value = "updated1"
+        raise "TkVariable update failed" unless entry1.get == "updated1"
+
+        result2.value = "updated2"
+        raise "String var update failed" unless entry2.get == "updated2"
 
         root.destroy
       RUBY

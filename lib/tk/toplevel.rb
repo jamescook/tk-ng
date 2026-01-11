@@ -12,30 +12,124 @@ require 'tk/option_dsl'
 class Tk::Toplevel<TkWindow
   include Wm
   include TkMenuSpec
-  extend Tk::OptionDSL
+  include Tk::Generated::Toplevel
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :background
+  #   :backgroundimage
+  #   :borderwidth
+  #   :class
+  #   :colormap
+  #   :container
+  #   :cursor
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :menu
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :screen
+  #   :takefocus
+  #   :tile
+  #   :use
+  #   :visual
+  #   :width
+  # @generated:options:end
+
+
 
   TkCommandNames = ['toplevel'.freeze].freeze
   WidgetClassName = 'Toplevel'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Standard options
-  option :borderwidth,        type: :pixels, aliases: [:bd]
-  option :highlightthickness, type: :pixels
-  option :padx,               type: :pixels
-  option :pady,               type: :pixels
-  option :relief,             type: :relief
+  # Window manager properties - these are NOT real Tcl configure options.
+  # They are wm commands that the original ruby-tk exposed via cget/configure.
+  # This shim maintains backwards compatibility by routing them to tk_call('wm', ...).
+  # TODO: Confirm if we have tests around `wm` commands
+  WM_PROPERTIES = %w[
+    aspect attributes client colormapwindows wm_command focusmodel
+    geometry wm_grid group iconbitmap iconphoto iconmask iconname
+    iconposition iconwindow maxsize minsize overrideredirect
+    positionfrom protocols resizable sizefrom state title transient
+  ].freeze
 
-  # Widget-specific options
-  option :backgroundimage,    type: :string
-  option :colormap,           type: :string
-  option :container,          type: :boolean
-  option :height,             type: :pixels
-  option :menu,               type: :string
-  option :screen,             type: :string
-  option :tile,               type: :boolean
-  option :use,                type: :string
-  option :visual,             type: :string
-  option :width,              type: :pixels
+  # Backwards-compat shim: intercept wm properties and route to tk_call('wm', ...)
+  def cget(slot)
+    slot_s = slot.to_s
+    if WM_PROPERTIES.include?(slot_s)
+      # Route to wm command directly - no method indirection
+      tk_call('wm', slot_s.sub(/^wm_/, ''), path)
+    else
+      super
+    end
+  end
+
+  # Backwards-compat shim: intercept wm properties in configinfo
+  def configinfo(slot = nil)
+    if slot
+      slot_s = slot.to_s
+      if WM_PROPERTIES.include?(slot_s)
+        wm_cmd = slot_s.sub(/^wm_/, '')
+        val = tk_call('wm', wm_cmd, path)
+        if TkComm::GET_CONFIGINFO_AS_ARRAY
+          [slot_s, '', '', '', val]
+        else
+          {slot_s => ['', '', '', val]}
+        end
+      else
+        super
+      end
+    else
+      # Full configinfo - get real options and add wm properties
+      result = super
+      WM_PROPERTIES.each do |prop|
+        begin
+          val = tk_call('wm', prop.sub(/^wm_/, ''), path)
+          if TkComm::GET_CONFIGINFO_AS_ARRAY
+            result << [prop, '', '', '', val]
+          else
+            result[prop] = ['', '', '', val]
+          end
+        rescue
+          # Some wm commands may not be available, skip them
+        end
+      end
+      result
+    end
+  end
+
+  # Backwards-compat shim: intercept wm properties and route to tk_call('wm', ...)
+  def configure(slot, value = None)
+    if slot.is_a?(Hash)
+      slot = _symbolkey2str(slot)
+      wm_opts, real_opts = slot.partition { |k, _| WM_PROPERTIES.include?(k.to_s) }
+      # Handle wm properties directly
+      wm_opts.each do |k, v|
+        wm_cmd = k.to_s.sub(/^wm_/, '')
+        if v.is_a?(Array)
+          tk_call('wm', wm_cmd, path, *v)
+        else
+          tk_call('wm', wm_cmd, path, v)
+        end
+      end
+      # Pass real options to parent
+      super(real_opts.to_h) unless real_opts.empty?
+      self
+    elsif WM_PROPERTIES.include?(slot.to_s)
+      wm_cmd = slot.to_s.sub(/^wm_/, '')
+      if value.is_a?(Array)
+        tk_call('wm', wm_cmd, path, *value)
+      else
+        tk_call('wm', wm_cmd, path, value)
+      end
+      self
+    else
+      super
+    end
+  end
 
 ################# old version
 #  def initialize(parent=nil, screen=nil, classname=nil, keys=nil)
@@ -69,45 +163,21 @@ class Tk::Toplevel<TkWindow
 #  end
 #################
 
-  # NOTE: __boolval_optkeys override for 'container' removed - now declared via OptionDSL
-  # NOTE: __strval_optkeys override for 'screen' removed - now declared via OptionDSL
-
-  def __val2ruby_optkeys  # { key=>proc, ... }
-    super().update('menu'=>proc{|v| window(v)})
-  end
-  private :__val2ruby_optkeys
-
-  def __methodcall_optkeys  # { key=>method, ... }
-    TOPLEVEL_METHODCALL_OPTKEYS
-  end
-  private :__methodcall_optkeys
-
   def _wm_command_option_chk(keys)
     keys = {} unless keys
     new_keys = {}
     wm_cmds = {}
 
-    conf_methods = _symbolkey2str(__methodcall_optkeys())
-
-    keys.each{|k,v| # k is a String
-      if conf_methods.key?(k)
-        wm_cmds[conf_methods[k]] = v
-      elsif Wm.method_defined?(k)
-        case k
-        when 'screen','class','colormap','container','use','visual'
-          new_keys[k] = v
-        else
-          case self.method(k).arity
-          when -1,1
-            wm_cmds[k] = v
-          else
-            new_keys[k] = v
-          end
-        end
+    keys.each do |k, v|
+      k_s = k.to_s
+      # Normalize wm_ prefix (e.g., wm_command -> command)
+      wm_cmd = k_s.sub(/^wm_/, '')
+      if WM_PROPERTIES.include?(k_s) || WM_PROPERTIES.include?(wm_cmd)
+        wm_cmds[wm_cmd] = v
       else
         new_keys[k] = v
       end
-    }
+    end
     [new_keys, wm_cmds]
   end
   private :_wm_command_option_chk
@@ -144,13 +214,13 @@ class Tk::Toplevel<TkWindow
       end
       keys, cmds = _wm_command_option_chk(keys)
       super(keys)
-      cmds.each{|k,v|
-        if v.kind_of? Array
-          self.__send__(k,*v)
+      cmds.each do |k, v|
+        if v.kind_of?(Array)
+          tk_call('wm', k, path, *v)
         else
-          self.__send__(k,v)
+          tk_call('wm', k, path, v)
         end
-      }
+      end
       return
     end
 
@@ -193,13 +263,13 @@ class Tk::Toplevel<TkWindow
     end
     keys, cmds = _wm_command_option_chk(keys)
     super(parent, keys)
-    cmds.each{|k,v|
-      if v.kind_of? Array
-        self.send(k,*v)
+    cmds.each do |k, v|
+      if v.kind_of?(Array)
+        tk_call('wm', k, path, *v)
       else
-        self.send(k,v)
+        tk_call('wm', k, path, v)
       end
-    }
+    end
   end
 
   #def create_self(keys)

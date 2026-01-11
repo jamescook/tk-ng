@@ -79,24 +79,19 @@ TkTreeCtrl   2.2.9   ==> treectrl (REMOVED - see treectrl/DEPRECATED.md)
 TkTable      2.10    ==> tktable (REMOVED - see tktable/DEPRECATED.md)
 winico       0.6     ==> winico (REMOVED - see winico/DEPRECATED.md)
 ICONS        1.0     ==> ICONS (REMOVED - see ICONS/DEPRECATED.md)
+TkTrans              ==> tktrans (REMOVED - see tktrans/DEPRECATED.md)
+                         Obsolete since Tk 8.4.16 (use wm attributes -transparentcolor)
+TclX                 ==> tclx (REMOVED - see tclx/DEPRECATED.md)
+                         Use Ruby's Signal.trap for signals, Ruby i18n for message catalogs
 
 
 ===< support (may be alpha or beta quality) >================================
-
-TclX         CVS/Hd(2008-12-15)
-                     http://sourceforge.net/projects/tclx
-                       ==> tclx (partial support; infox command and
-                                                   XPG/3 message catalogs only)
 
 Trofs        0.4.4   http://math.nist.gov/~DPorter/tcltk/trofs/
 
 
 
 ===< possibly available (not tested; alpha quality) >=========================
-
-TkTrans      latest(2004-10-11)
-                     http://www2.cmp.uea.ac.uk/~fuzz/tktrans/default.html
-                       ==>  tktrans (win32 only)
 
 TkDND        1.0a2   http://sourceforge.net/projects/tkdnd       ==> tkDND
 

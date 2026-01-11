@@ -9,15 +9,49 @@ require 'tk/label'
 require 'tk/option_dsl'
 
 class Tk::Button<Tk::Label
-  extend Tk::OptionDSL
+  include Tk::Generated::Button
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activebackground
+  #   :activeforeground
+  #   :anchor
+  #   :background
+  #   :bitmap
+  #   :borderwidth
+  #   :command (callback)
+  #   :compound
+  #   :cursor
+  #   :default
+  #   :disabledforeground
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :image
+  #   :justify
+  #   :overrelief
+  #   :padx
+  #   :pady
+  #   :relief
+  #   :repeatdelay
+  #   :repeatinterval
+  #   :state
+  #   :takefocus
+  #   :text
+  #   :textvariable (tkvariable)
+  #   :underline
+  #   :width
+  #   :wraplength
+  # @generated:options:end
+
+
 
   TkCommandNames = ['button'.freeze].freeze
   WidgetClassName = 'Button'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Button-specific options (inherits all other options from Tk::Label)
-  option :default,   type: :string    # normal, active, disabled
-  option :overrelief, type: :relief   # relief when cursor is over button
 
   def invoke
     _fromUTF8(tk_send_without_enc('invoke'))

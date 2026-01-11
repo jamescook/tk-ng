@@ -85,15 +85,56 @@ module Tk
       )
 
       # Anchor position (n, ne, e, se, s, sw, w, nw, center)
+      # to_tcl: accepts symbol or string (e.g., :nw or "nw")
+      # from_tcl: returns string for backwards compatibility
       Anchor = OptionType.new(:anchor,
         to_tcl: :to_s,
-        from_tcl: ->(v) { v.to_sym }
+        from_tcl: :to_s
       )
 
       # Relief style (flat, raised, sunken, groove, ridge, solid)
+      # to_tcl: accepts symbol or string (e.g., :raised or "raised")
+      # from_tcl: returns string for backwards compatibility
       Relief = OptionType.new(:relief,
         to_tcl: :to_s,
-        from_tcl: ->(v) { v.to_sym }
+        from_tcl: :to_s
+      )
+
+      # Widget reference - converts Tcl path to Ruby widget object
+      Widget = OptionType.new(:widget,
+        to_tcl: ->(v, widget:) { v.respond_to?(:path) ? v.path : v.to_s },
+        from_tcl: ->(v, widget:) {
+          path = v.to_s
+          return nil unless path =~ /^\./
+          found = TkCore::INTERP.tk_windows[path]
+          unless found
+            warn "Widget type: '#{path}' not in Ruby widget table, generating wrapper (this may indicate a problem)"
+            found = TkComm._genobj_for_tkwidget(path)
+          end
+          found
+        }
+      )
+
+      # TkVariable reference - converts Tcl variable name to TkVarAccess
+      # Used for textvariable, variable, listvariable options
+      TkVariable = OptionType.new(:tkvariable,
+        to_tcl: ->(v) { v.respond_to?(:id) ? v.id : v.to_s },
+        from_tcl: ->(v) { v.to_s.empty? ? nil : TkVarAccess.new(v) }
+      )
+
+      # Callback - Tcl command string, typically registered via install_cmd
+      # to_tcl: proc/lambda gets registered and returns callback ID
+      # from_tcl: returns the raw Tcl command string (can't recover proc)
+      Callback = OptionType.new(:callback,
+        to_tcl: ->(v, widget:) {
+          if v.respond_to?(:call)
+            # Register the proc and return callback ID
+            widget.install_cmd(v) if widget
+          else
+            v.to_s
+          end
+        },
+        from_tcl: ->(v) { v.to_s }
       )
     end
 

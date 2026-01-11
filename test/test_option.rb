@@ -136,4 +136,61 @@ class TestOption < Minitest::Test
 
     refute_includes opt.inspect, "min_version"
   end
+
+  # --- Custom from_tcl/to_tcl callback tests ---
+
+  def test_custom_from_tcl_callback
+    # Simulate converting a Tcl path to an object
+    opt = Tk::Option.new(
+      name: :menu,
+      type: :string,
+      from_tcl: ->(v, widget:) { "WindowObject(#{v})" }
+    )
+
+    assert_equal "WindowObject(.menu)", opt.from_tcl(".menu")
+  end
+
+  def test_custom_to_tcl_callback
+    # Simulate converting an object to a Tcl path
+    opt = Tk::Option.new(
+      name: :menu,
+      type: :string,
+      to_tcl: ->(v, widget:) { v.respond_to?(:path) ? v.path : v.to_s }
+    )
+
+    fake_menu = Struct.new(:path).new(".menu")
+    assert_equal ".menu", opt.to_tcl(fake_menu)
+  end
+
+  def test_custom_callback_receives_widget
+    received_widget = nil
+    opt = Tk::Option.new(
+      name: :test,
+      from_tcl: ->(v, widget:) { received_widget = widget; v }
+    )
+
+    fake_widget = Object.new
+    opt.from_tcl("value", widget: fake_widget)
+
+    assert_same fake_widget, received_widget
+  end
+
+  def test_callback_overrides_type_converter
+    # Type would convert "42" to integer 42, but callback returns string
+    opt = Tk::Option.new(
+      name: :special,
+      type: :integer,
+      from_tcl: ->(v, widget:) { "custom:#{v}" }
+    )
+
+    assert_equal "custom:42", opt.from_tcl("42")
+  end
+
+  def test_no_callback_uses_type_converter
+    opt = Tk::Option.new(name: :width, type: :integer)
+
+    # Without callback, delegates to type
+    assert_equal 42, opt.from_tcl("42")
+    assert_equal "42", opt.to_tcl(42)
+  end
 end

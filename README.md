@@ -99,7 +99,59 @@ This fork removes legacy code that was complex, rarely used, or incompatible wit
 
 - **`TclTkIp#encoding_table`** - Removed. Raises `NotImplementedError` with explanation.
 
-- **`TclTkIp#_make_menu_embeddable`** - Removed. This was a 2006-era hack that accessed Tk's private internal structs. Use `TkMenubutton` for packable menu buttons.
+- **`TclTkIp#_make_menu_embeddable`** - Removed. This was a 2006-era workaround that accessed Tk's private internal structs. Use `TkMenubutton` for packable menu buttons.
+
+### Deprecated Internal APIs
+
+The `__*_optkeys` methods in `TkConfigMethod` are deprecated and will be removed:
+
+- `__numval_optkeys`, `__boolval_optkeys`, `__strval_optkeys`, `__listval_optkeys`
+- `__val2ruby_optkeys`, `__ruby2val_optkeys`
+- `__tkvariable_optkeys`, `__font_optkeys`
+
+**Migration**: Use the declarative `option` DSL instead:
+
+```ruby
+# Old way (deprecated)
+class MyWidget < TkWindow
+  def __boolval_optkeys
+    super() + ['myoption']
+  end
+end
+
+# New way
+class MyWidget < TkWindow
+  option :myoption, type: :boolean
+end
+```
+
+The public API (`cget`, `configure`, `configinfo`) is unchanged.
+
+### Removed: `__IGNORE_UNKNOWN_CONFIGURE_OPTION__`
+
+The global flag `TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__` has been removed. This flag silently swallowed errors when `configure` or `cget` encountered unknown widget options - a design that hid bugs and made debugging difficult.
+
+New design:
+
+```ruby
+class MyWidget < TkWindow
+  # This option only exists in Tk 9.0+
+  option :placeholder, type: :string, min_version: 9
+end
+```
+
+Options with `min_version` are automatically filtered out on older Tk versions, with a warning. This is a better solution - declare what you need, and the system handles compatibility.
+
+3. **Truly optional error handling** - If you absolutely need to ignore errors for a specific call, use standard Ruby:
+
+```ruby
+# Not recommended, but if you must:
+begin
+  widget.configure(maybe_invalid: value)
+rescue TclTkLib::TclError
+  # handle or ignore
+end
+```
 
 ## Development
 

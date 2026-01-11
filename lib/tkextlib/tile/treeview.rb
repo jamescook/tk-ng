@@ -605,25 +605,7 @@ module Tk::Tile::TreeviewConfig
     end
   end
   def headingcget(tagOrId, option)
-    unless TkItemConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-      headingcget_strict(tagOrId, option)
-    else
-      begin
-        headingcget_strict(tagOrId, option)
-      rescue => e
-        begin
-          if current_headingconfiginfo(tagOrId).has_key?(option.to_s)
-            # not tag error & option is known -> error on known option
-            fail e
-          else
-            # not tag error & option is unknown
-            nil
-          end
-        rescue
-          fail e  # tag error
-        end
-      end
-    end
+    headingcget_strict(tagOrId, option)
   end
   def headingconfigure(tagOrId, slot, value=None)
     if slot.kind_of?(Hash)

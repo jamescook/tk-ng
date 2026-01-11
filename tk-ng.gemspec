@@ -22,6 +22,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov", "~> 0.22"
   spec.add_development_dependency "minitest", "~> 6.0"
   spec.add_development_dependency "method_source", "~> 1.0"
+  spec.add_development_dependency "prism", "~> 1.0"  # stdlib in Ruby 3.3+, gem for 3.2
 
   spec.metadata["msys2_mingw_dependencies"] = "tk"
 end

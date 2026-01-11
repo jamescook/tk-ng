@@ -9,32 +9,74 @@ class TkWindow<TkObject
   include Tk::Wm_for_General
   include Tk::Busy
 
-  # Common boolean options (inherited by all widgets)
-  option :exportselection, type: :boolean
-  option :jump,            type: :boolean
-  option :setgrid,         type: :boolean
-  option :takefocus,       type: :boolean
+  # Widget options are now auto-generated from Tk introspection.
+  # Each widget class includes its generated module (e.g., Tk::Generated::Button).
+  # See: rake tk:generate_options
 
-  # Common color options (inherited by all widgets)
-  option :activebackground,    type: :color
-  option :activeforeground,    type: :color
-  option :background,          type: :color
-  option :disabledbackground,  type: :color
-  option :disabledforeground,  type: :color
-  option :foreground,          type: :color
-  option :highlightbackground, type: :color
-  option :highlightcolor,      type: :color
-  option :insertbackground,    type: :color
-  option :selectbackground,    type: :color
-  option :selectforeground,    type: :color
-  option :troughcolor,         type: :color
+  # Private helper methods for widget initialization
+  # These bridge the OptionDSL system with the initialization code
 
-  # Common string options
-  option :text,  type: :string
-  option :label, type: :string
-  option :show,  type: :string
-  option :data,  type: :string
-  option :file,  type: :string
+  def __optkey_aliases
+    if self.class.respond_to?(:declared_optkey_aliases)
+      self.class.declared_optkey_aliases
+    else
+      {}
+    end
+  end
+  private :__optkey_aliases
+
+  # Returns hash { option_name => method_symbol } for options handled by method calls.
+  # Subclasses can either:
+  #   1. Use OptionDSL: `option :title, method_call: :title` (preferred)
+  #   2. Override this method (legacy, deprecated)
+  #
+  def __methodcall_optkeys
+    # Get method-call options from OptionDSL if available
+    if self.class.respond_to?(:declared_methodcall_optkeys)
+      self.class.declared_methodcall_optkeys
+    else
+      {}
+    end
+  end
+  private :__methodcall_optkeys
+
+  def __ruby2val_optkeys
+    # Override in subclasses for custom value conversion
+    # Returns hash { key => proc }
+    {}
+  end
+  private :__ruby2val_optkeys
+
+  def __keyonly_optkeys
+    # Override in subclasses for key-only options
+    # Returns hash { def_key => undef_key or nil }
+    {}
+  end
+  private :__keyonly_optkeys
+
+  def __conv_keyonly_opts(keys)
+    return keys unless keys.kind_of?(Hash)
+    keyonly = __keyonly_optkeys
+    return keys if keyonly.empty?
+
+    keys2 = {}
+    keys.each do |k, v|
+      optkey = keyonly.find { |kk, _| kk.to_s == k.to_s }
+      if optkey
+        defkey, undefkey = optkey
+        if v
+          keys2[defkey.to_s] = None
+        elsif undefkey
+          keys2[undefkey.to_s] = None
+        end
+        # else: remove key (don't add to keys2)
+      else
+        keys2[k.to_s] = v
+      end
+    end
+    keys2
+  end
+  private :__conv_keyonly_opts
 
   @@WIDGET_INSPECT_FULL = false
   def TkWindow._widget_inspect_full_?
@@ -147,34 +189,7 @@ class TkWindow<TkObject
     if keys and keys != None
       # Filter out options unavailable in current Tcl/Tk version
       keys = __filter_unavailable_options(keys)
-
-      unless TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__
-        tk_call_without_enc(cmd, @path, *hash_kv(keys, true))
-      else
-        begin
-          tk_call_without_enc(cmd, @path, *hash_kv(keys, true))
-        rescue => e
-          tk_call_without_enc(cmd, @path)
-          keys = __check_available_configure_options(keys)
-          unless keys.empty?
-            begin
-              # try to configure
-              configure(keys)
-            rescue
-              # fail => includes options adaptable when creation only?
-              begin
-                tk_call_without_enc('destroy', @path)
-              rescue
-                # cannot rescue options error
-                fail e
-              else
-                # re-create widget
-                tk_call_without_enc(cmd, @path, *hash_kv(keys, true))
-              end
-            end
-          end
-        end
-      end
+      tk_call_without_enc(cmd, @path, *hash_kv(keys, true))
     else
       tk_call_without_enc(cmd, @path)
     end

@@ -472,7 +472,7 @@ namespace :docker do
     sh cmd
   end
 
-  desc "Run tests in Docker (TCL_VERSION=9.0|8.6)"
+  desc "Run tests in Docker (TCL_VERSION=9.0|8.6, TEST=path/to/test.rb)"
   task test: :build do
     tcl_version = tcl_version_from_env
     image_name = docker_image_name(tcl_version)
@@ -487,6 +487,8 @@ namespace :docker do
     cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
     cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
     cmd += " -e TCL_VERSION=#{tcl_version}"
+    # Pass TEST env var to run a single test file
+    cmd += " -e TEST=#{ENV['TEST']}" if ENV['TEST']
     cmd += " #{image_name}"
 
     sh cmd
@@ -553,8 +555,181 @@ namespace :docker do
     sh cmd
   end
 
+  desc "Generate options in Docker (TCL_VERSION=9.0|8.6)"
+  task generate_options: :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    puts "Generating options in Docker (Tcl #{tcl_version})..."
+    cmd = "docker run --rm --init"
+    cmd += " -v #{Dir.pwd}/lib/tk/generated:/app/lib/tk/generated"
+    cmd += " -e TCL_VERSION=#{tcl_version}"
+    cmd += " #{image_name} xvfb-run -a bundle exec rake tk:generate_options"
+
+    sh cmd
+  end
+
   desc "Remove dangling Docker images from ruby-tk builds"
   task :prune do
     sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
+  end
+end
+
+# Option generation from Tk introspection
+namespace :tk do
+  GENERATED_DIR = 'lib/tk/generated'
+
+  # List of standard Tk widgets to introspect
+  WIDGETS = {
+    'Button' => 'button',
+    'Canvas' => 'canvas',
+    'Checkbutton' => 'checkbutton',
+    'Entry' => 'entry',
+    'Frame' => 'frame',
+    'Label' => 'label',
+    'Labelframe' => 'labelframe',
+    'Listbox' => 'listbox',
+    'Menu' => 'menu',
+    'Menubutton' => 'menubutton',
+    'Message' => 'message',
+    'Panedwindow' => 'panedwindow',
+    'Radiobutton' => 'radiobutton',
+    'Scale' => 'scale',
+    'Scrollbar' => 'scrollbar',
+    'Spinbox' => 'spinbox',
+    'Text' => 'text',
+    'Toplevel' => 'toplevel',
+  }.freeze
+
+  desc "Generate option DSL from Tk introspection (requires display)"
+  task generate_options: :compile do
+    require_relative 'lib/tk/option_generator'
+
+    $LOAD_PATH.unshift(File.expand_path('lib', __dir__))
+    require 'tk'
+
+    tcl_version = Tk::TCL_VERSION
+    version_dir = "#{GENERATED_DIR}/#{tcl_version.gsub('.', '_')}"
+    generator = Tk::OptionGenerator.new(tcl_version: tcl_version)
+
+    puts "Introspecting Tk widgets for Tcl #{tcl_version}..."
+    FileUtils.mkdir_p(version_dir)
+
+    widget_files = []
+    WIDGETS.each do |ruby_name, tk_cmd|
+      print "  #{ruby_name}..."
+      begin
+        entries = generator.introspect_widget(tk_cmd)
+        filename = ruby_name.downcase
+        filepath = "#{version_dir}/#{filename}.rb"
+        File.write(filepath, generator.generate_widget_file(ruby_name, entries))
+        widget_files << filename
+        puts " #{entries.size} options -> #{filename}.rb"
+      rescue => e
+        puts " FAILED: #{e.message}"
+      end
+    end
+
+    # Generate loader file
+    loader_content = <<~RUBY
+      # frozen_string_literal: true
+      # Auto-generated loader for Tcl/Tk #{tcl_version} widget options
+      # DO NOT EDIT - regenerate with: rake tk:generate_options
+
+      #{widget_files.map { |f| "require_relative '#{tcl_version.gsub('.', '_')}/#{f}'" }.join("\n")}
+    RUBY
+    loader_file = "#{GENERATED_DIR}/options_#{tcl_version.gsub('.', '_')}.rb"
+    File.write(loader_file, loader_content)
+
+    puts "\nGenerated #{widget_files.size} widget files in #{version_dir}/"
+    puts "Loader: #{loader_file}"
+  end
+
+  # Map generated widget names to source files and Ruby class names
+  # Generated names come from Tcl (lowercase), Ruby classes use CamelCase
+  WIDGET_FILES = {
+    'Button'      => { file: 'lib/tk/button.rb',      class: 'Tk::Button' },
+    'Canvas'      => { file: 'lib/tk/canvas.rb',      class: 'Tk::Canvas' },
+    'Checkbutton' => { file: 'lib/tk/checkbutton.rb', class: 'Tk::CheckButton' },
+    'Entry'       => { file: 'lib/tk/entry.rb',       class: 'Tk::Entry' },
+    'Frame'       => { file: 'lib/tk/frame.rb',       class: 'Tk::Frame' },
+    'Label'       => { file: 'lib/tk/label.rb',       class: 'Tk::Label' },
+    'Labelframe'  => { file: 'lib/tk/labelframe.rb',  class: 'Tk::LabelFrame' },
+    'Listbox'     => { file: 'lib/tk/listbox.rb',     class: 'Tk::Listbox' },
+    'Menu'        => { file: 'lib/tk/menu.rb',        class: 'Tk::Menu' },
+    'Menubutton'  => { file: 'lib/tk/menu.rb',        class: 'Tk::Menubutton' },
+    'Message'     => { file: 'lib/tk/message.rb',     class: 'Tk::Message' },
+    'Panedwindow' => { file: 'lib/tk/panedwindow.rb', class: 'Tk::PanedWindow' },
+    'Radiobutton' => { file: 'lib/tk/radiobutton.rb', class: 'Tk::RadioButton' },
+    'Scale'       => { file: 'lib/tk/scale.rb',       class: 'Tk::Scale' },
+    'Scrollbar'   => { file: 'lib/tk/scrollbar.rb',   class: 'Tk::Scrollbar' },
+    'Spinbox'     => { file: 'lib/tk/spinbox.rb',     class: 'Tk::Spinbox' },
+    'Text'        => { file: 'lib/tk/text.rb',        class: 'Tk::Text' },
+    'Toplevel'    => { file: 'lib/tk/toplevel.rb',    class: 'Tk::Toplevel' },
+  }.freeze
+
+  desc "Inject option documentation comments into widget source files (requires generate_options first)"
+  task inject_option_comments: :generate_options do
+    require_relative 'lib/tk/option_generator'
+    require_relative 'lib/tk/option_comment_injector'
+
+    tcl_version = Tk::TCL_VERSION
+    version_dir = "#{GENERATED_DIR}/#{tcl_version.gsub('.', '_')}"
+
+    puts "Injecting option comments into widget files..."
+
+    WIDGET_FILES.each do |widget_name, info|
+      file_path = info[:file]
+      class_name = info[:class]
+      next unless File.exist?(file_path)
+
+      # Load the generated options for this widget
+      generated_file = "#{version_dir}/#{widget_name.downcase}.rb"
+      next unless File.exist?(generated_file)
+
+      print "  #{class_name} -> #{file_path}..."
+
+      begin
+        # Parse the generated file to get options
+        generator = Tk::OptionGenerator.new(tcl_version: tcl_version)
+        entries = generator.introspect_widget(WIDGETS[widget_name])
+
+        # Inject comments
+        injector = Tk::OptionCommentInjector.new(file_path)
+        injector.inject!(class_name, entries)
+        puts " done"
+      rescue => e
+        puts " FAILED: #{e.message}"
+      end
+    end
+
+    puts "\nDone!"
+  end
+
+  desc "Inspect a widget's options and their dbClass (usage: rake tk:inspect[widget_name])"
+  task :inspect, [:widget] => :compile do |t, args|
+    widget = args[:widget]
+    unless widget
+      puts "Usage: rake tk:inspect[widget_name]"
+      puts "Example: rake tk:inspect[menubutton]"
+      exit 1
+    end
+
+    require_relative 'lib/tk/type_registry'
+    require_relative 'lib/tk/option_generator'
+
+    $LOAD_PATH.unshift(File.expand_path('lib', __dir__))
+
+    gen = Tk::OptionGenerator.new(tcl_version: "9.0")
+    entries = gen.introspect_widget(widget)
+
+    puts "Options for '#{widget}':\n\n"
+    entries.each do |entry|
+      if entry.alias?
+        puts "  #{entry.name} -> alias for #{entry.alias_target}"
+      else
+        puts "  #{entry.name}: dbclass=#{entry.db_class}, type=#{entry.ruby_type}"
+      end
+    end
   end
 end

@@ -12,34 +12,52 @@ require 'tk/validation'
 require 'tk/option_dsl'
 
 class Tk::Entry<Tk::Label
-  extend Tk::OptionDSL
   include X_Scrollable
   include TkValidation
+  include Tk::Generated::Entry
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :background
+  #   :borderwidth
+  #   :cursor
+  #   :disabledbackground
+  #   :disabledforeground
+  #   :exportselection
+  #   :font
+  #   :foreground
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :insertbackground
+  #   :insertborderwidth
+  #   :insertofftime
+  #   :insertontime
+  #   :insertwidth
+  #   :invalidcommand
+  #   :justify
+  #   :placeholder
+  #   :placeholderforeground
+  #   :readonlybackground
+  #   :relief
+  #   :selectbackground
+  #   :selectborderwidth
+  #   :selectforeground
+  #   :show
+  #   :state
+  #   :takefocus
+  #   :textvariable (tkvariable)
+  #   :validate
+  #   :validatecommand
+  #   :width
+  #   :xscrollcommand
+  # @generated:options:end
+
+
 
   TkCommandNames = ['entry'.freeze].freeze
   WidgetClassName = 'Entry'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Standard options
-  option :exportselection,    type: :boolean
-  option :highlightthickness, type: :pixels
-  option :insertbackground,   type: :color
-  option :insertborderwidth,  type: :pixels
-  option :insertofftime,      type: :integer   # cursor blink off (ms)
-  option :insertontime,       type: :integer   # cursor blink on (ms)
-  option :insertwidth,        type: :pixels
-  option :placeholder,        type: :string, min_version: 9  # TIP 496 (Tk 8.7+)
-  option :placeholderforeground, type: :color, min_version: 9  # TIP 496 (Tk 8.7+)
-  option :selectbackground,   type: :color
-  option :selectborderwidth,  type: :pixels
-  option :selectforeground,   type: :color
-
-  # Widget-specific options
-  option :disabledbackground, type: :color
-  option :disabledforeground, type: :color
-  option :readonlybackground, type: :color
-  option :show,               type: :string    # character mask (e.g., "*" for passwords)
-  option :validate,           type: :string    # none, focus, focusin, focusout, key, all
 
   #def create_self(keys)
   #  super(__conv_vcmd_on_hash_kv(keys))

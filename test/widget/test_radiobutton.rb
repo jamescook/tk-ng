@@ -75,6 +75,27 @@ class TestRadioButtonWidget < Minitest::Test
     rb_small.configure(selectcolor: "red")
     errors << "selectcolor failed" unless rb_small.cget(:selectcolor).to_s == "red"
 
+    # --- Callback (command option with proc) ---
+    callback_count = 0
+    rb_callback = TkRadioButton.new(radio_frame,
+      text: "Callback Test",
+      variable: size_var,
+      value: "callback_test",
+      command: proc { callback_count += 1 }
+    )
+    rb_callback.pack(anchor: "w")
+
+    # Verify option type is :callback not :string
+    opt = Tk::RadioButton.resolve_option(:command)
+    errors << "command option type wrong: #{opt.type.name}" unless opt.type.name == :callback
+
+    # Invoke the radiobutton (selects it and fires command)
+    rb_callback.invoke
+    errors << "callback not fired: count=#{callback_count}" unless callback_count == 1
+
+    rb_callback.invoke
+    errors << "callback count wrong: #{callback_count}" unless callback_count == 2
+
     # --- Select/deselect methods ---
     rb_large.select
     errors << "select method failed" unless size_var.value == "large"

@@ -3,17 +3,21 @@
 class TkObject<TkKernel
   extend  TkCore
   include Tk
-  include TkConfigMethod
+  include TkUtil
+  include TkTreatFont
   include TkBindCore
 
+  # Global flag to ignore unknown configure options (for compatibility)
+  @ignore_unknown_option = false
+  class << self
+    attr_accessor :ignore_unknown_option
+  end
+
   # Returns the Tk widget path (e.g., ".frame1.button2")
-  # Used by Tcl/Tk commands to identify this widget
   def path
     @path
   end
 
-  # Escaped path - currently same as path
-  # Historical: was used for paths needing escape sequences
   def epath
     @path
   end
@@ -31,7 +35,6 @@ class TkObject<TkKernel
   def tk_send_with_enc(cmd, *rest)
     tk_call_with_enc(path, cmd, *rest)
   end
-  # private :tk_send, :tk_send_without_enc, :tk_send_with_enc
 
   def tk_send_to_list(cmd, *rest)
     tk_call_to_list(path, cmd, *rest)
@@ -73,13 +76,9 @@ class TkObject<TkKernel
         else
           super(id, *args)
         end
-#        fail NameError,
-#             "undefined local variable or method `#{name}' for #{self.to_s}",
-#             error_at
       end
     else
       super(id, *args)
-#      fail NameError, "undefined method `#{name}' for #{self.to_s}", error_at
     end
   end
 
@@ -87,28 +86,305 @@ class TkObject<TkKernel
     if context.kind_of?(TkEvent::Event)
       context.generate(self, ((keys)? keys: {}))
     elsif keys
-      #tk_call('event', 'generate', path,
-      #       "<#{tk_event_sequence(context)}>", *hash_kv(keys))
       tk_call_without_enc('event', 'generate', path,
                           "<#{tk_event_sequence(context)}>",
                           *hash_kv(keys, true))
     else
-      #tk_call('event', 'generate', path, "<#{tk_event_sequence(context)}>")
       tk_call_without_enc('event', 'generate', path,
                           "<#{tk_event_sequence(context)}>")
     end
   end
 
-  def tk_trace_variable(v)
-    #unless v.kind_of?(TkVariable)
-    #  fail(ArgumentError, "type error (#{v.class}); must be TkVariable object")
-    #end
-    v
-  end
-  private :tk_trace_variable
-
   def destroy
-    #tk_call 'trace', 'vdelete', @tk_vn, 'w', @var_id if @var_id
+  end
+
+  #----------------------------------------------------------
+  # Configuration methods (formerly TkConfigMethod)
+  #----------------------------------------------------------
+
+  def [](id)
+    cget(id)
+  end
+
+  def []=(id, val)
+    configure(id, val)
+    val
+  end
+
+  def cget_tkstring(option)
+    opt = option.to_s
+    fail ArgumentError, "Invalid option `#{option.inspect}'" if opt.length == 0
+    tk_call_without_enc(path, 'cget', "-#{opt}")
+  end
+
+  def cget(slot)
+    slot = slot.to_s
+    fail ArgumentError, "Invalid option `#{slot.inspect}'" if slot.empty?
+
+    # Resolve via Option registry (handles aliases)
+    opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
+    slot = opt.tcl_name if opt
+
+    # Method call options (wm commands like title, geometry)
+    if (method = _methodcall_optkey(slot))
+      return self.__send__(method)
+    end
+
+    # Font options (complex, keep special handling)
+    if _font_optkey?(slot)
+      fnt = tk_tcl2ruby(tk_call_without_enc(path, 'cget', "-#{slot}"), true)
+      return fnt.kind_of?(TkFont) ? fnt : fontobj(slot)
+    end
+
+    # Get raw value from Tcl
+    raw_value = tk_call_without_enc(path, 'cget', "-#{slot}")
+
+    # Use Option registry for type conversion
+    if opt
+      opt.from_tcl(raw_value, widget: self)
+    else
+      warn "#{self.class}#cget(:#{slot}) - option not declared, returning raw string"
+      raw_value
+    end
+  end
+
+  def cget_strict(slot)
+    cget(slot)
+  end
+
+  def configure(slot, value=None)
+    if slot.kind_of? Hash
+      slot = _symbolkey2str(slot)
+
+      # Filter version-restricted options
+      slot.delete_if { |k, _| _skip_version_restricted?(k) }
+
+      # Resolve aliases
+      if self.class.respond_to?(:declared_optkey_aliases)
+        self.class.declared_optkey_aliases.each do |alias_name, real_name|
+          if slot.key?(alias_name.to_s)
+            slot[real_name.to_s] = slot.delete(alias_name.to_s)
+          end
+        end
+      end
+
+      # Method call options
+      __methodcall_optkeys.each do |key, method|
+        v = slot.delete(key.to_s)
+        self.__send__(method, v) if v
+      end
+
+      # Font options
+      font_keys = slot.select { |k, _| k =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/ }
+      if font_keys.any?
+        font_configure(slot)
+      elsif slot.size > 0
+        tk_call(path, 'configure', *hash_kv(slot))
+      end
+    else
+      orig_slot = slot
+      slot = slot.to_s
+      fail ArgumentError, "Invalid option `#{orig_slot.inspect}'" if slot.empty?
+
+      # Resolve alias
+      if self.class.respond_to?(:declared_optkey_aliases)
+        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
+        slot = real_name.to_s if real_name
+      end
+
+      return self if _skip_version_restricted?(slot)
+
+      if (method = _methodcall_optkey(slot))
+        self.__send__(method, value)
+      elsif slot =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/
+        value == None ? fontobj($2) : font_configure({slot => value})
+      else
+        tk_call(path, 'configure', "-#{slot}", value)
+      end
+    end
+    self
+  end
+
+  def configure_cmd(slot, value)
+    configure(slot, install_cmd(value))
+  end
+
+  def configinfo(slot = nil)
+    if TkComm::GET_CONFIGINFO_AS_ARRAY
+      _configinfo_array(slot)
+    else
+      _configinfo_hash(slot)
+    end
+  end
+
+  def current_configinfo(slot = nil)
+    if TkComm::GET_CONFIGINFO_AS_ARRAY
+      if slot
+        conf = configinfo(slot)
+        { conf[0] => conf[-1] }
+      else
+        ret = {}
+        configinfo.each { |cnf| ret[cnf[0]] = cnf[-1] if cnf.size > 2 }
+        ret
+      end
+    else
+      ret = {}
+      configinfo(slot).each { |key, cnf| ret[key] = cnf[-1] if cnf.kind_of?(Array) }
+      ret
+    end
+  end
+
+  def config_hash_kv(keys, enc_mode = nil, conf = nil)
+    hash_kv(keys, enc_mode, conf)
+  end
+
+  private
+
+  # Config command array for Tcl calls - used by TkTreatFont
+  def __config_cmd
+    [self.path, 'configure']
+  end
+
+  def __confinfo_cmd
+    __config_cmd
+  end
+
+  # Font option keys - override in subclasses if needed
+  def _font_optkeys
+    ['font']
+  end
+
+  def _font_optkey?(slot)
+    slot =~ /^(|latin|ascii|kanji)(#{_font_optkeys.join('|')})$/
+  end
+
+  # Method call options - override in subclasses (e.g., Toplevel for wm commands)
+  # Returns hash { key => method_name }
+  def __methodcall_optkeys
+    {}
+  end
+
+  def _methodcall_optkey(slot)
+    _symbolkey2str(__methodcall_optkeys)[slot]
+  end
+
+  def _skip_version_restricted?(option_name)
+    return false unless self.class.respond_to?(:option_version_required)
+    required = self.class.option_version_required(option_name)
+    return false unless required
+    warn "#{self.class}: option '#{option_name}' requires Tcl/Tk #{required}.0+ (current: #{Tk::TK_VERSION}). Option ignored."
+    true
+  end
+
+  def _configinfo_array(slot)
+    if slot
+      slot = slot.to_s
+      # Resolve alias
+      if self.class.respond_to?(:declared_optkey_aliases)
+        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
+        slot = real_name.to_s if real_name
+      end
+
+      # Method call options
+      if (method = _methodcall_optkey(slot))
+        return [slot, '', '', '', self.__send__(method)]
+      end
+
+      # Font options
+      if _font_optkey?(slot)
+        fontkey = slot.sub(/^(latin|ascii|kanji)/, '')
+        conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{fontkey}"), false, true)
+        conf[0] = conf[0][1..-1]
+        conf[-1] = fontobj(fontkey)
+        return conf
+      end
+
+      # Regular option
+      conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true)
+      conf[0] = conf[0][1..-1]
+
+      # Apply type conversion via Option registry
+      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
+      if opt
+        conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
+        conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
+      end
+      conf
+    else
+      # All options
+      ret = tk_split_simplelist(tk_call_without_enc(path, 'configure'), false, false).map do |conflist|
+        conf = tk_split_simplelist(conflist, false, true)
+        conf[0] = conf[0][1..-1]  # strip leading dash from option name
+
+        # Alias entries are 2-element arrays: ["-bd", "-borderwidth"]
+        # Strip the dash from the target too
+        if conf.size == 2 && conf[1].is_a?(String) && conf[1].start_with?('-')
+          conf[1] = conf[1][1..-1]
+        end
+
+        optkey = conf[0]
+
+        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
+        if opt
+          conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
+          conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
+        end
+        conf
+      end
+
+      # Add method call options
+      __methodcall_optkeys.each { |optkey, m| ret << [optkey.to_s, '', '', '', self.__send__(m)] }
+      ret
+    end
+  end
+
+  def _configinfo_hash(slot)
+    if slot
+      slot = slot.to_s
+      if self.class.respond_to?(:declared_optkey_aliases)
+        _, real_name = self.class.declared_optkey_aliases.find { |k, _| k.to_s == slot }
+        slot = real_name.to_s if real_name
+      end
+
+      if (method = _methodcall_optkey(slot))
+        return { slot => ['', '', '', self.__send__(method)] }
+      end
+
+      conf = tk_split_simplelist(tk_call_without_enc(path, 'configure', "-#{slot}"), false, true)
+      conf[0] = conf[0][1..-1]
+
+      opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
+      if opt
+        conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
+        conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
+      end
+      { conf.shift => conf }
+    else
+      ret = {}
+      tk_split_simplelist(tk_call_without_enc(path, 'configure'), false, false).each do |conflist|
+        conf = tk_split_simplelist(conflist, false, true)
+        conf[0] = conf[0][1..-1]  # strip leading dash from option name
+        optkey = conf[0]
+
+        # Alias entries are 2-element arrays: ["-bd", "-borderwidth"]
+        # In hash mode: { "bd" => "borderwidth" }
+        if conf.size == 2
+          target = conf[1]
+          target = target[1..-1] if target.is_a?(String) && target.start_with?('-')
+          ret[optkey] = target
+          next
+        end
+
+        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(optkey)
+        if opt
+          conf[3] = opt.from_tcl(conf[3], widget: self) rescue conf[3] if conf[3]
+          conf[4] = opt.from_tcl(conf[4], widget: self) rescue conf[4] if conf[4]
+        end
+        ret[conf.shift] = conf
+      end
+
+      __methodcall_optkeys.each { |optkey, m| ret[optkey.to_s] = ['', '', '', self.__send__(m)] }
+      ret
+    end
   end
 end
-

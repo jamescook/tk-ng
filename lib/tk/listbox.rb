@@ -18,39 +18,47 @@ module TkListItemConfig
 end
 
 class Tk::Listbox<TkTextWin
-  extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
   include TkListItemConfig
   include Scrollable
+  include Tk::Generated::Listbox
+  # @generated:options:start
+  # Available options (auto-generated from Tk introspection):
+  #
+  #   :activestyle
+  #   :background
+  #   :borderwidth
+  #   :cursor
+  #   :disabledforeground
+  #   :exportselection
+  #   :font
+  #   :foreground
+  #   :height
+  #   :highlightbackground
+  #   :highlightcolor
+  #   :highlightthickness
+  #   :justify
+  #   :listvariable (tkvariable)
+  #   :relief
+  #   :selectbackground
+  #   :selectborderwidth
+  #   :selectforeground
+  #   :selectmode
+  #   :setgrid
+  #   :state
+  #   :takefocus
+  #   :width
+  #   :xscrollcommand
+  #   :yscrollcommand
+  # @generated:options:end
+
+
 
   TkCommandNames = ['listbox'.freeze].freeze
   WidgetClassName = 'Listbox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Standard options
-  option :borderwidth,        type: :pixels, aliases: [:bd]
-  option :disabledforeground, type: :color
-  option :exportselection,    type: :boolean
-  option :highlightthickness, type: :pixels
-  option :justify,            type: :string     # left, center, right
-  option :relief,             type: :relief
-  option :selectbackground,   type: :color
-  option :selectborderwidth,  type: :pixels
-  option :selectforeground,   type: :color
-  option :setgrid,            type: :boolean
-
-  # Widget-specific options
-  option :activestyle,        type: :string     # dotbox, none, underline
-  option :height,             type: :integer    # in lines
-  option :selectmode,         type: :string     # single, browse, multiple, extended
-  option :state,              type: :string     # normal, disabled
-  option :width,              type: :integer    # in characters
-
-  # ================================================================
   # Item options (for listbox items)
-  # ================================================================
-
-  # Color options
   item_option :background,        type: :string
   item_option :foreground,        type: :string
   item_option :selectbackground,  type: :string

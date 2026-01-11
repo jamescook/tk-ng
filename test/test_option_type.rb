@@ -96,8 +96,9 @@ class TestOptionType < Minitest::Test
   end
 
   def test_anchor_from_tcl
-    assert_equal :center, Tk::OptionType[:anchor].from_tcl("center")
-    assert_equal :nw, Tk::OptionType[:anchor].from_tcl("nw")
+    # Returns strings for backwards compatibility (legacy code expects strings)
+    assert_equal "center", Tk::OptionType[:anchor].from_tcl("center")
+    assert_equal "nw", Tk::OptionType[:anchor].from_tcl("nw")
   end
 
   # Relief type
@@ -107,8 +108,9 @@ class TestOptionType < Minitest::Test
   end
 
   def test_relief_from_tcl
-    assert_equal :raised, Tk::OptionType[:relief].from_tcl("raised")
-    assert_equal :flat, Tk::OptionType[:relief].from_tcl("flat")
+    # Returns strings for backwards compatibility (legacy code expects strings)
+    assert_equal "raised", Tk::OptionType[:relief].from_tcl("raised")
+    assert_equal "flat", Tk::OptionType[:relief].from_tcl("flat")
   end
 
   # Registry
@@ -141,5 +143,34 @@ class TestOptionType < Minitest::Test
 
   def test_inspect
     assert_match(/OptionType:string/, Tk::OptionType[:string].inspect)
+  end
+
+  # Callback type
+  def test_callback_registered
+    assert Tk::OptionType.registered?(:callback)
+    assert_equal :callback, Tk::OptionType[:callback].name
+  end
+
+  def test_callback_to_tcl_with_string
+    assert_equal "some_cmd", Tk::OptionType[:callback].to_tcl("some_cmd", widget: nil)
+  end
+
+  def test_callback_from_tcl
+    assert_equal "some_cmd", Tk::OptionType[:callback].from_tcl("some_cmd")
+    assert_equal "", Tk::OptionType[:callback].from_tcl("")
+  end
+
+  # TkVariable type
+  def test_tkvariable_registered
+    assert Tk::OptionType.registered?(:tkvariable)
+    assert_equal :tkvariable, Tk::OptionType[:tkvariable].name
+  end
+
+  def test_tkvariable_to_tcl_with_string
+    assert_equal "myvar", Tk::OptionType[:tkvariable].to_tcl("myvar")
+  end
+
+  def test_tkvariable_from_tcl_empty
+    assert_nil Tk::OptionType[:tkvariable].from_tcl("")
   end
 end
