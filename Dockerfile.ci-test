@@ -75,7 +75,8 @@ WORKDIR /app
 
 # Copy only what's needed for compilation (not tests/samples)
 # This way test changes don't invalidate the compile cache
-COPY Gemfile Gemfile.lock *.gemspec ./
+# Note: Gemfile.lock is gitignored (gem convention), Docker generates its own
+COPY Gemfile *.gemspec ./
 COPY Rakefile ./
 COPY ext/ ext/
 COPY lib/ lib/
