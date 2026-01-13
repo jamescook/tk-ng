@@ -263,6 +263,7 @@ module TkTestHelper
     unless result[:success]
       output = []
       output << "Error: #{result[:error_class]}: #{result[:error_message]}"
+      output << "Code:\n#{result[:code_context]}" if result[:code_context]
       output << "Backtrace:\n  #{result[:backtrace].join("\n  ")}" if result[:backtrace]
       output << "STDOUT:\n#{result[:stdout]}" unless result[:stdout].to_s.empty?
       output << "STDERR:\n#{result[:stderr]}" unless result[:stderr].to_s.empty?

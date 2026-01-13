@@ -58,7 +58,10 @@ module TkcTagAccess
     @c.itemcget_tkstring(@id, option)
   end
   def cget(option)
-    @c.itemcget(@id, option)
+    raw = @c.itemcget_tkstring(@id, option)
+    # Use item's class option declarations for type conversion
+    opt = self.class.resolve_item_option(option)
+    opt ? opt.from_tcl(raw, widget: @c) : raw
   end
   def cget_strict(option)
     @c.itemcget_strict(@id, option)

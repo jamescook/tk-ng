@@ -160,6 +160,12 @@ end
 
 The public API (`cget`, `configure`, `configinfo`) is unchanged.
 
+### Removed: `TkItemConfigMethod` module
+
+The `TkItemConfigMethod` module (from `lib/tk/itemconfig.rb`) has been removed. Its functionality has been merged into `Tk::ItemOptionDSL::InstanceMethods`, which is automatically included when you `extend Tk::ItemOptionDSL`.
+
+If your code explicitly required `tk/itemconfig` or included `TkItemConfigMethod`, update it to use `Tk::ItemOptionDSL` instead. See `lib/tk/item_option_dsl.rb` for the replacement API.
+
 ### Removed: `__IGNORE_UNKNOWN_CONFIGURE_OPTION__`
 
 The global flag `TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__` has been removed. This flag silently swallowed errors when `configure` or `cget` encountered unknown widget options - a design that hid bugs and made debugging difficult.

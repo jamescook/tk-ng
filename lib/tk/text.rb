@@ -6,24 +6,19 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/text.html
 #
 require 'tk' unless defined?(Tk)
-require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
 module TkTextTagConfig
-  include TkItemConfigMethod
+  include Tk::ItemOptionDSL::InstanceMethods
 
-  def __item_cget_cmd(id)  # id := [ type, tagOrId ]
-    [self.path, id[0], 'cget', id[1]]
-  end
-  private :__item_cget_cmd
-
-  def __item_config_cmd(id)  # id := [ type, tagOrId ]
-    [self.path, id[0], 'configure', id[1]]
-  end
-  private :__item_config_cmd
+  # Item command configuration moved to DSL (pattern-based):
+  #   item_id_structure :type, :tag_or_id
+  #   item_cget_pattern ':path :type cget :tag_or_id'
+  #   item_configure_pattern ':path :type configure :tag_or_id'
+  # Set on Tk::Text class after extending Tk::ItemOptionDSL
 
   def __item_pathname(id)
     if id.kind_of?(Array)
@@ -308,6 +303,10 @@ class Tk::Text<TkTextWin
 
   extend Tk::ItemOptionDSL
   include Tk::Generated::Text
+
+  # Text uses [type, tagOrId] as item id (e.g., ['tag', 'mytag'], ['window', '.t.btn'])
+  item_cget_cmd { |(type, tag_or_id)| [path, type, 'cget', tag_or_id] }
+  item_configure_cmd { |(type, tag_or_id)| [path, type, 'configure', tag_or_id] }
 
   TkCommandNames = ['text'.freeze].freeze
   WidgetClassName = 'Text'.freeze

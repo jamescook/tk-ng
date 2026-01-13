@@ -5,14 +5,12 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html
 #
 require 'tk' unless defined?(Tk)
-require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
 module TkListItemConfig
-  include TkItemConfigMethod
 
   # NOTE: __item_listval_optkeys override removed - base returns [] when no list options declared via ItemOptionDSL
 end

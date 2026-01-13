@@ -6,31 +6,16 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html
 #
 require 'tk' unless defined?(Tk)
-require 'tk/itemconfig'
 require 'tk/menuspec'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
 module TkMenuEntryConfig
-  include TkItemConfigMethod
+  include Tk::ItemOptionDSL::InstanceMethods
 
-  def __item_cget_cmd(id)
-    [self.path, 'entrycget', id]
-  end
-  private :__item_cget_cmd
-
-  def __item_config_cmd(id)
-    [self.path, 'entryconfigure', id]
-  end
-  private :__item_config_cmd
-
-  # NOTE: __item_strval_optkeys override for 'selectcolor' removed - now declared via ItemOptionDSL
-  # NOTE: __item_listval_optkeys override removed - base returns [] when no list options declared via ItemOptionDSL
-
-  def __item_val2ruby_optkeys(id)  # { key=>proc, ... }
-    super(id).update('menu'=>proc{|i, v| window(v)})
-  end
-  private :__item_val2ruby_optkeys
+  # Item command configuration moved to DSL:
+  #   item_commands cget: 'entrycget', configure: 'entryconfigure'
+  # Set on Tk::Menu class after including Tk::Generated::MenuItems
 
   alias entrycget_tkstring itemcget_tkstring
   alias entrycget itemcget
@@ -47,35 +32,15 @@ class Tk::Menu<TkWindow
   include Wm
   include TkMenuEntryConfig
   extend TkMenuSpec
-  extend Tk::ItemOptionDSL
   include Tk::Generated::Menu
+  include Tk::Generated::MenuItems
+
+  # Declare item command structure (menu entries use 'entry*' commands)
+  item_commands cget: 'entrycget', configure: 'entryconfigure'
 
   TkCommandNames = ['menu'.freeze].freeze
   WidgetClassName = 'Menu'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Item options (for menu entries)
-
-  # String options
-  item_option :label,           type: :string
-  item_option :accelerator,     type: :string
-  item_option :state,           type: :string    # normal, active, disabled
-  item_option :compound,        type: :string    # none, bottom, top, left, right, center
-
-  # Color options
-  item_option :activebackground,  type: :string
-  item_option :activeforeground,  type: :string
-  item_option :background,        type: :string
-  item_option :foreground,        type: :string
-  item_option :selectcolor,       type: :string
-
-  # Boolean options
-  item_option :columnbreak,     type: :boolean
-  item_option :hidemargin,      type: :boolean
-  item_option :indicatoron,     type: :boolean
-
-  # Integer options
-  item_option :underline,       type: :integer
 
   #def create_self(keys)
   #  if keys and keys != None

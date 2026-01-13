@@ -165,8 +165,24 @@ class TkWorker
         @_test_result[:success] = false
         @_test_result[:error_class] = e.class.name
         @_test_result[:error_message] = e.message
-        @_test_result[:backtrace] = e.backtrace&.first(10) || []
+        @_test_result[:backtrace] = e.backtrace || []
         @_test_result[:stderr] = captured_err.string if captured_err
+
+        # Extract code context if error is in eval'd code
+        if e.backtrace&.first&.start_with?('(test):')
+          line_match = e.backtrace.first.match(/\(test\):(\d+)/)
+          if line_match
+            line_num = line_match[1].to_i
+            code_lines = code.lines
+            start_line = [line_num - 3, 0].max
+            end_line = [line_num + 1, code_lines.size - 1].min
+            context_lines = (start_line..end_line).map do |i|
+              prefix = (i + 1 == line_num) ? ">>>" : "   "
+              "#{prefix} #{i + 1}: #{code_lines[i]}"
+            end
+            @_test_result[:code_context] = context_lines.join
+          end
+        end
       ensure
         $stdout, $stderr = old_stdout, old_stderr
         reset_tk_state!

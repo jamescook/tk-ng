@@ -100,7 +100,7 @@ module TkComm
       end
 
       unless ruby_class
-        std_class = 'Tk' << tk_class
+        std_class = "Tk#{tk_class}"
         if Object.const_defined?(std_class)
           Object.const_get(std_class)  # auto_load
           ruby_class = WidgetClassNames[tk_class]
@@ -405,7 +405,7 @@ module TkComm
     tk_call('subst',
             *(opts.collect{|opt|
                 opt = opt.to_s
-                (opt[0] == ?-)? opt: '-' << opt
+                (opt[0] == ?-)? opt: "-#{opt}"
               } << str))
   end
 

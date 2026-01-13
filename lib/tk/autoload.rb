@@ -159,7 +159,7 @@ autoload :TkImage,            'tk/image'
 autoload :TkBitmapImage,      'tk/image'
 autoload :TkPhotoImage,       'tk/image'
 
-autoload :TkItemConfigMethod, 'tk/itemconfig'
+# TkItemConfigMethod removed - now Tk::ItemOptionDSL::InstanceMethods
 
 autoload :TkKinput,           'tk/kinput'
 

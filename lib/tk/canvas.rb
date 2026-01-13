@@ -7,13 +7,12 @@
 #
 require 'tk' unless defined?(Tk)
 require 'tk/canvastag'
-require 'tk/itemconfig'
 require 'tk/scrollable'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
 module TkCanvasItemConfig
-  include TkItemConfigMethod
+  include Tk::ItemOptionDSL::InstanceMethods
 
   # NOTE: __item_strval_optkeys override for fill/outline colors removed - now declared via ItemOptionDSL
 
@@ -41,10 +40,10 @@ module TkCanvasItemConfig
 end
 
 class Tk::Canvas<TkWindow
-  extend Tk::ItemOptionDSL
   include TkCanvasItemConfig
   include Tk::Scrollable
   include Tk::Generated::Canvas
+  include Tk::Generated::CanvasItems
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
   #
@@ -84,40 +83,6 @@ class Tk::Canvas<TkWindow
   TkCommandNames = ['canvas'.freeze].freeze
   WidgetClassName = 'Canvas'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # ================================================================
-  # Item options (for canvas items: rectangles, ovals, lines, etc.)
-  # ================================================================
-
-  # Colors (string type for legacy compatibility)
-  item_option :fill,             type: :string
-  item_option :activefill,       type: :string
-  item_option :disabledfill,     type: :string
-  item_option :outline,          type: :string
-  item_option :activeoutline,    type: :string
-  item_option :disabledoutline,  type: :string
-
-  # Line widths (float values)
-  item_option :width,            type: :float
-  item_option :activewidth,      type: :float
-  item_option :disabledwidth,    type: :float
-
-  # Boolean options
-  item_option :smooth,           type: :boolean
-
-  # Integer options
-  item_option :splinesteps,      type: :integer
-
-  # List options (dash patterns, etc.)
-  item_option :tags,             type: :list
-
-  # String options (enumerated values)
-  item_option :state,            type: :string   # normal, disabled, hidden
-  item_option :arrow,            type: :string   # none, first, last, both
-  item_option :capstyle,         type: :string   # butt, projecting, round
-  item_option :joinstyle,        type: :string   # bevel, miter, round
-  item_option :anchor,           type: :string   # n, ne, e, se, s, sw, w, nw, center
-  item_option :justify,          type: :string   # left, right, center
 
   def __destroy_hook__
     TkcItem::CItemID_TBL.delete(@path)
@@ -458,7 +423,11 @@ Tk.__set_loaded_toplevel_aliases__('tk/canvas.rb', :Tk, Tk::Canvas, :TkCanvas)
 class TkcItem<TkObject
   extend Tk
   include TkcTagAccess
-  extend TkItemConfigOptkeys
+  include Tk::Generated::CanvasItems
+
+  # Override tags to return TkcTag objects
+  extend Tk::ItemOptionDSL
+  item_option :tags, type: :canvas_tags
 
   CItemTypeName = nil
   CItemTypeToClass = {}
@@ -486,8 +455,6 @@ class TkcItem<TkObject
 
   ########################################
   def self._parse_create_args(args)
-    fontkeys = {}
-    methodkeys = {}
     if args[-1].kind_of? Hash
       keys = _symbolkey2str(args.pop)
       if args.size == 0
@@ -497,32 +464,18 @@ class TkcItem<TkObject
         end
       end
 
-      # Font is now a regular option - no special extraction needed
-
-      __item_optkey_aliases(nil).each{|alias_name, real_name|
+      # Resolve aliases (e.g., :bg -> :background)
+      declared_item_optkey_aliases.each do |alias_name, real_name|
         alias_name = alias_name.to_s
-        if keys.has_key?(alias_name)
-          keys[real_name.to_s] = keys.delete(alias_name)
-        end
-      }
+        keys[real_name.to_s] = keys.delete(alias_name) if keys.key?(alias_name)
+      end
 
-      __item_methodcall_optkeys(nil).each{|key|
-        key = key.to_s
-        methodkeys[key] = keys.delete(key) if keys.key?(key)
-      }
-
-      __item_ruby2val_optkeys(nil).each{|key, method|
-        key = key.to_s
-        keys[key] = method.call(keys[key]) if keys.has_key?(key)
-      }
-
-      #args = args.flatten.concat(hash_kv(keys))
-      args = args.flatten.concat(itemconfig_hash_kv(nil, keys))
+      args = args.flatten.concat(hash_kv(keys))
     else
       args = args.flatten
     end
 
-    [args, fontkeys, methodkeys]
+    args
   end
   private_class_method :_parse_create_args
 
@@ -530,11 +483,9 @@ class TkcItem<TkObject
     unless self::CItemTypeName
       fail RuntimeError, "#{self} is an abstract class"
     end
-    args, fontkeys, methodkeys = _parse_create_args(args)
+    args = _parse_create_args(args)
     idnum = tk_call_without_enc(canvas.path, 'create',
                                 self::CItemTypeName, *args)
-    canvas.itemconfigure(idnum, fontkeys) unless fontkeys.empty?
-    canvas.itemconfigure(idnum, methodkeys) unless methodkeys.empty?
     idnum.to_i  # 'canvas item id' is an integer number
   end
   ########################################
@@ -632,6 +583,11 @@ end
 class TkcWindow<TkcItem
   CItemTypeName = 'window'.freeze
   CItemTypeToClass[CItemTypeName] = self
+
+  # Override window option to return widget objects, not path strings
+  extend Tk::ItemOptionDSL
+  item_option :window, type: :widget
+
   def self.create(canvas, *args)
     if args[-1].kind_of?(Hash)
       keys = _symbolkey2str(args.pop)

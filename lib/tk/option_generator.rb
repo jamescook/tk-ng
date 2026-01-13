@@ -74,6 +74,27 @@ module Tk
 
         line
       end
+
+      # Generate the item_option DSL declaration for this option
+      # @param aliases [Array<String>] optional list of alias names for this option
+      # @param type_override [Symbol, nil] explicit type (used when db_class is unavailable)
+      def to_item_dsl(aliases: [], type_override: nil)
+        parts = ["item_option :#{name}"]
+
+        # Use type_override if provided, otherwise fall back to db_class inference
+        effective_type = type_override || ruby_type
+        if effective_type && effective_type != :string
+          parts << "type: :#{effective_type}"
+        end
+
+        if aliases.size == 1
+          parts << "alias: :#{aliases.first}"
+        elsif aliases.size > 1
+          parts << "aliases: [#{aliases.map { |a| ":#{a}" }.join(', ')}]"
+        end
+
+        parts.join(', ')
+      end
     end
 
     attr_reader :tcl_version

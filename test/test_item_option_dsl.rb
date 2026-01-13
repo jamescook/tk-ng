@@ -142,53 +142,7 @@ class TestItemOptionDSL < Minitest::Test
     assert_equal 2, subclass.item_options.values.uniq.size
   end
 
-  # --- Bridge methods for legacy __item_*_optkeys ---
-
-  def test_declared_item_numval_optkeys
-    @klass.item_option :width, type: :integer
-    @klass.item_option :height, type: :integer
-    @klass.item_option :opacity, type: :float
-    @klass.item_option :name, type: :string
-
-    numval = @klass.declared_item_numval_optkeys
-    assert_includes numval, 'width'
-    assert_includes numval, 'height'
-    assert_includes numval, 'opacity'
-    refute_includes numval, 'name'
-  end
-
-  def test_declared_item_boolval_optkeys
-    @klass.item_option :smooth, type: :boolean
-    @klass.item_option :visible, type: :boolean
-    @klass.item_option :name, type: :string
-
-    boolval = @klass.declared_item_boolval_optkeys
-    assert_includes boolval, 'smooth'
-    assert_includes boolval, 'visible'
-    refute_includes boolval, 'name'
-  end
-
-  def test_declared_item_strval_optkeys
-    @klass.item_option :fill, type: :string
-    @klass.item_option :outline, type: :string
-    @klass.item_option :width, type: :integer
-
-    strval = @klass.declared_item_strval_optkeys
-    assert_includes strval, 'fill'
-    assert_includes strval, 'outline'
-    refute_includes strval, 'width'
-  end
-
-  def test_declared_item_listval_optkeys
-    @klass.item_option :dash, type: :list
-    @klass.item_option :tags, type: :list
-    @klass.item_option :fill, type: :string
-
-    listval = @klass.declared_item_listval_optkeys
-    assert_includes listval, 'dash'
-    assert_includes listval, 'tags'
-    refute_includes listval, 'fill'
-  end
+  # --- Alias methods ---
 
   def test_declared_item_optkey_aliases
     @klass.item_option :background, aliases: [:bg]
@@ -256,5 +210,68 @@ class TestItemOptionDSL < Minitest::Test
 
     # These should be different Option instances
     refute_same widget_opt, item_opt
+  end
+
+  # --- Item Command Pattern DSL ---
+
+  def test_item_commands_sets_simple_config
+    @klass.item_commands cget: 'entrycget', configure: 'entryconfigure'
+
+    config = @klass.item_command_config
+    assert_equal 'entrycget', config[:cget]
+    assert_equal 'entryconfigure', config[:configure]
+  end
+
+  def test_item_command_config_returns_nil_when_not_configured
+    assert_nil @klass.item_command_config
+  end
+
+  def test_subclass_inherits_item_commands
+    @klass.item_commands cget: 'entrycget', configure: 'entryconfigure'
+
+    subclass = Class.new(@klass)
+
+    config = subclass.item_command_config
+    assert_equal 'entrycget', config[:cget]
+    assert_equal 'entryconfigure', config[:configure]
+  end
+
+  def test_subclass_can_override_item_commands
+    @klass.item_commands cget: 'itemcget', configure: 'itemconfigure'
+
+    subclass = Class.new(@klass)
+    subclass.item_commands cget: 'entrycget', configure: 'entryconfigure'
+
+    # Parent unchanged
+    assert_equal 'itemcget', @klass.item_command_config[:cget]
+
+    # Subclass has new config
+    assert_equal 'entrycget', subclass.item_command_config[:cget]
+  end
+
+  # --- Proc-based item commands ---
+
+  def test_item_cget_cmd_with_proc
+    @klass.item_cget_cmd { |id| ['custom', 'cget', id] }
+
+    config = @klass.item_command_config
+    assert config[:cget_proc].is_a?(Proc)
+  end
+
+  def test_item_configure_cmd_with_proc
+    @klass.item_cget_cmd { |id| ['cget', id] }  # need at least one for config to exist
+    @klass.item_configure_cmd { |id| ['custom', 'configure', id] }
+
+    config = @klass.item_command_config
+    assert config[:configure_proc].is_a?(Proc)
+  end
+
+  def test_subclass_inherits_item_cmd_procs
+    @klass.item_cget_cmd { |id| ['parent', 'cget', id] }
+
+    subclass = Class.new(@klass)
+
+    config = subclass.item_command_config
+    assert config[:cget_proc].is_a?(Proc)
   end
 end

@@ -22,17 +22,9 @@ class Tk::Tile::TNotebook < TkWindow
   extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
   ################################
-  include TkItemConfigMethod
 
-  def __item_cget_cmd(id)
-    [self.path, 'tab', id]
-  end
-  private :__item_cget_cmd
-
-  def __item_config_cmd(id)
-    [self.path, 'tab', id]
-  end
-  private :__item_config_cmd
+  # Declare item command structure (notebook tabs use 'tab' for both cget and configure)
+  item_commands cget: 'tab', configure: 'tab'
 
   def __item_methodcall_optkeys(id)  # { key=>method, ... }
     {}

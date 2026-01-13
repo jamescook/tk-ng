@@ -570,6 +570,20 @@ namespace :docker do
     sh cmd
   end
 
+  desc "Generate item options in Docker (TCL_VERSION=9.0|8.6)"
+  task generate_item_options: :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    puts "Generating item options in Docker (Tcl #{tcl_version})..."
+    cmd = "docker run --rm --init"
+    cmd += " -v #{Dir.pwd}/lib/tk/generated:/app/lib/tk/generated"
+    cmd += " -e TCL_VERSION=#{tcl_version}"
+    cmd += " #{image_name} xvfb-run -a bundle exec rake tk:generate_item_options"
+
+    sh cmd
+  end
+
   desc "Remove dangling Docker images from ruby-tk builds"
   task :prune do
     sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
@@ -737,5 +751,15 @@ namespace :tk do
         puts "  #{entry.name}: dbclass=#{entry.db_class}, type=#{entry.ruby_type}"
       end
     end
+  end
+
+  desc "Generate item option DSL from Tk introspection (requires display)"
+  task generate_item_options: :compile do
+    require_relative 'lib/tk/item_option_generation_service'
+
+    $LOAD_PATH.unshift(File.expand_path('lib', __dir__))
+    require 'tk'
+
+    Tk::ItemOptionGenerationService.new(tcl_version: Tk::TCL_VERSION).call
   end
 end
