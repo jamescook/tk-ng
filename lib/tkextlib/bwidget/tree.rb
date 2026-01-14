@@ -25,6 +25,15 @@ class Tk::BWidget::Tree
   WidgetClassName = 'Tree'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
+  # Node item options
+  item_option :open,       type: :boolean
+  item_option :text,       type: :string
+  item_option :image,      type: :string
+  item_option :drawcross,  type: :string
+  item_option :font,       type: :string
+  item_option :fill,       type: :string
+  item_option :data,       type: :string
+
   class Event_for_Items < TkEvent::Event
     def self._get_extra_args_tbl
       [

@@ -19,7 +19,7 @@ class Tk::BWidget::Button
   extend Tk::OptionDSL
 
   TkCommandNames = ['Button'.freeze].freeze
-  WidgetClassName = 'Button'.freeze
+  WidgetClassName = 'BWidget::Button'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
   # BWidget Button options

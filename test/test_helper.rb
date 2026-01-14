@@ -8,8 +8,13 @@
 if ENV['COVERAGE']
   require 'simplecov'
 
+  # Use COVERAGE_NAME to save results to a unique subdirectory
+  # This allows multiple test runs (main, bwidget, tkdnd) to be collated later
+  coverage_name = ENV['COVERAGE_NAME'] || 'default'
+  SimpleCov.coverage_dir "coverage/results/#{coverage_name}"
+
   # Unique command name for each process (enables subprocess merging)
-  SimpleCov.command_name "test:#{Process.pid}"
+  SimpleCov.command_name "#{coverage_name}:#{Process.pid}"
 
   SimpleCov.start do
     add_filter '/test/'
@@ -33,22 +38,6 @@ FIXTURES_PATH = File.expand_path('fixtures', __dir__)
 
 require 'minitest/autorun'
 
-# Collate subprocess coverage results at the very end (after all tests complete)
-if ENV['COVERAGE']
-  Minitest.after_run do
-    # Find all per-subprocess result files (each in its own pid directory)
-    subprocess_results = Dir["coverage/results/*/.resultset.json"]
-    if subprocess_results.any?
-      SimpleCov.collate(subprocess_results) do
-        add_filter '/test/'
-        add_filter '/ext/'
-        add_filter '/benchmark/'
-
-        add_group 'Core', 'lib/tk.rb'
-        add_group 'Widgets', 'lib/tk'
-        add_group 'Extensions', 'lib/tkextlib'
-        add_group 'Utilities', ['lib/tkutil.rb', 'lib/tk/util.rb']
-      end
-    end
-  end
-end
+# Note: Coverage collation across multiple test suites (main, bwidget, tkdnd)
+# is done by `rake coverage:collate` after all test runs complete.
+# Each test run saves to coverage/results/<COVERAGE_NAME>/.resultset.json

@@ -66,6 +66,17 @@ class TestBWidgetNoteBook < Minitest::Test
     pages = notebook.pages
     errors << "delete failed" unless pages.size == 2
 
+    # --- itemconfigure/itemcget for page options ---
+    notebook.itemconfigure('page1', text: 'First Page')
+    text = notebook.itemcget('page1', :text)
+    errors << "itemcget text failed: got #{text.inspect}" unless text == 'First Page'
+
+    notebook.itemconfigure('page1', state: 'disabled')
+    state = notebook.itemcget('page1', :state)
+    errors << "itemcget state failed: got #{state.inspect}" unless state == 'disabled'
+
+    notebook.itemconfigure('page1', state: 'normal')
+
     raise "BWidget NoteBook test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 end

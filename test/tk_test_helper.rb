@@ -27,17 +27,16 @@ module TkTestHelper
   # SimpleCov preamble injected into subprocess code for coverage merging
   # Only runs if ENV['COVERAGE'] is set
   #
-  # Key optimization: subprocesses write individual result files and DON'T
-  # merge with existing results. The main process collates all results at
-  # the end. This avoids the O(n²) behavior of reading/writing a growing
-  # resultset file after each subprocess.
+  # Each subprocess writes to its own directory to avoid race conditions.
+  # Directory is named <COVERAGE_NAME>_sub_<PID> so collation can find them all.
   def self.simplecov_preamble
     <<~RUBY
       if ENV['COVERAGE']
         require 'simplecov'
 
-        # Each subprocess gets its own directory to avoid file conflicts
-        SimpleCov.coverage_dir "#{PROJECT_ROOT}/coverage/results/\#{Process.pid}"
+        # Unique directory per subprocess to avoid write conflicts
+        coverage_name = ENV['COVERAGE_NAME'] || 'default'
+        SimpleCov.coverage_dir "#{PROJECT_ROOT}/coverage/results/\#{coverage_name}_sub_\#{Process.pid}"
         SimpleCov.command_name "subprocess:\#{Process.pid}"
         SimpleCov.print_error_status = false
         SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
@@ -45,6 +44,7 @@ module TkTestHelper
         SimpleCov.start do
           add_filter '/test/'
           add_filter '/ext/'
+          add_filter '/lib/tk/generated/8_6'
           add_filter '/benchmark/'
           track_files "#{PROJECT_ROOT}/lib/**/*.rb"
         end

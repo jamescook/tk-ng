@@ -20,14 +20,24 @@ class TestBWidgetButton < Minitest::Test
 
     errors = []
 
+    # DEBUG: log to file to avoid TkWorker JSON issues
+    log = File.open('/tmp/button_debug.log', 'a')
+    log.puts "=== Button test at #{Time.now} ==="
+    log.puts "tk_windows #: #{TkCore::INTERP.tk_windows.keys.select { |k| k.include?('#') }.inspect}"
+
     # --- Basic button ---
     button = Tk::BWidget::Button.new(root, text: "Test Button")
+    log.puts "button created: path=#{button.path.inspect} class=#{button.class}"
     button.pack
 
     errors << "text failed" unless button.cget(:text) == "Test Button"
 
     # --- helptext (BWidget-specific string option) ---
+    log.puts "About to configure helptext on path=#{button.path.inspect}"
+    log.flush
     button.configure(helptext: "This is help text")
+    log.puts "configure OK"
+    log.close
     errors << "helptext failed" unless button.cget(:helptext) == "This is help text"
 
     # --- command callback ---
@@ -43,13 +53,13 @@ class TestBWidgetButton < Minitest::Test
     button.configure(state: "normal")
     errors << "state normal failed" unless button.cget(:state) == "normal"
 
-    # --- width/height ---
-    button.configure(width: 20)
-    errors << "width failed" unless button.cget(:width).to_i == 20
-
     # --- relief ---
     button.configure(relief: "raised")
     errors << "relief failed" unless button.cget(:relief) == "raised"
+
+    # --- width/height ---
+    button.configure(width: 20)
+    errors << "width failed" unless button.cget(:width).to_i == 20
 
     # --- helpvar (TkVariable) ---
     helpvar = TkVariable.new("help variable content")

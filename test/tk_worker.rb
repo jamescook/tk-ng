@@ -166,6 +166,7 @@ class TkWorker
         @_test_result[:error_class] = e.class.name
         @_test_result[:error_message] = e.message
         @_test_result[:backtrace] = e.backtrace || []
+        @_test_result[:stdout] = captured_out.string if captured_out
         @_test_result[:stderr] = captured_err.string if captured_err
 
         # Extract code context if error is in eval'd code
@@ -203,6 +204,12 @@ class TkWorker
         child.destroy rescue nil
       end
       @root.withdraw
+
+      # Reset BWidget state if loaded (must be done AFTER destroying children
+      # so that recreated internal widgets aren't immediately destroyed)
+      if defined?(Tk::BWidget) && Tk::BWidget.respond_to?(:reset)
+        Tk::BWidget.reset
+      end
     end
   end
 end
