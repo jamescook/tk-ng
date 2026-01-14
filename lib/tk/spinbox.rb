@@ -79,16 +79,7 @@ class Tk::Spinbox<Tk::Entry
         [ ?s, TkComm.method(:string) ],
         [ ?w, TkComm.method(:window) ],
 
-        [ ?e, proc{|val|
-            #enc = Tk.encoding
-            enc = ((Tk.encoding)? Tk.encoding : Tk.encoding_system)
-            if enc
-              Tk.fromUTF8(TkComm::string(val), enc)
-            else
-              TkComm::string(val)
-            end
-          }
-        ],
+        [ ?e, proc{|val| TkComm::string(val) } ],
 
         nil
       ]
@@ -179,7 +170,7 @@ class Tk::Spinbox<Tk::Entry
   end
 
   def set(str)
-    _fromUTF8(tk_send_without_enc('set', _get_eval_enc_str(str)))
+    tk_send_without_enc('set', _get_eval_enc_str(str))
   end
 end
 

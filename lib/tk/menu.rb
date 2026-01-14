@@ -135,7 +135,7 @@ class Tk::Menu<TkWindow
     (ret == 'none')? nil: number(ret)
   end
   def invoke(index)
-    _fromUTF8(tk_send_without_enc('invoke', _get_eval_enc_str(index)))
+    tk_send_without_enc('invoke', _get_eval_enc_str(index))
   end
   def insert(index, type, keys=nil)
     tk_send_without_enc('insert', _get_eval_enc_str(index),
@@ -161,7 +161,7 @@ class Tk::Menu<TkWindow
     self
   end
   def post(x, y)
-    _fromUTF8(tk_send_without_enc('post', x, y))
+    tk_send_without_enc('post', x, y)
   end
   def postcascade(index)
     tk_send_without_enc('postcascade', _get_eval_enc_str(index))

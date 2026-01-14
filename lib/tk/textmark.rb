@@ -124,17 +124,17 @@ class TkTextMark<TkObject
 
   def next(index = nil)
     if index
-      @t.tagid2obj(_fromUTF8(tk_call_without_enc(@t.path, 'mark', 'next', _get_eval_enc_str(index))))
+      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'next', _get_eval_enc_str(index)))
     else
-      @t.tagid2obj(_fromUTF8(tk_call_without_enc(@t.path, 'mark', 'next', @id)))
+      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'next', @id))
     end
   end
 
   def previous(index = nil)
     if index
-      @t.tagid2obj(_fromUTF8(tk_call_without_enc(@t.path, 'mark', 'previous', _get_eval_enc_str(index))))
+      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'previous', _get_eval_enc_str(index)))
     else
-      @t.tagid2obj(_fromUTF8(tk_call_without_enc(@t.path, 'mark', 'previous', @id)))
+      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'previous', @id))
     end
   end
 end

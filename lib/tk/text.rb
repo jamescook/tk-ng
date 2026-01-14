@@ -383,7 +383,7 @@ class Tk::Text<TkTextWin
   end
 
   def value
-    _fromUTF8(tk_send_without_enc('get', "1.0", "end - 1 char"))
+    tk_send_without_enc('get', "1.0", "end - 1 char")
   end
 
   def value=(val)
@@ -465,26 +465,21 @@ class Tk::Text<TkTextWin
   alias unset_mark mark_unset
 
   def mark_next(index)
-    tagid2obj(_fromUTF8(tk_send_without_enc('mark', 'next',
-                                            _get_eval_enc_str(index))))
+    tagid2obj(tk_send_without_enc('mark', 'next', _get_eval_enc_str(index)))
   end
   alias next_mark mark_next
 
   def mark_previous(index)
-    tagid2obj(_fromUTF8(tk_send_without_enc('mark', 'previous',
-                                            _get_eval_enc_str(index))))
+    tagid2obj(tk_send_without_enc('mark', 'previous', _get_eval_enc_str(index)))
   end
   alias previous_mark mark_previous
 
   def image_cget_strict(index, slot)
     case slot.to_s
     when 'text', 'label', 'show', 'data', 'file'
-      _fromUTF8(tk_send_without_enc('image', 'cget',
-                                    _get_eval_enc_str(index), "-#{slot}"))
+      tk_send_without_enc('image', 'cget', _get_eval_enc_str(index), "-#{slot}")
     else
-      tk_tcl2ruby(_fromUTF8(tk_send_without_enc('image', 'cget',
-                                                _get_eval_enc_str(index),
-                                                "-#{slot}")))
+      tk_tcl2ruby(tk_send_without_enc('image', 'cget', _get_eval_enc_str(index), "-#{slot}"))
     end
   end
 
@@ -494,14 +489,9 @@ class Tk::Text<TkTextWin
 
   def image_configure(index, slot, value=None)
     if slot.kind_of?(Hash)
-      _fromUTF8(tk_send_without_enc('image', 'configure',
-                                    _get_eval_enc_str(index),
-                                    *hash_kv(slot, true)))
+      tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), *hash_kv(slot, true))
     else
-      _fromUTF8(tk_send_without_enc('image', 'configure',
-                                    _get_eval_enc_str(index),
-                                    "-#{slot}",
-                                    _get_eval_enc_str(value)))
+      tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}", _get_eval_enc_str(value))
     end
     self
   end

@@ -210,12 +210,9 @@ module TkComm
         return val.gsub(ESCAPED_SPACE_PATTERN, ' ')
       elsif listobj
         # Unescaped space = Tcl list, parse recursively
-        val = _toUTF8(val) unless enc_mode
         return tk_split_escstr(val, false, false).collect { |elt|
           tk_tcl2ruby(elt, true, listobj)
         }
-      elsif enc_mode
-        return _fromUTF8(val)
       else
         return val
       end
@@ -235,8 +232,8 @@ module TkComm
       end
     end
 
-    # Default: return as string, possibly with encoding conversion
-    enc_mode ? _fromUTF8(val) : val
+    # Default: return as string
+    val
   end
 
   private :tk_tcl2ruby
@@ -246,19 +243,10 @@ module TkComm
   # These are faster than pure Ruby for merge operations with special chars.
 
   def tk_split_escstr(str, src_enc=true, dst_enc=true)
-    str = _toUTF8(str) if src_enc
-    if dst_enc
-      TkCore::INTERP._split_tklist(str).map!{|s| _fromUTF8(s)}
-    else
-      TkCore::INTERP._split_tklist(str)
-    end
+    TkCore::INTERP._split_tklist(str)
   end
 
   def tk_split_sublist(str, depth=-1, src_enc=true, dst_enc=true)
-    # return [] if str == ""
-    # list = TkCore::INTERP._split_tklist(str)
-    str = _toUTF8(str) if src_enc
-
     if depth == 0
       return "" if str == ""
       list = [str]
@@ -267,7 +255,6 @@ module TkComm
       list = TkCore::INTERP._split_tklist(str)
     end
     if list.size == 1
-      # tk_tcl2ruby(list[0], nil, false)
       tk_tcl2ruby(list[0], dst_enc, false)
     else
       list.collect{|token| tk_split_sublist(token, depth - 1, false, dst_enc)}
@@ -276,26 +263,13 @@ module TkComm
 
   def tk_split_list(str, depth=0, src_enc=true, dst_enc=true)
     return [] if str == ""
-    str = _toUTF8(str) if src_enc
     TkCore::INTERP._split_tklist(str).map!{|token|
       tk_split_sublist(token, depth - 1, false, dst_enc)
     }
   end
 
   def tk_split_simplelist(str, src_enc=true, dst_enc=true)
-    #lst = TkCore::INTERP._split_tklist(str)
-    #if (lst.size == 1 && lst =~ /^\{.*\}$/)
-    #  TkCore::INTERP._split_tklist(str[1..-2])
-    #else
-    #  lst
-    #end
-
-    str = _toUTF8(str) if src_enc
-    if dst_enc
-      TkCore::INTERP._split_tklist(str).map!{|s| _fromUTF8(s)}
-    else
-      TkCore::INTERP._split_tklist(str)
-    end
+    TkCore::INTERP._split_tklist(str)
   end
 
   def array2tk_list(ary, enc=nil)
@@ -326,19 +300,7 @@ module TkComm
       s
     }
 
-    if sys_enc && dst_enc
-      dst.map!{|s| _toUTF8(s)}
-      ret = TkCore::INTERP._merge_tklist(*dst)
-      if dst_enc.kind_of?(String)
-        ret = _fromUTF8(ret, dst_enc)
-        ret.force_encoding(dst_enc)
-      else
-        ret.force_encoding('utf-8')
-      end
-      ret
-    else
-      TkCore::INTERP._merge_tklist(*dst)
-    end
+    TkCore::INTERP._merge_tklist(*dst)
   end
 
   private :tk_split_escstr, :tk_split_sublist
@@ -409,12 +371,9 @@ module TkComm
               } << str))
   end
 
-  def _toUTF8(str, encoding = nil)
-    TkCore::INTERP._toUTF8(str, encoding)
-  end
-  def _fromUTF8(str, encoding = nil)
-    TkCore::INTERP._fromUTF8(str, encoding)
-  end
+  # Legacy encoding methods - no-ops since modern Ruby/Tcl use UTF-8 natively
+  def _toUTF8(str, encoding = nil) = str.to_s
+  def _fromUTF8(str, encoding = nil) = str.to_s
   private :_toUTF8, :_fromUTF8
   module_function :_toUTF8, :_fromUTF8
 

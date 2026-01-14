@@ -54,7 +54,7 @@ class Tk::Button<Tk::Label
   WidgetClassNames[WidgetClassName] ||= self
 
   def invoke
-    _fromUTF8(tk_send_without_enc('invoke'))
+    tk_send_without_enc('invoke')
   end
   def flash
     tk_send_without_enc('flash')

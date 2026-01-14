@@ -352,7 +352,7 @@ class TkNamespace < TkObject
     cmd ||= block
     code_obj = code(cmd)
     ret = code_obj.call(*args)
-    uninstall_cmd(_fromUTF8(TkCore::INTERP._split_tklist(_toUTF8(code_obj.path))[-1]))
+    uninstall_cmd(TkCore::INTERP._split_tklist(code_obj.path)[-1])
     ret
   end
 

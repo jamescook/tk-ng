@@ -134,7 +134,7 @@ class Tk::Entry<Tk::Label
   end
 
   def value
-    _fromUTF8(tk_send_without_enc('get'))
+    tk_send_without_enc('get')
   end
   def value=(val)
     tk_send_without_enc('delete', 0, 'end')

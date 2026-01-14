@@ -48,7 +48,7 @@ class Tk::Tile::TNotebook < TkWindow
       result = []
       dict.each_slice(2) do |opt, val|
         opt = opt[1..-1] if opt.to_s.start_with?('-')
-        result << [opt, '', '', '', _fromUTF8(val)]
+        result << [opt, '', '', '', val]
       end
       result
     end
@@ -62,7 +62,7 @@ class Tk::Tile::TNotebook < TkWindow
       result = {}
       dict.each_slice(2) do |opt, val|
         opt = opt[1..-1] if opt.to_s.start_with?('-')
-        result[opt] = _fromUTF8(val)
+        result[opt] = val
       end
       result
     end

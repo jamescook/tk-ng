@@ -36,6 +36,18 @@ module Tk
   include TkCore
   extend Tk
 
+  # Deprecation warning flags (warn only once)
+  @tk_instance_update_warned = false
+  @tk_thread_update_warned = false
+  @tk_to_utf8_warned = false
+  @tk_from_utf8_warned = false
+  class << self
+    attr_accessor :tk_instance_update_warned
+    attr_accessor :tk_thread_update_warned
+    attr_accessor :tk_to_utf8_warned
+    attr_accessor :tk_from_utf8_warned
+  end
+
   TCL_VERSION = INTERP._invoke_without_enc("info", "tclversion").freeze
   TCL_PATCHLEVEL = INTERP._invoke_without_enc("info", "patchlevel").freeze
 
@@ -67,70 +79,77 @@ module Tk
     warn "[ruby-tk] Generated item options not found for Tcl #{TCL_VERSION}. Run: rake tk:generate_item_options[#{TCL_VERSION}]"
   end
 
+  # --- Tcl variable accessors ---
+  # These replace the old const_missing hack with proper methods.
+
+  def Tk.tcl_library
+    INTERP._invoke_without_enc('global', 'tcl_library')
+    INTERP._invoke("set", "tcl_library").freeze
+  end
+
+  def Tk.tk_library
+    INTERP._invoke_without_enc('global', 'tk_library')
+    INTERP._invoke("set", "tk_library").freeze
+  end
+
+  def Tk.library
+    INTERP._invoke("info", "library").freeze
+  end
+
+  def Tk.platform
+    INTERP._invoke_without_enc('global', 'tcl_platform')
+    Hash[*tk_split_simplelist(INTERP._invoke_without_enc('array', 'get', 'tcl_platform'))]
+  end
+
+  def Tk.tcl_env
+    INTERP._invoke_without_enc('global', 'env')
+    Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', 'env'))]
+  end
+
+  def Tk.auto_index
+    INTERP._invoke_without_enc('global', 'auto_index')
+    Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', 'auto_index'))]
+  end
+
+  def Tk.priv
+    var_nam = if INTERP._invoke_without_enc('info', 'vars', 'tk::Priv') != ""
+                'tk::Priv'
+              else
+                'tkPriv'
+              end
+    INTERP._invoke_without_enc('global', var_nam)
+    result = {}
+    Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', var_nam))].each do |k, v|
+      k.freeze
+      result[k] = case v
+                  when /^-?\d+$/ then v.to_i
+                  when /^-?\d+\.?\d*(e[-+]?\d+)?$/ then v.to_f
+                  else v.freeze
+                  end
+    end
+    result
+  end
+
+  # Deprecated: const_missing fallback for legacy code using Tk::TCL_LIBRARY, etc.
+  CONST_MISSING_MAP = {
+    TCL_LIBRARY: :tcl_library,
+    TK_LIBRARY: :tk_library,
+    LIBRARY: :library,
+    PLATFORM: :platform,
+    TCL_PLATFORM: :platform,
+    ENV: :tcl_env,
+    AUTO_INDEX: :auto_index,
+    PRIV: :priv,
+    PRIVATE: :priv,
+    TK_PRIV: :priv
+  }.freeze
+
   def Tk.const_missing(sym)
-    case(sym)
-    when :TCL_LIBRARY
-      INTERP._invoke_without_enc('global', 'tcl_library')
-      INTERP._invoke("set", "tcl_library").freeze
-
-    when :TK_LIBRARY
-      INTERP._invoke_without_enc('global', 'tk_library')
-      INTERP._invoke("set", "tk_library").freeze
-
-    when :LIBRARY
-      INTERP._invoke("info", "library").freeze
-
-    #when :PKG_PATH, :PACKAGE_PATH, :TCL_PACKAGE_PATH
-    #  INTERP._invoke_without_enc('global', 'tcl_pkgPath')
-    #  tk_split_simplelist(INTERP._invoke('set', 'tcl_pkgPath'))
-
-    #when :LIB_PATH, :LIBRARY_PATH, :TCL_LIBRARY_PATH
-    #  INTERP._invoke_without_enc('global', 'tcl_libPath')
-    #  tk_split_simplelist(INTERP._invoke('set', 'tcl_libPath'))
-
-    when :PLATFORM, :TCL_PLATFORM
-      INTERP._invoke_without_enc('global', 'tcl_platform')
-      Hash[*tk_split_simplelist(INTERP._invoke_without_enc('array', 'get',
-                                                           'tcl_platform'))]
-
-    when :ENV
-      INTERP._invoke_without_enc('global', 'env')
-      Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', 'env'))]
-
-    #when :AUTO_PATH   #<===
-    #  tk_split_simplelist(INTERP._invoke('set', 'auto_path'))
-
-    #when :AUTO_OLDPATH
-    #  tk_split_simplelist(INTERP._invoke('set', 'auto_oldpath'))
-
-    when :AUTO_INDEX
-      INTERP._invoke_without_enc('global', 'auto_index')
-      Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', 'auto_index'))]
-
-    when :PRIV, :PRIVATE, :TK_PRIV
-      priv = {}
-      if INTERP._invoke_without_enc('info', 'vars', 'tk::Priv') != ""
-        var_nam = 'tk::Priv'
-      else
-        var_nam = 'tkPriv'
-      end
-      INTERP._invoke_without_enc('global', var_nam)
-      Hash[*tk_split_simplelist(INTERP._invoke('array', 'get',
-                                               var_nam))].each{|k,v|
-        k.freeze
-        case v
-        when /^-?\d+$/
-          priv[k] = v.to_i
-        when /^-?\d+\.?\d*(e[-+]?\d+)?$/
-          priv[k] = v.to_f
-        else
-          priv[k] = v.freeze
-        end
-      }
-      priv
-
+    if (method_name = CONST_MISSING_MAP[sym])
+      warn "Tk::#{sym} is deprecated. Use Tk.#{method_name} instead.", uplevel: 1
+      send(method_name)
     else
-      raise NameError, 'uninitialized constant Tk::' + sym.id2name
+      raise NameError, "uninitialized constant Tk::#{sym}"
     end
   end
 
@@ -337,20 +356,23 @@ module Tk
   end
   def update(idle=nil)
     # only for backward compatibility (This never be recommended to use)
+    unless Tk.tk_instance_update_warned
+      warn "Calling #update on a Tk widget instance is deprecated. Use Tk.update instead.", uplevel: 1
+      Tk.tk_instance_update_warned = true
+    end
     Tk.update(idle)
     self
   end
 
-  # NOTE::
-  #   If no eventloop-thread is running, "thread_update" method is same
-  #   to "update" method. Else, "thread_update" method waits to complete
-  #   idletask operation on the eventloop-thread.
+  # NOTE: thread_update was a custom Tcl command in the legacy C extension.
+  # It no longer exists - these methods now just delegate to regular update.
   def Tk.thread_update(idle=nil)
-    if idle
-      tk_call_without_enc('thread_update', 'idletasks')
-    else
-      tk_call_without_enc('thread_update')
+    unless Tk.tk_thread_update_warned
+      warn "Tk.thread_update is deprecated and now just calls Tk.update. " \
+           "The underlying 'thread_update' Tcl command no longer exists.", uplevel: 1
+      Tk.tk_thread_update_warned = true
     end
+    update(idle)
   end
   def Tk.thread_update_idletasks
     thread_update(true)
@@ -406,11 +428,19 @@ module Tk
   end
 
   def Tk.toUTF8(str, encoding = nil)
-    _toUTF8(str, encoding)
+    unless Tk.tk_to_utf8_warned
+      warn "Tk.toUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
+      Tk.tk_to_utf8_warned = true
+    end
+    str.to_s
   end
 
   def Tk.fromUTF8(str, encoding = nil)
-    _fromUTF8(str, encoding)
+    unless Tk.tk_from_utf8_warned
+      warn "Tk.fromUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
+      Tk.tk_from_utf8_warned = true
+    end
+    str.to_s
   end
 end
 

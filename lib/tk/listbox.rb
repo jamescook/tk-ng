@@ -79,10 +79,9 @@ class Tk::Listbox<TkTextWin
   end
   def get(first, last=nil)
     if last
-      # tk_split_simplelist(_fromUTF8(tk_send_without_enc('get', first, last)))
       tk_split_simplelist(tk_send_without_enc('get', first, last), false, true)
     else
-      _fromUTF8(tk_send_without_enc('get', first))
+      tk_send_without_enc('get', first)
     end
   end
   def nearest(y)

@@ -228,16 +228,7 @@ class TkValidateCommand
       [ ?s, TkComm.method(:string) ],
       [ ?w, TkComm.method(:window) ],
 
-      [ ?e, proc{|val|
-          #enc = Tk.encoding
-          enc = ((Tk.encoding)? Tk.encoding : Tk.encoding_system)
-          if enc
-            Tk.fromUTF8(TkComm::string(val), enc)
-          else
-            TkComm::string(val)
-          end
-        }
-      ],
+      [ ?e, proc{|val| TkComm::string(val) } ],
 
       [ ?x, proc{|val|
           idx = TkComm::number(val)

@@ -67,10 +67,10 @@ class TkVariable
         exit!(1)
       rescue Exception => e
         begin
-          msg = _toUTF8(e.class.inspect) + ': ' +
-                _toUTF8(e.message) + "\n" +
+          msg = e.class.inspect + ': ' +
+                e.message + "\n" +
                 "\n---< backtrace of Ruby side >-----\n" +
-                _toUTF8(e.backtrace.join("\n")) +
+                e.backtrace.join("\n") +
                 "\n---< backtrace of Tk side >-------"
           if TkCore::WITH_ENCODING
             msg.force_encoding('utf-8')
@@ -474,7 +474,7 @@ if USE_TCLs_SET_VARIABLE_FUNCTIONS
       #Hash[*tk_split_simplelist(INTERP._eval("global #{@id}; array get #{@id}"))]
       Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', @id))]
     else
-      _fromUTF8(INTERP._get_global_var(@id))
+      INTERP._get_global_var(@id)
     end
   end
 
@@ -504,15 +504,14 @@ if USE_TCLs_SET_VARIABLE_FUNCTIONS
 =end
 #      _fromUTF8(INTERP._set_global_var(@id, array2tk_list(val, true)))
     else
-      #_fromUTF8(INTERP._set_global_var(@id, _toUTF8(_get_eval_string(val))))
-      _fromUTF8(INTERP._set_global_var(@id, _get_eval_string(val, true)))
+      INTERP._set_global_var(@id, _get_eval_string(val, true))
     end
   end
 
   def _element_value(*idxs)
     index = idxs.collect{|idx| _get_eval_string(idx, true)}.join(',')
     begin
-      _fromUTF8(INTERP._get_global_var2(@id, index))
+      INTERP._get_global_var2(@id, index)
     rescue => e
       case @def_default
       when :proc
@@ -533,7 +532,7 @@ if USE_TCLs_SET_VARIABLE_FUNCTIONS
     type = default_element_value_type(args)
     val = val._value if !type && type != :variable && val.kind_of?(TkVariable)
     index = args.collect{|idx| _get_eval_string(idx, true)}.join(',')
-    _fromUTF8(INTERP._set_global_var2(@id, index, _get_eval_string(val, true)))
+    INTERP._set_global_var2(@id, index, _get_eval_string(val, true))
     #_fromUTF8(INTERP._set_global_var2(@id, _toUTF8(_get_eval_string(index)),
     #                                 _toUTF8(_get_eval_string(val))))
     #_fromUTF8(INTERP._set_global_var2(@id, _get_eval_string(index, true),
@@ -1778,7 +1777,7 @@ module Tk
       INTERP._invoke_without_enc('global', 'env')
       auto_path = INTERP._invoke('set', 'env(TCLLIBPATH)')
     rescue
-      auto_path = Tk::LIBRARY
+      auto_path = Tk.library
     end
   end
 

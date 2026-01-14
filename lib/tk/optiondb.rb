@@ -66,10 +66,6 @@ module TkOptionDB
           pat = $1.strip
           val = $2.lstrip
           p "ResourceDB: #{[pat, val].inspect}" if $DEBUG
-          pat = TkCore::INTERP._toUTF8(pat, f_enc)
-          pat = TkCore::INTERP._fromUTF8(pat, i_enc)
-          val = TkCore::INTERP._toUTF8(val, f_enc)
-          val = TkCore::INTERP._fromUTF8(val, i_enc)
           ent << [pat, val]
           cline = ''
         else          # unknown --> ignore
@@ -168,8 +164,7 @@ module TkOptionDB
             eval("Proc.new" + proc_str)
           rescue SyntaxError=>err
             raise SyntaxError,
-              TkCore::INTERP._toUTF8(err.message.gsub(/\(eval\):\d:/,
-                                                      "(#{id.id2name}):"))
+              err.message.gsub(/\(eval\):\d:/, "(#{id.id2name}):")
           end
         }.call
         #self::METHOD_TBL[id] = [res_proc, proc_source]

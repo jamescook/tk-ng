@@ -29,16 +29,14 @@ module TkConsole
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    _fromUTF8(tk_call_without_enc('console', 'eval',
-                                  _get_eval_enc_str(tcl_script)))
+    tk_call_without_enc('console', 'eval', _get_eval_enc_str(tcl_script))
   end
   def self.maininterp_eval(tcl_script)
     #
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    _fromUTF8(tk_call_without_enc('consoleinterp', 'eval',
-                                  _get_eval_enc_str(tcl_script)))
+    tk_call_without_enc('consoleinterp', 'eval', _get_eval_enc_str(tcl_script))
 
   end
   def self.maininterp_record(tcl_script)
@@ -46,8 +44,7 @@ module TkConsole
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    _fromUTF8(tk_call_without_enc('consoleinterp', 'record',
-                                  _get_eval_enc_str(tcl_script)))
+    tk_call_without_enc('consoleinterp', 'record', _get_eval_enc_str(tcl_script))
 
   end
 end

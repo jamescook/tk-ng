@@ -77,6 +77,29 @@ class TestThreading < Minitest::Test
     raise "Tk.sleep in thread did not complete" unless sleep_done
   end
 
+  # Tk.wakeup interrupts Tk.sleep early
+  def test_tk_wakeup_interrupts_sleep
+    assert_tk_subprocess("Tk.wakeup should interrupt Tk.sleep") do
+      <<~'RUBY'
+        require 'tk'
+
+        # Use a named variable so wakeup can target it
+        sleep_var = TkVariable.new
+        sleep_start = Time.now
+
+        # Schedule wakeup after 100ms using Tk's after
+        TkAfter.new(100, 1) { Tk.wakeup(sleep_var) }.start
+
+        # Start a long sleep (5 seconds) - should be interrupted by wakeup
+        Tk.sleep(5000, sleep_var)
+
+        elapsed = Time.now - sleep_start
+        raise "Sleep took too long (#{elapsed}s), wakeup didn't work" if elapsed > 1.0
+        raise "Sleep was too short (#{elapsed}s), wakeup fired too early" if elapsed < 0.05
+      RUBY
+    end
+  end
+
   # Multiple threads invoking Tk widget callbacks
   def test_threads_invoking_widget_callbacks
     assert_tk_app("Threads should be able to invoke widget callbacks", method(:app_threads_invoking_widget_callbacks))

@@ -254,10 +254,10 @@ module TkCore
       fail(e)
     rescue Exception => e
       begin
-        msg = _toUTF8(e.class.inspect) + ': ' +
-              _toUTF8(e.message) + "\n" +
+        msg = e.class.inspect + ': ' +
+              e.message + "\n" +
               "\n---< backtrace of Ruby side >-----\n" +
-              _toUTF8(e.backtrace.join("\n")) +
+              e.backtrace.join("\n") +
               "\n---< backtrace of Tk side >-------"
         msg.force_encoding('utf-8')
       rescue Exception
@@ -565,6 +565,14 @@ module TkCore
     #args.compact!
     #args.flatten!
     args = _conv_args([], enc_mode, *args)
+    # DEBUG: log configure calls with #BWidget paths
+    if args.any? { |a| a.to_s.include?('#BWidget') }
+      File.open('/tmp/tkcore_debug.log', 'a') do |f|
+        f.puts "=== _tk_call_core at #{Time.now} ==="
+        f.puts "  args: #{args.inspect}"
+        f.puts "  caller: #{caller.take(8).join("\n    ")}"
+      end
+    end
     puts 'invoke args => ' + args.inspect if $DEBUG
     ### print "=> ", args.join(" ").inspect, "\n" if $DEBUG
     begin

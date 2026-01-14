@@ -147,15 +147,27 @@ module TkUtil
     TkUtil._symbolkey2str(keys)
   end
 
-  # Encoding conversion - delegates to TclTkLib
-  # C version: tk_toUTF8 (tkutil.c)
-  def _toUTF8(*args)
-    TclTkLib._toUTF8(*args)
+  # Legacy encoding methods - no-ops since modern Ruby/Tcl use UTF-8 natively
+  @_to_utf8_warned = false
+  @_from_utf8_warned = false
+  class << self
+    attr_accessor :_to_utf8_warned, :_from_utf8_warned
   end
 
-  # C version: tk_fromUTF8 (tkutil.c)
-  def _fromUTF8(*args)
-    TclTkLib._fromUTF8(*args)
+  def _toUTF8(str, encoding = nil)
+    unless TkUtil._to_utf8_warned
+      warn "_toUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
+      TkUtil._to_utf8_warned = true
+    end
+    str.to_s
+  end
+
+  def _fromUTF8(str, encoding = nil)
+    unless TkUtil._from_utf8_warned
+      warn "_fromUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
+      TkUtil._from_utf8_warned = true
+    end
+    str.to_s
   end
 
   # Sentinel for "no value" - used to skip values in conversions
