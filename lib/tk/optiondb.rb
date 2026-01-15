@@ -37,17 +37,14 @@ module TkOptionDB
   alias read_file readfile
   module_function :add, :clear, :get, :readfile, :read_file
 
-  def read_entries(file, f_enc=nil)
+  def read_entries(file, _f_enc=nil)
     if TkCore::INTERP.safe?
       fail SecurityError,
         "can't call 'TkOptionDB.read_entries' on a safe interpreter"
     end
 
-    i_enc = ((Tk.encoding)? Tk.encoding : Tk.encoding_system)
-
-    unless f_enc
-      f_enc = i_enc
-    end
+    # Note: f_enc parameter kept for API compatibility but unused
+    # Modern Ruby/Tcl use UTF-8 natively
 
     ent = []
     cline = ''

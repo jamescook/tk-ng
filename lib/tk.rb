@@ -442,10 +442,37 @@ module Tk
     end
     str.to_s
   end
+
+  # Essential encoding methods - modern Ruby/Tcl use UTF-8 natively
+  def Tk.encoding
+    'utf-8'
+  end
+
+  def Tk.encoding_name
+    'utf-8'
+  end
+
+  def Tk.encoding_system
+    'utf-8'
+  end
+
+  def Tk.encoding_obj
+    ::Encoding::UTF_8
+  end
+
+  def Tk.encoding_system_obj
+    ::Encoding::UTF_8
+  end
+
+  def Tk.tk_encoding_names
+    TkComm.simplelist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
+  end
+
+  def Tk.encoding_names
+    tk_encoding_names
+  end
 end
 
-# Tk::Encoding module loaded after TkCore is defined
-require_relative 'tk/encoding'
 require_relative 'tk/bind_core'
 
 require_relative 'tkobject'

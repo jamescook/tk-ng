@@ -272,32 +272,22 @@ module TkComm
     TkCore::INTERP._split_tklist(str)
   end
 
-  def array2tk_list(ary, enc=nil)
+  def array2tk_list(ary, _enc=nil)
     return "" if ary.size == 0
 
-    sys_enc = TkCore::INTERP.encoding
-    sys_enc = TclTkLib.encoding_system unless sys_enc
-
-    dst_enc = (enc == nil)? sys_enc: enc
+    # Note: enc parameter kept for API compatibility but unused
+    # Modern Ruby/Tcl use UTF-8 natively
 
     dst = ary.collect{|e|
       if e.kind_of? Array
-        s = array2tk_list(e, enc)
+        array2tk_list(e)
       elsif e.kind_of? Hash
         tmp_ary = []
-        #e.each{|k,v| tmp_ary << k << v }
         e.each{|k,v| tmp_ary << "-#{_get_eval_string(k)}" << v }
-        s = array2tk_list(tmp_ary, enc)
+        array2tk_list(tmp_ary)
       else
-        s = _get_eval_string(e, enc)
+        _get_eval_string(e)
       end
-
-      if dst_enc != true && dst_enc != false
-        s_enc = s.encoding.name
-        dst_enc = true if s_enc != dst_enc
-      end
-
-      s
     }
 
     TkCore::INTERP._merge_tklist(*dst)

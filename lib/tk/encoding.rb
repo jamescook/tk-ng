@@ -2,9 +2,17 @@
 #
 # Tk::Encoding - UTF-8 encoding support
 #
-# Modern Tcl (8.1+) and Ruby use UTF-8 natively. Most methods here are
-# vestigial and simply return UTF-8 or warn about deprecation.
+# DEPRECATED: This file is no longer needed. Modern Tcl (8.1+) and Ruby use
+# UTF-8 natively. Simply use `require 'tk'` instead.
 
+require 'tk' unless defined?(Tk)
+
+unless defined?(Tk::Encoding::DEPRECATION_WARNED)
+  warn "require 'tk/encoding' is deprecated. Encoding methods are now part of 'tk'. " \
+       "Simply use `require 'tk'` instead.", uplevel: 1
+end
+
+# :nocov:
 module Tk
   module Encoding
     extend Encoding
@@ -97,7 +105,9 @@ module Tk
     def encoding_dirs=(dir_list)
       Tk.tk_call_without_enc('encoding', 'dirs', dir_list)
     end
+    DEPRECATION_WARNED = true
   end
 
   extend Encoding
 end
+# :nocov:
