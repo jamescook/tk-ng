@@ -37,17 +37,14 @@ module TkOptionDB
   alias read_file readfile
   module_function :add, :clear, :get, :readfile, :read_file
 
-  def read_entries(file, f_enc=nil)
+  def read_entries(file, _f_enc=nil)
     if TkCore::INTERP.safe?
       fail SecurityError,
         "can't call 'TkOptionDB.read_entries' on a safe interpreter"
     end
 
-    i_enc = ((Tk.encoding)? Tk.encoding : Tk.encoding_system)
-
-    unless f_enc
-      f_enc = i_enc
-    end
+    # Note: f_enc parameter kept for API compatibility but unused
+    # Modern Ruby/Tcl use UTF-8 natively
 
     ent = []
     cline = ''
@@ -66,10 +63,6 @@ module TkOptionDB
           pat = $1.strip
           val = $2.lstrip
           p "ResourceDB: #{[pat, val].inspect}" if $DEBUG
-          pat = TkCore::INTERP._toUTF8(pat, f_enc)
-          pat = TkCore::INTERP._fromUTF8(pat, i_enc)
-          val = TkCore::INTERP._toUTF8(val, f_enc)
-          val = TkCore::INTERP._fromUTF8(val, i_enc)
           ent << [pat, val]
           cline = ''
         else          # unknown --> ignore
@@ -168,8 +161,7 @@ module TkOptionDB
             eval("Proc.new" + proc_str)
           rescue SyntaxError=>err
             raise SyntaxError,
-              TkCore::INTERP._toUTF8(err.message.gsub(/\(eval\):\d:/,
-                                                      "(#{id.id2name}):"))
+              err.message.gsub(/\(eval\):\d:/, "(#{id.id2name}):")
           end
         }.call
         #self::METHOD_TBL[id] = [res_proc, proc_source]

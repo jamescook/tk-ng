@@ -31,13 +31,10 @@ module TkSelection
   end
 
   def self.get(keys=nil)
-    #tk_call('selection', 'get', *hash_kv(keys))
-    _fromUTF8(tk_call_without_enc('selection', 'get', *hash_kv(keys)))
+    tk_call_without_enc('selection', 'get', *hash_kv(keys))
   end
   def self.get_on_display(win, keys=nil)
-    #tk_call('selection', 'get', '-displayof', win, *hash_kv(keys))
-    _fromUTF8(tk_call_without_enc('selection', 'get', '-displayof',
-                                  win, *hash_kv(keys)))
+    tk_call_without_enc('selection', 'get', '-displayof', win, *hash_kv(keys))
   end
   def get(keys=nil)
     TkSelection.get_on_display(self, sel)

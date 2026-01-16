@@ -39,14 +39,17 @@ class TkMsgCatalog < TkObject
 
   UNKNOWN_CBTBL = Hash.new{|hash,key| hash[key] = {}}
 
-  TkCore::INTERP.add_tk_procs('::msgcat::mcunknown', 'args', <<-'EOL')
-    if {[set st [catch {eval {ruby_cmd TkMsgCatalog callback} [namespace current] $args} ret]] != 0} {
+  # Register callback for TkMsgCatalog.callback, used by mcunknown Tcl proc
+  TKMSGCAT_CALLBACK_ID = TkCore::INTERP.register_callback(proc { |*args| TkMsgCatalog.callback(*args) })
+
+  TkCore::INTERP.add_tk_procs('::msgcat::mcunknown', 'args', <<-EOL)
+    if {[set st [catch {eval {ruby_callback #{TKMSGCAT_CALLBACK_ID}} [namespace current] $args} ret]] != 0} {
        #return -code $st $ret
-       set idx [string first "\n\n" $ret]
+       set idx [string first "\\n\\n" $ret]
        if {$idx > 0} {
-          return -code $st \
-                 -errorinfo [string range $ret [expr $idx + 2] \
-                                               [string length $ret]] \
+          return -code $st \\
+                 -errorinfo [string range $ret [expr $idx + 2] \\
+                                               [string length $ret]] \\
                  [string range $ret 0 [expr $idx - 1]]
        } else {
           return -code $st $ret
@@ -70,10 +73,10 @@ class TkMsgCatalog < TkObject
       exit!(1)
     rescue Exception => e
       begin
-        msg = _toUTF8(e.class.inspect) + ': ' +
-              _toUTF8(e.message) + "\n" +
+        msg = e.class.inspect + ': ' +
+              e.message + "\n" +
               "\n---< backtrace of Ruby side >-----\n" +
-              _toUTF8(e.backtrace.join("\n")) +
+              e.backtrace.join("\n") +
               "\n---< backtrace of Tk side >-------"
         if TkCore::WITH_ENCODING
           msg.force_encoding('utf-8')
@@ -239,7 +242,7 @@ class TkMsgCatalog < TkObject
 
   def self.set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
-      trans_str = Tk.UTF8_String(_toUTF8(trans_str, enc))
+      trans_str = Tk.UTF8_String(trans_str)
       Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}"))
     else
       Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}}"))
@@ -247,7 +250,7 @@ class TkMsgCatalog < TkObject
   end
   def set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
-      trans_str = Tk.UTF8_String(_toUTF8(trans_str, enc))
+      trans_str = Tk.UTF8_String(trans_str)
       Tk.UTF8_String(@namespace.eval{
                        ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}")
                      })
@@ -264,12 +267,11 @@ class TkMsgCatalog < TkObject
     trans_list.each{|src, trans|
       if trans && trans != None
         list << _get_eval_string(src, true)
-        list << Tk.UTF8_String(_toUTF8(trans, enc))
+        list << Tk.UTF8_String(trans)
       else
         list << _get_eval_string(src, true) << ''
       end
     }
-    #number(tk_call_without_enc('::msgcat::mcmset', locale, list))
     number(ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}"))
   end
   def set_translation_list(locale, trans_list, enc='utf-8')
@@ -278,13 +280,12 @@ class TkMsgCatalog < TkObject
     trans_list.each{|src, trans|
       if trans && trans != None
         list << _get_eval_string(src, true)
-        list << Tk.UTF8_String(_toUTF8(trans, enc))
+        list << Tk.UTF8_String(trans)
       else
         list << _get_eval_string(src, true) << ''
       end
     }
     number(@namespace.eval{
-             #tk_call_without_enc('::msgcat::mcmset', locale, list)
              ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}")
            })
   end

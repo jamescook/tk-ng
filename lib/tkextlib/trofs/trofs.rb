@@ -44,9 +44,13 @@ module Tk
       tk_call('::trofs::mount', archive, mountpoint)
     end
 
-    def self.umount(mountpoint)
-      tk_call('::trofs::umount', mountpoint)
+    def self.unmount(mountpoint)
+      tk_call('::trofs::unmount', mountpoint)
       mountpoint
+    end
+    # Alias for compatibility
+    class << self
+      alias umount unmount
     end
   end
 end
