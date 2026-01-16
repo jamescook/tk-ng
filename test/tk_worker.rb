@@ -126,6 +126,10 @@ class TkWorker
         when 'run'
           run_test(msg[:data])
         when 'shutdown'
+          # Write coverage BEFORE responding (parent closes pipes after response)
+          # This must happen here, not in at_exit, because the parent process
+          # closes pipes immediately after receiving the response.
+          SimpleCov.result if ENV['COVERAGE'] && defined?(SimpleCov)
           shutdown
           break
         when 'ping'
@@ -221,18 +225,17 @@ if ARGV[0] == 'server'
   # Set up SimpleCov for coverage collection in the worker process
   if ENV['COVERAGE']
     require 'simplecov'
+    require_relative 'simplecov_config'
 
-    project_root = File.expand_path('..', __dir__)
-    SimpleCov.coverage_dir "#{project_root}/coverage/results/#{Process.pid}"
-    SimpleCov.command_name "tk_worker:#{Process.pid}"
+    coverage_name = ENV['COVERAGE_NAME'] || 'default'
+    SimpleCov.coverage_dir "#{SimpleCovConfig::PROJECT_ROOT}/coverage/results/#{coverage_name}_worker_#{Process.pid}"
+    SimpleCov.command_name "tk_worker:#{coverage_name}:#{Process.pid}"
     SimpleCov.print_error_status = false
     SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
 
     SimpleCov.start do
-      add_filter '/test/'
-      add_filter '/ext/'
-      add_filter '/benchmark/'
-      track_files "#{project_root}/lib/**/*.rb"
+      SimpleCovConfig.apply_filters(self)
+      track_files "#{SimpleCovConfig::PROJECT_ROOT}/lib/**/*.rb"
     end
   end
 

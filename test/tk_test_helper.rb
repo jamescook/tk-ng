@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'method_source'
+require_relative 'simplecov_config'
 
 # Helper for running Tk tests in isolated subprocesses.
 #
@@ -22,7 +23,7 @@ require 'timeout'
 
 module TkTestHelper
   # Project root for absolute paths in subprocesses
-  PROJECT_ROOT = File.expand_path('..', __dir__)
+  PROJECT_ROOT = SimpleCovConfig::PROJECT_ROOT
 
   # SimpleCov preamble injected into subprocess code for coverage merging
   # Only runs if ENV['COVERAGE'] is set
@@ -30,26 +31,7 @@ module TkTestHelper
   # Each subprocess writes to its own directory to avoid race conditions.
   # Directory is named <COVERAGE_NAME>_sub_<PID> so collation can find them all.
   def self.simplecov_preamble
-    <<~RUBY
-      if ENV['COVERAGE']
-        require 'simplecov'
-
-        # Unique directory per subprocess to avoid write conflicts
-        coverage_name = ENV['COVERAGE_NAME'] || 'default'
-        SimpleCov.coverage_dir "#{PROJECT_ROOT}/coverage/results/\#{coverage_name}_sub_\#{Process.pid}"
-        SimpleCov.command_name "subprocess:\#{Process.pid}"
-        SimpleCov.print_error_status = false
-        SimpleCov.formatter SimpleCov::Formatter::SimpleFormatter
-
-        SimpleCov.start do
-          add_filter '/test/'
-          add_filter '/ext/'
-          add_filter '/lib/tk/generated/8_6'
-          add_filter '/benchmark/'
-          track_files "#{PROJECT_ROOT}/lib/**/*.rb"
-        end
-      end
-    RUBY
+    SimpleCovConfig.subprocess_preamble
   end
 
   # Runs Ruby code in a separate process with fresh Tk interpreter.

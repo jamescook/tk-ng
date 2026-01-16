@@ -48,6 +48,7 @@ namespace :coverage do
   desc "Collate coverage results from multiple test runs into a single report"
   task :collate do
     require 'simplecov'
+    require_relative 'test/simplecov_config'
 
     # Find all result files from named test runs
     result_files = Dir['coverage/results/*/.resultset.json']
@@ -60,15 +61,8 @@ namespace :coverage do
 
     SimpleCov.collate(result_files) do
       coverage_dir 'coverage'
-
-      add_filter '/test/'
-      add_filter '/ext/'
-      add_filter '/benchmark/'
-
-      add_group 'Core', 'lib/tk.rb'
-      add_group 'Widgets', 'lib/tk'
-      add_group 'Extensions', 'lib/tkextlib'
-      add_group 'Utilities', ['lib/tkutil.rb', 'lib/tk/util.rb']
+      SimpleCovConfig.apply_filters(self)
+      SimpleCovConfig.apply_groups(self)
     end
 
     puts "Coverage report generated: coverage/index.html"

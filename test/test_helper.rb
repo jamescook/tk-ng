@@ -4,30 +4,28 @@
 # All test files should require this FIRST.
 #
 # Set COVERAGE=1 to enable coverage collection.
+#
+# COVERAGE_NAME is critical for multi-container coverage collection:
+# - Each Docker container (main, bwidget, tkdnd) sets a unique COVERAGE_NAME
+# - TkWorker uses COVERAGE_NAME to create unique coverage directories per container
+# - Without unique names, PID collision across containers causes coverage overwrites
+#   (e.g., both main and bwidget containers might spawn TkWorker with PID 37)
 
 if ENV['COVERAGE']
   require 'simplecov'
+  require_relative 'simplecov_config'
 
-  # Use COVERAGE_NAME to save results to a unique subdirectory
-  # This allows multiple test runs (main, bwidget, tkdnd) to be collated later
   coverage_name = ENV['COVERAGE_NAME'] || 'default'
-  SimpleCov.coverage_dir "coverage/results/#{coverage_name}"
-
-  # Unique command name for each process (enables subprocess merging)
+  SimpleCov.coverage_dir "#{SimpleCovConfig::PROJECT_ROOT}/coverage/results/#{coverage_name}"
   SimpleCov.command_name "#{coverage_name}:#{Process.pid}"
+  SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
+    SimpleCov::Formatter::SimpleFormatter
+  ])
 
   SimpleCov.start do
-    add_filter '/test/'
-    add_filter '/ext/'
-    add_filter '/benchmark/'
-
-    add_group 'Core', 'lib/tk.rb'
-    add_group 'Widgets', 'lib/tk'
-    add_group 'Extensions', 'lib/tkextlib'
-    add_group 'Utilities', ['lib/tkutil.rb', 'lib/tk/util.rb']
-
-    # Track all lib files
-    track_files 'lib/**/*.rb'
+    SimpleCovConfig.apply_filters(self)
+    SimpleCovConfig.apply_groups(self)
+    track_files "#{SimpleCovConfig::PROJECT_ROOT}/lib/**/*.rb"
   end
 end
 
@@ -37,6 +35,13 @@ $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
 FIXTURES_PATH = File.expand_path('fixtures', __dir__)
 
 require 'minitest/autorun'
+
+# Stop TkWorker cleanly after all tests (allows coverage to be written)
+Minitest.after_run do
+  if defined?(TkWorker) && TkWorker.running?
+    TkWorker.stop
+  end
+end
 
 # Note: Coverage collation across multiple test suites (main, bwidget, tkdnd)
 # is done by `rake coverage:collate` after all test runs complete.

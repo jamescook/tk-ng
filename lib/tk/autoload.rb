@@ -155,6 +155,8 @@ autoload :TkWarningObj,       'tk/dialog'
 
 autoload :TkEvent,            'tk/event'
 
+autoload :TkFont,             'tk/font'
+
 autoload :TkImage,            'tk/image'
 autoload :TkBitmapImage,      'tk/image'
 autoload :TkPhotoImage,       'tk/image'

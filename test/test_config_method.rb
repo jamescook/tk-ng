@@ -915,4 +915,40 @@ class TestConfigMethod < Minitest::Test
     state = btn.cget(:state)
     raise "Expected 'disabled', got #{state.inspect}" unless state == "disabled"
   end
+
+  # ==========================================================================
+  # Canvas item coords tests
+  #
+  # Canvas items have a coords method/setter that is NOT a config option.
+  # It uses the canvas 'coords' command, not 'itemconfigure'.
+  # ==========================================================================
+
+  def test_canvas_item_coords_setter
+    assert_tk_app("canvas item coords= setter", method(:app_canvas_item_coords_setter))
+  end
+
+  def app_canvas_item_coords_setter
+    require 'tk'
+    require 'tk/canvas'
+
+    canvas = TkCanvas.new(root)
+
+    # Create a polygon with initial coords
+    poly = TkcPolygon.new(canvas, [0, 0], [10, 0], [10, 10], [0, 10])
+
+    # Get initial coords
+    initial = poly.coords
+    raise "coords should return Array, got #{initial.class}" unless initial.is_a?(Array)
+    raise "Expected 8 values (4 points), got #{initial.size}" unless initial.size == 8
+
+    # Set new coords using coords= setter
+    new_coords = [[100, 100], [200, 100], [200, 200], [100, 200]]
+    poly.coords = new_coords
+
+    # Verify coords changed
+    updated = poly.coords
+    raise "First x should be 100, got #{updated[0]}" unless updated[0] == 100
+    raise "First y should be 100, got #{updated[1]}" unless updated[1] == 100
+    raise "Third x should be 200, got #{updated[4]}" unless updated[4] == 200
+  end
 end

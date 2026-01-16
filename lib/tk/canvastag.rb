@@ -87,6 +87,10 @@ module TkcTagAccess
     @c.coords(@id, *args)
   end
 
+  def coords=(coords)
+    @c.coords(@id, *coords.flatten)
+  end
+
   def dchars(first, last=None)
     @c.dchars(@id, first, last)
     self

@@ -101,38 +101,42 @@ This fork removes legacy code that was complex, rarely used, or incompatible wit
 
 - **`TclTkIp#_make_menu_embeddable`** - Removed. This was a 2006-era workaround that accessed Tk's private internal structs. Use `TkMenubutton` for packable menu buttons.
 
-### Removed: Japanized Tk Support and TkFont Class
+### Removed: Japanized Tk Support
 
 The `JAPANIZED_TK` constant and all related code has been removed. This was for a patched "Japanized Tcl/Tk" distribution (Tcl 7.6/Tk 4.2 - see `sample/demos-en/doc.org/README.JP`) that added a `kanji` command for Japanese text support before Tcl/Tk had proper Unicode handling.
 
-The entire `TkFont` class and related font handling infrastructure has been removed. Modern Tcl/Tk handles fonts as simple strings (e.g., `"TkDefaultFont"`, `"{Helvetica 12 bold}"`), so the Ruby wrapper class added unnecessary complexity.
-
-Removed files:
-- `lib/tk/font.rb` - TkFont class (2340 lines)
-- `lib/tk/treat_font.rb` - font_configure methods
-- `lib/tk/itemfont.rb` - canvas/text item font handling
-- `lib/tk/fontchooser.rb` - font chooser dialog
-- `lib/tkfont.rb` - wrapper
-
 Removed APIs:
 - `Tk::JAPANIZED_TK` constant
-- `TkFont`, `TkNamedFont` classes
 - `Tk.show_kinsoku`, `Tk.add_kinsoku`, `Tk.delete_kinsoku` methods
 - `latinfont`, `asciifont`, `kanjifont` pseudo-options
 - `font_configure`, `latinfont_configure`, `kanjifont_configure` methods
 
-**Migration**: Use font strings directly:
+Tcl 8.1 (April 1999) added native Unicode support ([Tcl chronology](https://wiki.tcl-lang.org/page/Tcl+chronology)). Use standard `font` options with UTF-8 strings.
+
+### Simplified: TkFont Class
+
+The original `TkFont` class (~2340 lines) has been replaced with a lightweight compatibility shim. The old class had complex font management that is unnecessary with modern Tcl/Tk, which handles fonts as simple strings.
+
+The shim provides basic backward compatibility:
+
 ```ruby
-# Old way (no longer works)
-font = TkFont.new('family' => 'Helvetica', 'size' => 12)
+# These work (with a deprecation warning)
+font = TkFont.new('Helvetica 12 bold')
+font = TkFont.new(family: 'Helvetica', size: 12)
 button.configure('font' => font)
 
-# New way - use Tcl/Tk font strings directly
-button.configure('font' => '{Helvetica 12}')
+# Class methods
+TkFont.families        # list available font families
+TkFont.measure(font, text)  # measure text width in pixels
+```
+
+**Recommended**: Use font strings directly for new code:
+```ruby
+button.configure('font' => 'Helvetica 12 bold')
 button.configure('font' => 'TkDefaultFont')
 ```
 
-Tcl 8.1 (April 1999) added native Unicode support ([Tcl chronology](https://wiki.tcl-lang.org/page/Tcl+chronology)). Use standard `font` options with UTF-8 strings.
+**Not supported**: Advanced features from the old TkFont like `TkNamedFont`, font_configure methods, and font compound operations have been removed.
 
 ### Deprecated Internal APIs
 

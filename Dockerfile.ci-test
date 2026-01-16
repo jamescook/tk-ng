@@ -182,7 +182,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     fi && \
     rm -rf /var/lib/apt/lists/*
 
-ENV TCLLIBPATH=/usr/share/tcltk
+ENV TCLLIBPATH="/usr/share/tcltk /app/ext/trofs"
+ENV TROFS_LIBRARY=/app/ext/trofs/library
 
 # Copy Ruby and gems from builder
 COPY --from=builder /usr/local /usr/local
