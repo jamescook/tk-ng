@@ -59,7 +59,9 @@ module TkUtil
   def self.number(value)
     raise TypeError, "no implicit conversion of #{value.class} into String" unless String === value
 
-    return 0 if value.empty?
+    # Empty string must raise - TkVariable._to_default_type rescues this
+    # to return the raw string for comparison (e.g., @STEP[k] == "")
+    raise ArgumentError, "invalid value for Number: '#{value}'" if value.empty?
 
     begin
       Integer(value, 0)
