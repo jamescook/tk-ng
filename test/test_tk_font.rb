@@ -71,6 +71,6 @@ class TestTkFont < Minitest::Test
 
     # Should work - TkFont has to_str so it converts to string
     configured_font = label.cget(:font)
-    raise "font not configured" if configured_font.nil? || configured_font.empty?
+    raise "font not configured" if configured_font.nil? || configured_font.to_s.empty?
   end
 end

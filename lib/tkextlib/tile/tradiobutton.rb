@@ -20,6 +20,7 @@ end
 
 class Tk::Tile::TRadioButton < Tk::RadioButton
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkRadiobutton
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::radiobutton'.freeze].freeze
@@ -28,9 +29,6 @@ class Tk::Tile::TRadioButton < Tk::RadioButton
   end
   WidgetClassName = 'TRadiobutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::RadioButton)
-  option :style, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

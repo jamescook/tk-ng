@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TFrame < Tk::Frame
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkFrame
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::frame'.freeze].freeze
@@ -26,10 +27,6 @@ class Tk::Tile::TFrame < Tk::Frame
   end
   WidgetClassName = 'TFrame'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::Frame)
-  option :style,   type: :string
-  option :padding, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

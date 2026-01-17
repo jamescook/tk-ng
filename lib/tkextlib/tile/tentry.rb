@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TEntry < Tk::Entry
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkEntry
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::entry'.freeze].freeze
@@ -26,11 +27,6 @@ class Tk::Tile::TEntry < Tk::Entry
   end
   WidgetClassName = 'TEntry'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::Entry)
-  option :style,   type: :string
-  option :validatecommand, type: :string, aliases: [:vcmd]
-  option :invalidcommand,  type: :string, aliases: [:invcmd]
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

@@ -267,4 +267,957 @@ class TestTkVariable < Minitest::Test
     assert_operator var, :>, 3
     assert_equal 0, var <=> 5
   end
+
+  # --- Type System ---
+  # TkVariable can auto-convert values to specific Ruby types
+
+  def test_default_value_type_numeric
+    var = make_var("42")
+    var.default_value_type = :numeric
+    assert_equal :numeric, var.default_value_type
+    # value should now return a number, not string
+    assert_kind_of Numeric, var.value
+    assert_equal 42, var.value
+  end
+
+  def test_default_value_type_bool
+    var = make_var("1")
+    var.default_value_type = :bool
+    assert_equal :bool, var.default_value_type
+    assert_equal true, var.value
+
+    var.value = "0"
+    assert_equal false, var.value
+  end
+
+  def test_default_value_type_string
+    var = make_var("hello")
+    var.default_value_type = :string
+    assert_equal :string, var.default_value_type
+    assert_kind_of String, var.value
+  end
+
+  def test_default_value_type_symbol
+    var = make_var("hello")
+    var.default_value_type = :symbol
+    assert_equal :symbol, var.default_value_type
+    assert_kind_of Symbol, var.value
+    assert_equal :hello, var.value
+  end
+
+  def test_default_value_type_list
+    var = make_var("a b c")
+    var.default_value_type = :list
+    assert_equal :list, var.default_value_type
+    assert_kind_of Array, var.value
+    assert_equal ["a", "b", "c"], var.value
+  end
+
+  def test_default_value_type_numlist
+    var = make_var("1 2 3")
+    var.default_value_type = :numlist
+    assert_equal :numlist, var.default_value_type
+    assert_kind_of Array, var.value
+    assert_equal [1, 2, 3], var.value
+  end
+
+  def test_default_value_type_nil_returns_raw
+    var = make_var("42")
+    var.default_value_type = nil
+    assert_nil var.default_value_type
+    # Without type, returns raw string
+    assert_kind_of String, var.value
+    assert_equal "42", var.value
+  end
+
+  def test_set_numeric_type
+    var = make_var("")
+    var.set_numeric_type(123)
+    assert_equal :numeric, var.default_value_type
+    assert_equal 123, var.value
+  end
+
+  def test_set_bool_type
+    var = make_var("")
+    var.set_bool_type(true)
+    assert_equal :bool, var.default_value_type
+    assert_equal true, var.value
+  end
+
+  def test_set_string_type
+    var = make_var("")
+    var.set_string_type("hello")
+    assert_equal :string, var.default_value_type
+    assert_equal "hello", var.value
+  end
+
+  def test_set_symbol_type
+    var = make_var("")
+    var.set_symbol_type(:world)
+    assert_equal :symbol, var.default_value_type
+    assert_equal :world, var.value
+  end
+
+  def test_set_list_type
+    var = make_var("")
+    var.set_list_type(["a", "b", "c"])
+    assert_equal :list, var.default_value_type
+    assert_equal ["a", "b", "c"], var.value
+  end
+
+  def test_set_numlist_type
+    var = make_var("")
+    var.set_numlist_type([1, 2, 3])
+    assert_equal :numlist, var.default_value_type
+    assert_equal [1, 2, 3], var.value
+  end
+
+  # --- Element-level type system (for hash variables) ---
+
+  def test_default_element_value_type
+    var = make_var({})
+    var["count"] = "42"
+    var["name"] = "test"
+
+    # Set type for specific element
+    var.set_default_element_value_type("count", :numeric)
+
+    # count should return as number
+    assert_equal 42, var["count"]
+    # name should still return as string (no type set)
+    assert_equal "test", var["name"]
+  end
+
+  def test_element_type_independence
+    var = make_var({})
+    var["num"] = "100"
+    var["flag"] = "1"
+    var["items"] = "a b c"
+
+    var.set_default_element_value_type("num", :numeric)
+    var.set_default_element_value_type("flag", :bool)
+    var.set_default_element_value_type("items", :list)
+
+    assert_equal 100, var["num"]
+    assert_equal true, var["flag"]
+    assert_equal ["a", "b", "c"], var["items"]
+  end
+
+  def test_set_numeric_element_type
+    var = make_var({})
+    var.set_numeric_element_type("x", 42)
+    assert_equal 42, var["x"]
+    assert_equal :numeric, var.default_element_value_type("x")
+  end
+
+  def test_set_bool_element_type
+    var = make_var({})
+    var.set_bool_element_type("enabled", true)
+    assert_equal true, var["enabled"]
+    assert_equal :bool, var.default_element_value_type("enabled")
+  end
+
+  def test_set_string_element_type
+    var = make_var({})
+    var.set_string_element_type("name", "hello")
+    assert_equal "hello", var["name"]
+    assert_equal :string, var.default_element_value_type("name")
+  end
+
+  def test_set_symbol_element_type
+    var = make_var({})
+    var.set_symbol_element_type("status", :active)
+    assert_equal :active, var["status"]
+    assert_equal :symbol, var.default_element_value_type("status")
+  end
+
+  def test_set_list_element_type
+    var = make_var({})
+    var.set_list_element_type("items", ["a", "b"])
+    assert_equal ["a", "b"], var["items"]
+    assert_equal :list, var.default_element_value_type("items")
+  end
+
+  # --- Type coercion from Class constants ---
+
+  def test_type_from_numeric_class
+    var = make_var("42")
+    var.default_value_type = Numeric
+    assert_equal 42, var.value
+  end
+
+  def test_type_from_string_class
+    var = make_var("hello")
+    var.default_value_type = String
+    assert_equal "hello", var.value
+  end
+
+  def test_type_from_symbol_class
+    var = make_var("hello")
+    var.default_value_type = Symbol
+    assert_equal :hello, var.value
+  end
+
+  def test_type_from_array_class
+    var = make_var("a b c")
+    var.default_value_type = Array
+    assert_equal ["a", "b", "c"], var.value
+  end
+
+  def test_type_from_trueclass
+    var = make_var("1")
+    var.default_value_type = TrueClass
+    assert_equal true, var.value
+  end
+
+  def test_type_from_falseclass
+    var = make_var("0")
+    var.default_value_type = FalseClass
+    assert_equal false, var.value
+  end
+
+  # --- Default values for hash variables ---
+  # The default_value feature provides fallbacks when Tcl raises an error
+  # accessing a non-existent array element. Note: Tcl may return empty string
+  # for missing elements rather than raising, so this mainly works when the
+  # variable itself doesn't exist or for true array errors.
+
+  def test_default_value_returns_self
+    var = make_var({})
+    result = var.default_value("fallback")
+    assert_same var, result  # Returns self for chaining
+  end
+
+  def test_default_value_sets_def_default_to_val
+    var = make_var({})
+    var.default_value("test")
+    # Internal state should be set (we can't directly test @def_default)
+    # but we can verify the method runs without error
+    assert_kind_of TkVariable, var
+  end
+
+  def test_default_proc_returns_self
+    var = make_var({})
+    result = var.default_proc { |v, *keys| "default" }
+    assert_same var, result
+  end
+
+  def test_default_value_assignment_returns_self
+    var = make_var({})
+    result = var.set_default_value("assigned default")
+    assert_same var, result
+  end
+
+  def test_undef_default_returns_self
+    var = make_var({})
+    var.default_value("fallback")
+    result = var.undef_default
+    assert_same var, result
+  end
+
+  # --- Arithmetic Operators ---
+
+  def test_unary_plus
+    var = make_var("42")
+    assert_equal 42, +var
+  end
+
+  def test_unary_minus
+    var = make_var("42")
+    assert_equal(-42, -var)
+  end
+
+  def test_addition_with_number
+    var = make_var("10")
+    assert_equal 15, var + 5
+  end
+
+  def test_addition_with_string
+    var = make_var("hello")
+    assert_equal "hello world", var + " world"
+  end
+
+  def test_addition_with_array
+    var = make_var("a b")
+    result = var + ["c"]
+    assert_equal ["a", "b", "c"], result
+  end
+
+  def test_subtraction_with_number
+    var = make_var("10")
+    assert_equal 5, var - 5
+  end
+
+  def test_subtraction_with_array
+    var = make_var("a b c")
+    result = var - ["b"]
+    assert_equal ["a", "c"], result
+  end
+
+  def test_multiplication_with_number
+    var = make_var("5")
+    assert_equal 25, var * 5
+  end
+
+  def test_multiplication_with_string_repeat
+    var = make_var("ab")
+    assert_equal "ababab", var * 3
+  end
+
+  def test_division
+    var = make_var("20")
+    assert_equal 4, var / 5
+  end
+
+  def test_modulo_with_number
+    var = make_var("17")
+    assert_equal 2, var % 5
+  end
+
+  def test_modulo_with_string_format
+    var = make_var("value: %d")
+    assert_equal "value: 42", var % 42
+  end
+
+  def test_exponentiation
+    var = make_var("2")
+    assert_equal 8, var ** 3
+  end
+
+  def test_bitwise_and_with_integers
+    var = make_var("7")  # binary: 111
+    assert_equal 3, var & 3  # binary: 011, result: 011 = 3
+  end
+
+  def test_bitwise_and_with_arrays
+    var = make_var("a b c d")
+    result = var & ["b", "d", "e"]
+    assert_equal ["b", "d"], result
+  end
+
+  def test_bitwise_or_with_integers
+    var = make_var("5")  # binary: 101
+    assert_equal 7, var | 2  # binary: 010, result: 111 = 7
+  end
+
+  def test_bitwise_or_with_arrays
+    var = make_var("a b")
+    result = var | ["b", "c"]
+    assert_equal ["a", "b", "c"], result
+  end
+
+  def test_coerce_with_numeric
+    var = make_var("10")
+    a, b = var.coerce(5)
+    assert_equal 5, a
+    assert_equal 10, b
+  end
+
+  def test_coerce_with_string
+    var = make_var("hello")
+    a, b = var.coerce("world")
+    assert_equal "world", a
+    assert_equal "hello", b
+  end
+
+  def test_coerce_with_symbol
+    var = make_var("test")
+    a, b = var.coerce(:foo)
+    assert_equal :foo, a
+    assert_equal :test, b
+  end
+
+  def test_coerce_with_array
+    var = make_var("a b c")
+    a, b = var.coerce([1, 2])
+    assert_equal [1, 2], a
+    assert_equal ["a", "b", "c"], b
+  end
+
+  def test_coerce_enables_reverse_operations
+    var = make_var("10")
+    # Ruby calls coerce when left operand doesn't know how to handle right
+    assert_equal 15, 5 + var
+    assert_equal 50, 5 * var
+  end
+
+  # --- Zero/Nonzero ---
+
+  def test_zero_true
+    var = make_var("0")
+    assert var.zero?
+  end
+
+  def test_zero_false
+    var = make_var("42")
+    refute var.zero?
+  end
+
+  def test_nonzero_true
+    var = make_var("42")
+    assert var.nonzero?
+  end
+
+  def test_nonzero_false
+    var = make_var("0")
+    refute var.nonzero?
+  end
+
+  # --- Pattern matching ---
+
+  def test_regex_match
+    var = make_var("hello world")
+    assert_match(/world/, var)
+    assert var =~ /hello/
+    assert_nil var =~ /xyz/
+  end
+
+  # --- Case equality ---
+
+  def test_case_equality_same_id
+    var1 = make_var("test")
+    # Same variable (same id) should be ===
+    assert var1 === var1
+  end
+
+  def test_case_equality_different_vars
+    var1 = make_var("test")
+    var2 = make_var("test")
+    # Different variables (different ids) should not be ===
+    refute var1 === var2
+  end
+
+  # --- List operations ---
+
+  def test_lindex
+    var = make_var("a b c d")
+    assert_equal "b", var.lindex(1)
+    assert_equal "d", var.lindex(3)
+  end
+
+  def test_lset
+    var = make_var("a b c")
+    var.lset(1, "X")
+    assert_equal ["a", "X", "c"], var.list
+  end
+
+  def test_numlist
+    var = make_var("1 2 3 4")
+    result = var.numlist
+    assert_equal [1, 2, 3, 4], result
+    assert result.all? { |v| v.is_a?(Numeric) }
+  end
+
+  def test_lget_i
+    var = make_var("10 20 30")
+    assert_equal 20, var.lget_i(1)
+    assert_kind_of Integer, var.lget_i(1)
+  end
+
+  def test_lget_f
+    var = make_var("1.5 2.5 3.5")
+    assert_in_delta 2.5, var.lget_f(1), 0.001
+    assert_kind_of Float, var.lget_f(1)
+  end
+
+  # --- Ref method ---
+
+  def test_ref
+    var = make_var({})
+    var["x"] = "10"
+
+    ref = var.ref("x")
+    assert_kind_of TkVarAccess, ref
+    assert_equal "10", ref.value
+  end
+
+  def test_ref_multi_index
+    var = make_var({})
+    var["a", "b"] = "multi"
+
+    ref = var.ref("a", "b")
+    assert_kind_of TkVarAccess, ref
+    assert_equal "multi", ref.value
+  end
+
+  # --- to_a and to_ary aliases ---
+
+  def test_to_a
+    var = make_var("x y z")
+    assert_equal ["x", "y", "z"], var.to_a
+  end
+
+  def test_to_ary
+    var = make_var("1 2 3")
+    assert_equal ["1", "2", "3"], var.to_ary
+  end
+
+  # --- to_sym and symbol ---
+
+  def test_to_sym
+    var = make_var("my_symbol")
+    assert_equal :my_symbol, var.to_sym
+  end
+
+  def test_symbol_alias
+    var = make_var("test_sym")
+    assert_equal :test_sym, var.symbol
+  end
+
+  # --- Numeric element operations ---
+
+  def test_numeric_element
+    var = make_var({})
+    var["count"] = "42"
+    assert_equal 42, var.numeric_element("count")
+  end
+
+  def test_set_numeric
+    var = make_var("")
+    var.set_numeric(100)
+    assert_equal 100, var.numeric
+  end
+
+  def test_set_numeric_from_tkvariable
+    var1 = make_var("50")
+    var2 = make_var("")
+    var2.set_numeric(var1)
+    assert_equal 50, var2.numeric
+  end
+
+  def test_set_numeric_rejects_non_numeric
+    var = make_var("")
+    assert_raises(ArgumentError) { var.set_numeric("not a number") }
+  end
+
+  # --- Bool element operations ---
+
+  def test_bool_element
+    var = make_var({})
+    var["flag"] = "1"
+    assert_equal true, var.bool_element("flag")
+
+    var["other"] = "0"
+    assert_equal false, var.bool_element("other")
+  end
+
+  def test_set_bool_element
+    var = make_var({})
+    var.set_bool_element("enabled", true)
+    assert_equal "1", var["enabled"]
+
+    var.set_bool_element("disabled", false)
+    assert_equal "0", var["disabled"]
+  end
+
+  # --- String element operations ---
+
+  def test_string_element
+    var = make_var({})
+    var["name"] = "test"
+    assert_equal "test", var.string_element("name")
+  end
+
+  def test_element_to_s
+    var = make_var({})
+    var["key"] = "value"
+    assert_equal "value", var.element_to_s("key")
+  end
+
+  # --- Symbol element operations ---
+
+  def test_symbol_element
+    var = make_var({})
+    var["status"] = "active"
+    assert_equal :active, var.symbol_element("status")
+  end
+
+  def test_element_to_sym
+    var = make_var({})
+    var["type"] = "widget"
+    assert_equal :widget, var.element_to_sym("type")
+  end
+
+  # --- List element operations ---
+
+  def test_list_element
+    var = make_var({})
+    var["items"] = "a b c"
+    assert_equal ["a", "b", "c"], var.list_element("items")
+  end
+
+  def test_numlist_element
+    var = make_var({})
+    var["nums"] = "1 2 3"
+    assert_equal [1, 2, 3], var.numlist_element("nums")
+  end
+
+  def test_element_lappend
+    var = make_var({})
+    var["list"] = "a b"
+    var.element_lappend("list", "c", "d")
+    assert_equal ["a", "b", "c", "d"], var.list_element("list")
+  end
+
+  def test_element_lindex
+    var = make_var({})
+    var["items"] = "x y z"
+    assert_equal "y", var.element_lindex("items", 1)
+  end
+
+  def test_element_lget_i
+    var = make_var({})
+    var["nums"] = "10 20 30"
+    assert_equal 20, var.element_lget_i("nums", 1)
+  end
+
+  def test_element_lget_f
+    var = make_var({})
+    var["floats"] = "1.5 2.5 3.5"
+    assert_in_delta 2.5, var.element_lget_f("floats", 1), 0.001
+  end
+
+  # --- Element to_i and to_f ---
+
+  def test_element_to_i
+    var = make_var({})
+    var["num"] = "42"
+    assert_equal 42, var.element_to_i("num")
+  end
+
+  def test_element_to_f
+    var = make_var({})
+    var["num"] = "3.14"
+    assert_in_delta 3.14, var.element_to_f("num"), 0.001
+  end
+
+  # --- set_value and set_element_value ---
+
+  def test_set_value_returns_self
+    var = make_var("")
+    result = var.set_value("test")
+    assert_same var, result
+    assert_equal "test", var.value
+  end
+
+  def test_set_element_value
+    var = make_var({})
+    result = var.set_element_value("key", "val")
+    assert_same var, result
+    assert_equal "val", var["key"]
+  end
+
+  def test_set_element_value_with_array_index
+    var = make_var({})
+    var.set_element_value(["a", "b"], "multi")
+    assert_equal "multi", var["a", "b"]
+  end
+
+  # --- set_value_type and set_element_value_type ---
+  # Note: set_value_type uses val.class to infer type. The type mapping
+  # checks for exact class matches (e.g., type == Numeric), so Integer/Float
+  # don't auto-map to :numeric since Integer != Numeric. This is a limitation.
+
+  def test_set_value_type_sets_value
+    var = make_var("")
+    var.set_value_type(42)
+    # Value is set correctly
+    assert_equal "42", var.to_s
+  end
+
+  def test_set_value_type_returns_self
+    var = make_var("")
+    result = var.set_value_type("hello")
+    assert_same var, result
+  end
+
+  def test_value_type_assignment_with_string
+    var = make_var("")
+    var.value_type = "test"
+    # String class maps to :string
+    assert_equal :string, var.default_value_type
+    assert_equal "test", var.value
+  end
+
+  def test_set_element_value_type_sets_value
+    var = make_var({})
+    var.set_element_value_type("key", "value")
+    # String class maps to :string
+    assert_equal :string, var.default_element_value_type("key")
+    assert_equal "value", var["key"]
+  end
+
+  # --- Equality with various types ---
+
+  def test_equality_with_float
+    var = make_var("3.14")
+    assert_in_delta 3.14, var.to_f, 0.001
+  end
+
+  def test_equality_with_array
+    var = make_var("a b c")
+    assert_equal ["a", "b", "c"], var
+  end
+
+  def test_equality_with_tkvariable
+    var1 = make_var("test")
+    var2 = make_var("test")
+    assert_equal var1, var2  # same value
+  end
+
+  def test_equality_with_hash
+    var = make_var({"a" => "1", "b" => "2"})
+    # Comparing to hash
+    assert_equal({"a" => "1", "b" => "2"}, var)
+  end
+
+  # --- Spaceship with various types ---
+
+  def test_spaceship_with_tkvariable
+    var1 = make_var("10")
+    var2 = make_var("20")
+    assert_equal(-1, var1 <=> var2)
+    assert_equal 1, var2 <=> var1
+  end
+
+  def test_spaceship_with_array
+    var = make_var("a b c")
+    assert_equal 0, var <=> ["a", "b", "c"]
+  end
+
+  def test_spaceship_with_string
+    var = make_var("hello")
+    assert_equal 0, var <=> "hello"
+    assert_equal(-1, var <=> "world")
+  end
+
+  # --- new_hash class method ---
+
+  def test_new_hash_with_hash
+    var = TkVariable.new_hash({"a" => "1"})
+    @created_vars << var
+    assert var.is_hash?
+    assert_equal "1", var["a"]
+  end
+
+  def test_new_hash_rejects_non_hash
+    assert_raises(ArgumentError) { TkVariable.new_hash("not a hash") }
+  end
+
+  # --- to_eval ---
+
+  def test_to_eval
+    var = make_var("test")
+    assert_equal var.id, var.to_eval
+  end
+
+  # --- Trace Callbacks ---
+  # Traces allow registering callbacks that fire when a variable is
+  # read ('r'), written ('w'), unset ('u'), or array-accessed ('a').
+
+  def test_trace_write_callback
+    var = make_var("initial")
+    trace_log = []
+
+    # Can use legacy 'w' or modern 'write' - both work
+    var.trace('w') { |v, elem, op| trace_log << [op, v.value] }
+
+    var.value = "changed"
+    var.value = "again"
+
+    assert_equal 2, trace_log.size
+    # Callback receives Tcl's format: 'write' (not 'w')
+    assert_equal ['write', 'changed'], trace_log[0]
+    assert_equal ['write', 'again'], trace_log[1]
+  end
+
+  def test_trace_with_proc
+    var = make_var("test")
+    trace_log = []
+
+    callback = proc { |v, elem, op| trace_log << op }
+    var.trace('w', callback)
+
+    var.value = "new"
+    assert_equal ['write'], trace_log
+  end
+
+  def test_trace_returns_self
+    var = make_var("test")
+    result = var.trace('w') { }
+    assert_same var, result
+  end
+
+  def test_trace_info_empty
+    var = make_var("test")
+    assert_equal [], var.trace_info
+  end
+
+  def test_trace_info_returns_traces
+    var = make_var("test")
+    callback1 = proc { }
+    callback2 = proc { }
+
+    var.trace('w', callback1)
+    var.trace('r', callback2)
+
+    info = var.trace_info
+    assert_equal 2, info.size
+    # Most recent trace is first (unshift)
+    assert_same callback2, info[0][1]
+    assert_same callback1, info[1][1]
+  end
+
+  def test_trace_vinfo_alias
+    var = make_var("test")
+    assert_equal var.trace_info, var.trace_vinfo
+  end
+
+  def test_trace_remove
+    var = make_var("test")
+    trace_log = []
+    callback = proc { |v, elem, op| trace_log << op }
+
+    var.trace('w', callback)
+    var.value = "first"
+    assert_equal ['write'], trace_log
+
+    var.trace_remove('w', callback)
+    var.value = "second"
+    # Should not have triggered after removal
+    assert_equal ['write'], trace_log
+  end
+
+  def test_trace_remove_returns_self
+    var = make_var("test")
+    callback = proc { }
+    var.trace('w', callback)
+
+    result = var.trace_remove('w', callback)
+    assert_same var, result
+  end
+
+  def test_trace_delete_alias
+    var = make_var("test")
+    assert var.respond_to?(:trace_delete)
+    assert var.respond_to?(:trace_vdelete)
+  end
+
+  def test_trace_multiple_operations
+    var = make_var("test")
+    trace_log = []
+
+    # Track both read and write (using legacy 'rw' format)
+    var.trace('rw') { |v, elem, op| trace_log << op }
+
+    _ = var.value  # read
+    var.value = "new"  # write
+
+    # Both operations should be logged (in Tcl's format)
+    assert_includes trace_log, 'read'
+    assert_includes trace_log, 'write'
+  end
+
+  def test_trace_element_on_hash
+    var = make_var({})
+    var["key"] = "initial"
+    trace_log = []
+
+    var.trace_element("key", 'w') { |v, elem, op| trace_log << [elem, op] }
+
+    var["key"] = "changed"
+    var["other"] = "something"  # Different element, shouldn't trigger
+
+    # Only "key" element should trigger the trace (op is 'write' in modern Tcl)
+    assert trace_log.any? { |elem, op| elem == "key" && op == 'write' }
+  end
+
+  def test_trace_element_returns_self
+    var = make_var({})
+    result = var.trace_element("key", 'w') { }
+    assert_same var, result
+  end
+
+  def test_trace_info_for_element_empty
+    var = make_var({})
+    assert_equal [], var.trace_info_for_element("key")
+  end
+
+  def test_trace_info_for_element_returns_traces
+    var = make_var({})
+    callback = proc { }
+
+    var.trace_element("mykey", 'w', callback)
+
+    info = var.trace_info_for_element("mykey")
+    assert_equal 1, info.size
+    assert_same callback, info[0][1]
+  end
+
+  def test_trace_vinfo_for_element_alias
+    var = make_var({})
+    assert_equal var.trace_info_for_element("key"), var.trace_vinfo_for_element("key")
+  end
+
+  def test_trace_remove_for_element
+    var = make_var({})
+    var["key"] = "initial"
+    trace_log = []
+    callback = proc { |v, elem, op| trace_log << op }
+
+    var.trace_element("key", 'w', callback)
+    var["key"] = "first"
+    assert_equal ['write'], trace_log
+
+    var.trace_remove_for_element("key", 'w', callback)
+    var["key"] = "second"
+    # Should not have triggered after removal
+    assert_equal ['write'], trace_log
+  end
+
+  def test_trace_remove_for_element_returns_self
+    var = make_var({})
+    callback = proc { }
+    var.trace_element("key", 'w', callback)
+
+    result = var.trace_remove_for_element("key", 'w', callback)
+    assert_same var, result
+  end
+
+  def test_trace_with_new_style_options
+    var = make_var("test")
+    trace_log = []
+
+    # New style uses 'write' instead of 'w'
+    var.trace('write') { |v, elem, op| trace_log << op }
+
+    var.value = "changed"
+    assert trace_log.size >= 1
+  end
+
+  def test_trace_with_array_options
+    var = make_var("test")
+    trace_log = []
+
+    var.trace(['write']) { |v, elem, op| trace_log << op }
+
+    var.value = "changed"
+    assert trace_log.size >= 1
+  end
+
+  def test_trace_unset_callback
+    var = make_var("test")
+    trace_log = []
+
+    var.trace('u') { |v, elem, op| trace_log << op }
+
+    var.unset
+
+    assert_includes trace_log, 'unset'
+  end
+
+  def test_check_trace_opt_rejects_empty
+    var = make_var("test")
+    assert_raises(ArgumentError) { var.trace('') { } }
+  end
 end

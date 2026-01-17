@@ -511,6 +511,7 @@ class Tk::Tile::Treeview < TkWindow
   extend Tk::ItemOptionDSL
   include Tk::Tile::TileWidget
   include Scrollable
+  include Tk::Generated::TtkTreeview
 
   include Tk::Tile::TreeviewConfig
 
@@ -527,15 +528,13 @@ class Tk::Tile::Treeview < TkWindow
   WidgetClassName = 'Treeview'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
-  # Widget-specific options
-  option :columns,        type: :list     # column identifiers
+  # Override generated options with correct types (generator defaults to :string)
+  option :columns,        type: :list     # list of column identifiers
   option :displaycolumns, type: :list     # columns to display (or "#all")
-  option :height,         type: :integer  # visible rows
-  option :selectmode,     type: :string   # extended, browse, none
-  option :show,           type: :list     # tree, headings
-  option :style,          type: :string   # ttk style
+  option :show,           type: :list     # elements to show: tree, headings
 
-  # Tk 9.0+ options (TIP 552)
+  # Tk 9.0+ options (TIP 552) - not auto-generated
+  # TODO: min_version is stored but not enforced at runtime - configure will fail on Tk 8.6
   option :striped,        type: :boolean, min_version: 9  # zebra striping
   option :selecttype,     type: :string,  min_version: 9  # item, cell
   option :titlecolumns,   type: :integer, min_version: 9  # non-scrolling columns

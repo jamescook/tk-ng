@@ -397,6 +397,7 @@ class TkGoldberg_Demo
       end
     }
     @S['active'] = alive
+    $stderr.puts "alive=#{alive.inspect}" if ENV['DEBUG'] && alive.empty?
     return retval
   end
 
@@ -1789,7 +1790,14 @@ class TkGoldberg_Demo
       @canvas.delete('I24', 'I26')
       if ENV['TK_RECORD']
         # Auto-exit after animation completes (for recording)
-        Tk.after(500) { Tk.exit }
+        Tk.after(500) do
+          # Signal recording to stop before window closes
+          if (pipe = ENV['TK_STOP_PIPE'])
+            File.write(pipe, "1") rescue nil
+          end
+          sleep 1
+          Tk.exit
+        end
         return 4
       end
       TkcText.new(@canvas, 430, 740, :anchor=>:s, :tag=>'I26',

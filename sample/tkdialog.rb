@@ -2,6 +2,10 @@
 # frozen_string_literal: false
 require "tk"
 
+# This sample uses legacy string commands (e.g., command "quit 'save'")
+# Enable string eval since we trust all commands in this demo
+Tk.allow_string_eval = true
+
 root = TkFrame.new
 top = TkFrame.new(root) {
   relief 'raised'

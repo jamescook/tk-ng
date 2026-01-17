@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require_relative 'test_helper'
+require_relative 'tk_test_helper'
 require 'tk/option_generator'
 
 class TestOptionGenerator < Minitest::Test
+  include TkTestHelper
   # Test TypeRegistry mapping
   def test_type_registry_known_types
     assert_equal :tkvariable, Tk::TypeRegistry.type_for("Variable")
@@ -123,21 +125,67 @@ class TestOptionGenerator < Minitest::Test
 
   # Integration test - actually introspect Tk (requires display)
   def test_introspect_button_widget
-    skip "Requires Tk display" unless ENV['TEST_WITH_DISPLAY']
+    assert_tk_app("introspect button widget", method(:introspect_button_app))
+  end
+
+  def introspect_button_app
+    require 'tk/option_generator'
 
     generator = Tk::OptionGenerator.new(tcl_version: Tk::TCL_VERSION)
     options = generator.introspect_widget("button")
 
     # Should have common button options
     option_names = options.map(&:name)
-    assert_includes option_names, "text"
-    assert_includes option_names, "command"
-    assert_includes option_names, "state"
+    raise "missing text option" unless option_names.include?("text")
+    raise "missing command option" unless option_names.include?("command")
+    raise "missing state option" unless option_names.include?("state")
 
     # Should have aliases
     aliases = options.select(&:alias?)
     alias_names = aliases.map(&:name)
-    assert_includes alias_names, "bd"
-    assert_includes alias_names, "bg"
+    raise "missing bd alias" unless alias_names.include?("bd")
+    raise "missing bg alias" unless alias_names.include?("bg")
+  end
+
+  # ============================================================
+  # Ttk widget generation tests
+  # ============================================================
+
+  def test_generate_ttk_widget_module
+    # Simulate raw configure output for ttk::label
+    raw_options = [
+      "-background background Background {} {}",
+      "-foreground foreground Foreground {} {}",
+      "-padding padding Padding {} {}",
+      "-text text Text {} {}",
+    ]
+
+    generator = Tk::OptionGenerator.new(tcl_version: "9.0")
+    output = generator.generate_widget_module("TtkLabel", raw_options)
+
+    assert_includes output, "module TtkLabel"
+    assert_includes output, "option :background"
+    assert_includes output, "option :padding"
+    assert_includes output, "option :text"
+  end
+
+  def test_introspect_ttk_label_widget
+    assert_tk_app("introspect ttk::label widget", method(:introspect_ttk_label_app))
+  end
+
+  def introspect_ttk_label_app
+    require 'tk/option_generator'
+
+    generator = Tk::OptionGenerator.new(tcl_version: Tk::TCL_VERSION)
+    options = generator.introspect_widget("ttk::label")
+
+    option_names = options.map(&:name)
+    raise "missing text option" unless option_names.include?("text")
+    raise "missing padding option" unless option_names.include?("padding")
+    raise "missing style option" unless option_names.include?("style")
+
+    # Ttk label should NOT have padx/pady (they don't exist in Tcl)
+    raise "should not have padx" if option_names.include?("padx")
+    raise "should not have pady" if option_names.include?("pady")
   end
 end

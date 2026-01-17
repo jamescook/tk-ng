@@ -159,6 +159,9 @@ module TkComposite
   def option_methods(*opts)
     if opts.size == 1 && opts[0].kind_of?(Hash)
       # {name => [m_set, m_cget, m_info], name => method} style
+      # Deprecated: prefer array style for consistency with configure
+      warn "[ruby-tk] TkComposite#option_methods hash style is deprecated and untested. " \
+           "Prefer array style: option_methods(:setter) or option_methods([:setter, :getter])", uplevel: 1
       opts[0].each{|name, arg|
         m_set, m_cget, m_info = _get_opt_method_list(arg)
         @option_methods[name.to_s] = {
@@ -166,7 +169,7 @@ module TkComposite
         }
       }
     else
-      # [m_set, m_cget, m_info] or method style
+      # [m_set, m_cget, m_info] or method style (preferred)
       opts.each{|arg|
         m_set, m_cget, m_info = _get_opt_method_list(arg)
         @option_methods[m_set] = {

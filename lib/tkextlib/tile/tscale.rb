@@ -22,6 +22,7 @@ end
 
 class Tk::Tile::TScale < Tk::Scale
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkScale
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::scale'.freeze].freeze
@@ -30,9 +31,6 @@ class Tk::Tile::TScale < Tk::Scale
   end
   WidgetClassName = 'TScale'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::Scale)
-  option :style, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

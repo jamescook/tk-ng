@@ -317,8 +317,56 @@ module Tk
       private :_style_layout
     end
 
+    # Translates Tk options to Ttk equivalents (e.g., padx/pady -> padding)
+    # Prepended to widget classes via TileWidget inclusion
+    module OptionTranslator
+      @warned = {}
+      @suppress_warnings = false
+
+      def self.suppress_warnings!
+        @suppress_warnings = true
+      end
+
+      def self.warn_once(message, key)
+        return if @suppress_warnings
+        return if @warned[key]
+        @warned[key] = true
+        warn "[ruby-tk] #{message}"
+      end
+
+      def self.translate_options(keys, widget_class: nil)
+        keys = keys.dup
+
+        padx = keys.delete('padx') || keys.delete(:padx)
+        pady = keys.delete('pady') || keys.delete(:pady)
+
+        if padx || pady
+          unless keys.key?('padding') || keys.key?(:padding)
+            keys['padding'] = [padx || 0, pady || 0]
+            class_name = widget_class ? widget_class.name : 'Ttk widget'
+            warn_once("Translated padx/pady to padding for #{class_name}. " \
+                      "Consider using -padding directly for Ttk widgets.",
+                      "padding:#{class_name}")
+          end
+        end
+
+        keys
+      end
+
+      def configure(slot, value=TkUtil::None)
+        if slot.kind_of?(Hash)
+          slot = OptionTranslator.translate_options(slot, widget_class: self.class)
+        end
+        super
+      end
+    end
+
     module TileWidget
       include Tk::Tile::ParseStyleLayout
+
+      def self.included(base)
+        base.prepend(OptionTranslator)
+      end
 
       def ttk_instate(state, script=nil, &b)
         if script

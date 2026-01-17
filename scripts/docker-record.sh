@@ -39,6 +39,7 @@ docker run --rm \
     -e "SCREEN_SIZE=${SCREEN_SIZE:-850x700}" \
     -e "FRAMERATE=${FRAMERATE:-30}" \
     -e "CODEC=${CODEC}" \
+    -e "DOCKER_RECORD=1" \
     -v "$(pwd)/scripts:/app/scripts:ro" \
     -v "$(pwd)/sample:/app/sample:ro" \
     -v "$(pwd)/lib/tk.rb:/app/lib/tk.rb:ro" \

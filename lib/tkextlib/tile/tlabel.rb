@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TLabel < Tk::Label
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkLabel
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::label'.freeze].freeze
@@ -26,10 +27,6 @@ class Tk::Tile::TLabel < Tk::Label
   end
   WidgetClassName = 'TLabel'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk standard options (inherits from Tk::Label)
-  option :style,   type: :string
-  option :padding, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

@@ -20,6 +20,7 @@ end
 class Tk::Tile::TProgressbar
   extend Tk::OptionDSL
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkProgressbar
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::progressbar'.freeze].freeze
@@ -28,14 +29,6 @@ class Tk::Tile::TProgressbar
   end
   WidgetClassName = 'TProgressbar'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options
-  option :length,   type: :pixels     # long axis size
-  option :maximum,  type: :float      # max value (default 100)
-  option :mode,     type: :string     # determinate, indeterminate
-  option :orient,   type: :string     # horizontal, vertical
-  option :value,    type: :float      # current progress
-  option :style,    type: :string     # ttk style
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

@@ -325,3 +325,75 @@ module TclTkLib
     # _merge_tklist is now defined in C (tcltkbridge.c) for performance
   end
 end
+
+# Legacy TkConfigMethod modules - no longer functional but kept for compatibility
+module TkConfigMethod
+  @ignore_unknown_warned = false
+
+  def self.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(value)
+    unless @ignore_unknown_warned
+      warn "TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect"
+      @ignore_unknown_warned = true
+    end
+  end
+end
+
+module TkItemConfigMethod
+  @ignore_unknown_warned = false
+
+  def self.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(value)
+    unless @ignore_unknown_warned
+      warn "TkItemConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect"
+      @ignore_unknown_warned = true
+    end
+  end
+end
+
+# ---------------------------------------------------------
+# String command evaluation setting
+#
+# Legacy Ruby/Tk allowed passing strings as widget commands:
+#   command "quit 'save'"
+# which would be eval'd as Ruby code when triggered.
+#
+# This is disabled by default for security - if an app were to
+# pass untrusted input as a command string, it would allow
+# arbitrary code execution.
+#
+# Enable only if you need legacy string command compatibility
+# and trust all command strings in your application.
+# ---------------------------------------------------------
+module Tk
+  @allow_string_eval = false
+  @allow_string_eval_warned = false
+
+  class << self
+    def allow_string_eval
+      @allow_string_eval
+    end
+
+    def allow_string_eval=(value)
+      if value && !@allow_string_eval_warned
+        warn "[ruby-tk] Tk.allow_string_eval enabled. String commands will be " \
+             "evaluated as Ruby code. Only enable this if you trust all command " \
+             "strings in your application."
+        @allow_string_eval_warned = true
+      end
+      @allow_string_eval = value
+    end
+  end
+end
+
+# ---------------------------------------------------------
+# Deprecated TkVariable constants
+#
+# USE_OLD_TRACE_OPTION_STYLE was used to support Tcl < 8.4 trace syntax.
+# Since we now require Tcl 8.6+, this is always false and the old
+# code paths have been removed.
+#
+# This hook is called when TkVariable is loaded to add the deprecation.
+# ---------------------------------------------------------
+module TkVariableCompatExtension
+  # Always false - we require Tcl 8.6+ which uses modern trace syntax
+  USE_OLD_TRACE_OPTION_STYLE = false
+end

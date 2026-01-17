@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TCombobox < Tk::Tile::TEntry
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkCombobox
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::combobox'.freeze].freeze
@@ -26,11 +27,6 @@ class Tk::Tile::TCombobox < Tk::Tile::TEntry
   end
   WidgetClassName = 'TCombobox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options (inherits from TEntry)
-  option :height,      type: :integer    # popup listbox rows
-  option :postcommand, type: :string     # script before showing listbox
-  option :values,      type: :list       # dropdown values
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

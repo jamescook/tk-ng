@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TScrollbar < Tk::Scrollbar
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkScrollbar
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::scrollbar'.freeze].freeze
@@ -26,9 +27,6 @@ class Tk::Tile::TScrollbar < Tk::Scrollbar
   end
   WidgetClassName = 'TScrollbar'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits orient, command from Tk::Scrollbar)
-  option :style, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

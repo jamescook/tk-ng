@@ -18,6 +18,10 @@ end
 
 class Tk::Tile::TSpinbox < Tk::Tile::TEntry
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkSpinbox
+
+  # Override generated options with correct types
+  option :wrap, type: :boolean  # wrap around at limits
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::spinbox'.freeze].freeze
@@ -26,14 +30,6 @@ class Tk::Tile::TSpinbox < Tk::Tile::TEntry
   end
   WidgetClassName = 'TSpinbox'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options (inherits from TEntry)
-  option :from,             type: :float       # lowest value
-  option :to,               type: :float       # highest value
-  option :increment,        type: :float       # step value
-  option :format,           type: :string      # printf-style format for floats
-  option :values,           type: :list        # discrete values (overrides from/to)
-  option :wrap,             type: :boolean     # wrap around at boundaries
 
   class SpinCommand < TkValidateCommand
     class ValidateArgs < TkUtil::CallbackSubst

@@ -20,6 +20,7 @@ end
 class Tk::Tile::TSeparator < TkWindow
   extend Tk::OptionDSL
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkSeparator
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::separator'.freeze].freeze
@@ -28,10 +29,6 @@ class Tk::Tile::TSeparator < TkWindow
   end
   WidgetClassName = 'TSeparator'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options
-  option :orient, type: :string   # horizontal, vertical
-  option :style,  type: :string   # ttk style
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

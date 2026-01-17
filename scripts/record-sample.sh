@@ -56,10 +56,16 @@ if [ -z "$DISPLAY" ]; then
     exec xvfb-run -a -s "-screen 0 ${SCREEN_SIZE}x24" "$0" "$@"
 fi
 
-echo "Recording ${SAMPLE} to ${OUTPUT} (${SCREEN_SIZE}, ${CODEC})..."
+# Only print if not called from docker-record.sh
+[ -z "$DOCKER_RECORD" ] && echo "Recording ${SAMPLE} to ${OUTPUT} (${SCREEN_SIZE}, ${CODEC})..."
 
-# Start app first, wait for window, then record
-TK_RECORD=1 $RUBY_CMD -rtk "$SAMPLE" &
+# Create pipe for early stop signal
+STOP_PIPE=$(mktemp -u)
+mkfifo "$STOP_PIPE"
+trap 'rm -f "$STOP_PIPE"' EXIT
+
+# Start app with stop pipe FD
+TK_RECORD=1 TK_STOP_PIPE="$STOP_PIPE" $RUBY_CMD -rtk "$SAMPLE" &
 APP_PID=$!
 
 # Wait for window to appear (--sync blocks until found)
@@ -74,11 +80,15 @@ ffmpeg -y -f x11grab -video_size ${SCREEN_SIZE} \
     "${OUTPUT}" 2>/dev/null &
 FFMPEG_PID=$!
 
-trap 'kill $FFMPEG_PID 2>/dev/null || true' EXIT
+# Wait for stop signal OR app exit
+read -t 60 <"$STOP_PIPE" &
+WAIT_PID=$!
 
-# Wait for app to finish, then stop recording immediately
-wait $APP_PID 2>/dev/null || true
+# Whichever comes first
+wait -n $APP_PID $WAIT_PID 2>/dev/null || true
+echo "Stopping recording..."
 kill $FFMPEG_PID 2>/dev/null || true
 wait $FFMPEG_PID 2>/dev/null || true
+wait $APP_PID 2>/dev/null || true
 
 echo "Done: ${OUTPUT}"

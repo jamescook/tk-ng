@@ -647,6 +647,20 @@ namespace :docker do
     sh cmd
   end
 
+  desc "Generate Ttk options in Docker (TCL_VERSION=9.0|8.6)"
+  task generate_ttk_options: :build do
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    puts "Generating Ttk options in Docker (Tcl #{tcl_version})..."
+    cmd = "docker run --rm --init"
+    cmd += " -v #{Dir.pwd}/lib/tk/generated:/app/lib/tk/generated"
+    cmd += " -e TCL_VERSION=#{tcl_version}"
+    cmd += " #{image_name} xvfb-run -a bundle exec rake tk:generate_ttk_options"
+
+    sh cmd
+  end
+
   desc "Remove dangling Docker images from ruby-tk builds"
   task :prune do
     sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
@@ -655,6 +669,39 @@ namespace :docker do
   # Auto-prune after test tasks
   ['docker:test', 'docker:test:widget'].each do |t|
     Rake::Task[t].enhance { Rake::Task['docker:prune'].invoke }
+  end
+
+  # Demos that support TK_RECORD for automated recording
+  RECORDABLE_DEMOS = [
+    { sample: 'sample/demos-en/goldberg.rb', screen_size: '850x700' },
+    { sample: 'sample/24hr_clock.rb', screen_size: '420x450' },
+  ].freeze
+
+  desc "Record demos in Docker (TCL_VERSION=9.0|8.6, DEMO=sample/foo.rb)"
+  task record_demos: :build do
+    require 'fileutils'
+    FileUtils.mkdir_p('recordings')
+
+    tcl_version = tcl_version_from_env
+    image_name = docker_image_name(tcl_version)
+
+    demos = if ENV['DEMO']
+              # Single demo from env var
+              [{ sample: ENV['DEMO'], screen_size: ENV['SCREEN_SIZE'] || '850x700' }]
+            else
+              RECORDABLE_DEMOS
+            end
+
+    demos.each do |demo|
+      sample = demo[:sample]
+      screen_size = demo[:screen_size]
+      codec = ENV['CODEC'] || 'x264'
+
+      puts "Recording #{sample} (#{screen_size}, #{codec})..."
+      sh "SCREEN_SIZE=#{screen_size} CODEC=#{codec} ./scripts/docker-record.sh #{sample}"
+    end
+
+    puts "Done! Recordings in: recordings/"
   end
 end
 
@@ -682,6 +729,28 @@ namespace :tk do
     'Spinbox' => 'spinbox',
     'Text' => 'text',
     'Toplevel' => 'toplevel',
+  }.freeze
+
+  # List of Ttk (themed) widgets to introspect
+  TTK_WIDGETS = {
+    'TtkButton' => 'ttk::button',
+    'TtkCheckbutton' => 'ttk::checkbutton',
+    'TtkCombobox' => 'ttk::combobox',
+    'TtkEntry' => 'ttk::entry',
+    'TtkFrame' => 'ttk::frame',
+    'TtkLabel' => 'ttk::label',
+    'TtkLabelframe' => 'ttk::labelframe',
+    'TtkMenubutton' => 'ttk::menubutton',
+    'TtkNotebook' => 'ttk::notebook',
+    'TtkPanedwindow' => 'ttk::panedwindow',
+    'TtkProgressbar' => 'ttk::progressbar',
+    'TtkRadiobutton' => 'ttk::radiobutton',
+    'TtkScale' => 'ttk::scale',
+    'TtkScrollbar' => 'ttk::scrollbar',
+    'TtkSeparator' => 'ttk::separator',
+    'TtkSizegrip' => 'ttk::sizegrip',
+    'TtkSpinbox' => 'ttk::spinbox',
+    'TtkTreeview' => 'ttk::treeview',
   }.freeze
 
   desc "Generate option DSL from Tk introspection (requires display)"
@@ -725,6 +794,50 @@ namespace :tk do
     File.write(loader_file, loader_content)
 
     puts "\nGenerated #{widget_files.size} widget files in #{version_dir}/"
+    puts "Loader: #{loader_file}"
+  end
+
+  desc "Generate Ttk option DSL from Tk introspection (called by docker:generate_ttk_options)"
+  task generate_ttk_options: :compile do
+    require_relative 'lib/tk/option_generator'
+
+    $LOAD_PATH.unshift(File.expand_path('lib', __dir__))
+    require 'tk'
+
+    tcl_version = Tk::TCL_VERSION
+    version_dir = "#{GENERATED_DIR}/ttk/#{tcl_version.gsub('.', '_')}"
+    generator = Tk::OptionGenerator.new(tcl_version: tcl_version)
+
+    puts "Introspecting Ttk widgets for Tcl #{tcl_version}..."
+    FileUtils.mkdir_p(version_dir)
+
+    widget_files = []
+    TTK_WIDGETS.each do |ruby_name, tk_cmd|
+      print "  #{ruby_name}..."
+      begin
+        entries = generator.introspect_widget(tk_cmd)
+        filename = ruby_name.downcase
+        filepath = "#{version_dir}/#{filename}.rb"
+        File.write(filepath, generator.generate_widget_file(ruby_name, entries))
+        widget_files << filename
+        puts " #{entries.size} options -> #{filename}.rb"
+      rescue => e
+        puts " FAILED: #{e.message}"
+      end
+    end
+
+    # Generate loader file
+    loader_content = <<~RUBY
+      # frozen_string_literal: true
+      # Auto-generated loader for Ttk #{tcl_version} widget options
+      # DO NOT EDIT - regenerate with: rake docker:generate_ttk_options
+
+      #{widget_files.map { |f| "require_relative 'ttk/#{tcl_version.gsub('.', '_')}/#{f}'" }.join("\n")}
+    RUBY
+    loader_file = "#{GENERATED_DIR}/ttk_options_#{tcl_version.gsub('.', '_')}.rb"
+    File.write(loader_file, loader_content)
+
+    puts "\nGenerated #{widget_files.size} Ttk widget files in #{version_dir}/"
     puts "Loader: #{loader_file}"
   end
 

@@ -298,7 +298,14 @@ end
 if ENV['TK_RECORD']
   # SCREEN_SIZE=420x450 ./scripts/docker-record.sh sample/24hr_clock.rb
   Tk.root.geometry('+0+0')  # Position at top-left for screen capture
-  Tk.after(10000) { Tk.exit }  # Exit after N seconds
+  Tk.after(10000) do
+    # Signal recording to stop before window closes
+    if (pipe = ENV['TK_STOP_PIPE'])
+      File.write(pipe, "1") rescue nil
+    end
+    sleep 1
+    Tk.exit
+  end
 end
 
 Tk.mainloop

@@ -584,6 +584,44 @@ class TestTkUtil < Minitest::Test
     assert_equal 42, result
   end
 
+  # String eval security tests
+  def test_eval_cmd_string_raises_security_error_by_default
+    # Ensure allow_string_eval is false (default)
+    Tk.allow_string_eval = false
+
+    err = assert_raises(SecurityError) do
+      TkUtil.eval_cmd("1 + 1")
+    end
+    assert_match(/Tk\.allow_string_eval is false/, err.message)
+  end
+
+  def test_eval_cmd_string_works_when_allowed
+    # Capture stderr to suppress the one-time warning
+    original_stderr = $stderr
+    $stderr = StringIO.new
+
+    begin
+      Tk.allow_string_eval = true
+
+      # Define a method to call
+      eval("def _test_eval_cmd_helper; 42; end", TOPLEVEL_BINDING)
+      result = TkUtil.eval_cmd("_test_eval_cmd_helper")
+      assert_equal 42, result
+    ensure
+      Tk.allow_string_eval = false
+      $stderr = original_stderr
+    end
+  end
+
+  def test_eval_cmd_string_error_message_includes_command
+    Tk.allow_string_eval = false
+
+    err = assert_raises(SecurityError) do
+      TkUtil.eval_cmd("dangerous_command")
+    end
+    assert_match(/dangerous_command/, err.message)
+  end
+
   # TkUtil::None tests
   def test_none_to_s_returns_empty_string
     assert_equal "", TkUtil::None.to_s

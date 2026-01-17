@@ -18,6 +18,7 @@ end
 
 class Tk::Tile::TButton < Tk::Button
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkButton
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::button'.freeze].freeze
@@ -26,10 +27,6 @@ class Tk::Tile::TButton < Tk::Button
   end
   WidgetClassName = 'TButton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::Button)
-  option :style,   type: :string
-  option :default, type: :string  # normal, active, disabled
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

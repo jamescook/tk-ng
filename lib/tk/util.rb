@@ -250,20 +250,45 @@ module TkUtil
 
   # Convert Ruby array to Tcl list string
   # Uses TclTkLib._merge_tklist for proper Tcl escaping
+  #
+  # When a Hash appears in the array, its key-value pairs are expanded inline.
+  # This is required for Tcl commands like ttk::style layout where:
+  #   ["element", {:children => [...]}]
+  # must become:
+  #   element -children {...}
+  # NOT:
+  #   element {-children {...}}
+  #
   def self._ary2list_ruby(ary)
     return '' if ary.empty?
 
-    elements = ary.map do |elem|
+    none = @none_value
+    elements = []
+
+    ary.each do |elem|
       case elem
       when Array
-        _ary2list_ruby(elem)
+        elements << _ary2list_ruby(elem)
       when Hash
-        _hash2list_ruby(elem)
+        # Expand hash inline as -key value pairs
+        elem.each do |key, value|
+          next if none && value.equal?(none)
+          elements << "-#{key}"
+          case value
+          when Array
+            elements << _ary2list_ruby(value)
+          when Hash
+            elements << _hash2list_ruby(value)
+          else
+            result = _get_eval_string(value)
+            elements << result unless result.nil?
+          end
+        end
       else
         result = _get_eval_string(elem)
-        result.nil? ? nil : result
+        elements << result unless result.nil?
       end
-    end.compact
+    end
 
     TclTkLib._merge_tklist(*elements)
   end
@@ -643,10 +668,22 @@ module TkUtil
     end
   end
 
-  # Evaluate a command (proc/method/lambda) with arguments
+  # Evaluate a command (proc/method/lambda/string) with arguments
   # C version: tk_eval_cmd (tkutil.c) - was using rb_eval_cmd C API
+  #
+  # String commands require Tk.allow_string_eval = true (off by default for security)
   def self.eval_cmd(cmd, *args)
-    cmd.call(*args)
+    if cmd.is_a?(String)
+      if Tk.allow_string_eval
+        eval(cmd)
+      else
+        raise SecurityError, "String command #{cmd.inspect} passed but Tk.allow_string_eval is false. " \
+                             "Use a Proc/block instead, or set Tk.allow_string_eval = true if you trust " \
+                             "all command strings in your application."
+      end
+    else
+      cmd.call(*args)
+    end
   end
 
   def eval_cmd(cmd, *args)

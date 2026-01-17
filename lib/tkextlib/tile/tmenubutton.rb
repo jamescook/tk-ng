@@ -20,6 +20,7 @@ end
 
 class Tk::Tile::TMenubutton < Tk::Menubutton
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkMenubutton
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::menubutton'.freeze].freeze
@@ -28,9 +29,6 @@ class Tk::Tile::TMenubutton < Tk::Menubutton
   end
   WidgetClassName = 'TMenubutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::Menubutton)
-  option :style, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

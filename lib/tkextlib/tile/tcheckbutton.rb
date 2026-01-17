@@ -20,6 +20,7 @@ end
 
 class Tk::Tile::TCheckButton < Tk::CheckButton
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkCheckbutton
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::checkbutton'.freeze].freeze
@@ -28,9 +29,6 @@ class Tk::Tile::TCheckButton < Tk::CheckButton
   end
   WidgetClassName = 'TCheckbutton'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Ttk-specific options (inherits from Tk::CheckButton)
-  option :style, type: :string
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

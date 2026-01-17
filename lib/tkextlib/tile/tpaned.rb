@@ -20,6 +20,7 @@ end
 class Tk::Tile::TPaned < TkWindow
   extend Tk::OptionDSL
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkPanedwindow
 
   if Tk::Tile::USE_TTK_NAMESPACE
     if Tk::Tile::TILE_SPEC_VERSION_ID < 8
@@ -32,12 +33,6 @@ class Tk::Tile::TPaned < TkWindow
   end
   WidgetClassName = 'TPaned'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options
-  option :orient, type: :string     # vertical, horizontal
-  option :width,  type: :pixels
-  option :height, type: :pixels
-  option :style,  type: :string     # ttk style
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

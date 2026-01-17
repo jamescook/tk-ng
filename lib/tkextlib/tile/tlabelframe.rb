@@ -20,6 +20,7 @@ end
 
 class Tk::Tile::TLabelframe < Tk::Tile::TFrame
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkLabelframe
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::labelframe'.freeze].freeze
@@ -28,11 +29,6 @@ class Tk::Tile::TLabelframe < Tk::Tile::TFrame
   end
   WidgetClassName = 'TLabelframe'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options (inherits from TFrame)
-  option :labelanchor, type: :string    # nw, n, ne, en, e, es, se, s, sw, ws, w, wn
-  option :text,        type: :string    # label text
-  option :underline,   type: :integer   # mnemonic character index
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

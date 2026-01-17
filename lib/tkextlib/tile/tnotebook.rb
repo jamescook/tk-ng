@@ -70,6 +70,7 @@ class Tk::Tile::TNotebook < TkWindow
   ################################
 
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkNotebook
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::notebook'.freeze].freeze
@@ -78,12 +79,6 @@ class Tk::Tile::TNotebook < TkWindow
   end
   WidgetClassName = 'TNotebook'.freeze
   WidgetClassNames[WidgetClassName] ||= self
-
-  # Widget-specific options
-  option :height,  type: :pixels     # pane area height
-  option :padding, type: :string     # outer padding
-  option :width,   type: :pixels     # pane area width
-  option :style,   type: :string     # ttk style
 
   # ================================================================
   # Item options (for notebook tabs)
