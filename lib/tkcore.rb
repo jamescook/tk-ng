@@ -503,6 +503,27 @@ module TkCore
     tk_call('tk_chooseDirectory', *hash_kv(keys))
   end
 
+  # ---------------------------------------------------------
+  # ip_eval vs tk_call
+  #
+  # PREFER tk_call / tk_call_without_enc for most Tcl commands:
+  #   tk_call('button', '.b', '-text', 'Hello')
+  #
+  # Benefits of tk_call:
+  #   - Arguments are automatically quoted/escaped for Tcl
+  #   - TkNamespace::ScopeArgs can override to add namespace wrapping
+  #   - Safer with user input (no injection risk)
+  #
+  # Use ip_eval ONLY when you need to:
+  #   - Define Tcl procs: ip_eval("proc foo {} { ... }")
+  #   - Evaluate pre-built Tcl scripts
+  #   - Execute complex Tcl that can't be expressed as separate args
+  #
+  # WARNING: ip_eval bypasses ScopeArgs namespace wrapping, so
+  # code inside @namespace.eval { ip_eval(...) } will NOT run
+  # in the target namespace. Use tk_call_without_enc instead.
+  # ---------------------------------------------------------
+
   def _ip_eval_core(enc_mode, cmd_string)
     case enc_mode
     when nil

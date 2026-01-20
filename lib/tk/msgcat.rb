@@ -22,7 +22,9 @@ class TkMsgCatalog < TkObject
     '::msgcat::mcunknown'.freeze
   ].freeze
 
-  tk_call_without_enc('package', 'require', 'Tcl', '8.2')
+  # Note: Removed legacy 'package require Tcl 8.2' check.
+  # We require Tcl 8.6+ in our C bridge, and Tcl 9's package system
+  # doesn't consider itself compatible with 8.x version requirements.
 
   PACKAGE_NAME = 'msgcat'.freeze
   def self.package_name
@@ -37,34 +39,15 @@ class TkMsgCatalog < TkObject
 
   MSGCAT_EXT = '.msg'
 
+  # Table of unknown translation callbacks indexed by [interp][namespace]
   UNKNOWN_CBTBL = Hash.new{|hash,key| hash[key] = {}}
 
-  # Register callback for TkMsgCatalog.callback, used by mcunknown Tcl proc
-  TKMSGCAT_CALLBACK_ID = TkCore::INTERP.register_callback(proc { |*args| TkMsgCatalog.callback(*args) })
-
-  TkCore::INTERP.add_tk_procs('::msgcat::mcunknown', 'args', <<-EOL)
-    if {[set st [catch {eval {ruby_callback #{TKMSGCAT_CALLBACK_ID}} [namespace current] $args} ret]] != 0} {
-       #return -code $st $ret
-       set idx [string first "\\n\\n" $ret]
-       if {$idx > 0} {
-          return -code $st \\
-                 -errorinfo [string range $ret [expr $idx + 2] \\
-                                               [string length $ret]] \\
-                 [string range $ret 0 [expr $idx - 1]]
-       } else {
-          return -code $st $ret
-       }
-    } else {
-        return $ret
-    }
-  EOL
-
-  def self.callback(namespace, locale, src_str, *args)
+  # Callback invoked from Tcl unknowncmd procs
+  def self.unknown_callback(namespace, locale, src_str, *args)
     src_str = sprintf(src_str, *args) unless args.empty?
     cmd_tbl = TkMsgCatalog::UNKNOWN_CBTBL[TkCore::INTERP.__getip]
     cmd = cmd_tbl[namespace]
-    cmd = cmd_tbl['::'] unless cmd  # use global scope as interp default
-    return src_str unless cmd       # no cmd -> return src-str (default action)
+    return src_str unless cmd  # no cmd -> return src-str (default action)
     begin
       cmd.call(locale, src_str)
     rescue SystemExit
@@ -151,7 +134,7 @@ class TkMsgCatalog < TkObject
     dst = args.collect{|src|
       tk_call_without_enc('::msgcat::mc', _get_eval_string(src, true))
     }
-    Tk.UTF8_String(sprintf(*dst))
+    sprintf(*dst)
   end
   class << self
     alias mc translate
@@ -162,7 +145,7 @@ class TkMsgCatalog < TkObject
       @namespace.eval{tk_call_without_enc('::msgcat::mc',
                                           _get_eval_string(src, true))}
     }
-    Tk.UTF8_String(sprintf(*dst))
+    sprintf(*dst)
   end
   alias mc translate
   alias [] translate
@@ -242,22 +225,25 @@ class TkMsgCatalog < TkObject
 
   def self.set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
-      trans_str = Tk.UTF8_String(trans_str)
-      Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}"))
+      tk_call_without_enc('::msgcat::mcset', locale,
+                          _get_eval_string(src_str, true), trans_str)
     else
-      Tk.UTF8_String(ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}}"))
+      tk_call_without_enc('::msgcat::mcset', locale,
+                          _get_eval_string(src_str, true))
     end
   end
   def set_translation(locale, src_str, trans_str=None, enc='utf-8')
+    # ScopeArgs overrides tk_call_without_enc to wrap with namespace eval
     if trans_str && trans_str != None
-      trans_str = Tk.UTF8_String(trans_str)
-      Tk.UTF8_String(@namespace.eval{
-                       ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}} {#{trans_str}}")
-                     })
+      @namespace.eval{
+        tk_call_without_enc('::msgcat::mcset', locale,
+                            _get_eval_string(src_str, true), trans_str)
+      }
     else
-      Tk.UTF8_String(@namespace.eval{
-                       ip_eval_without_enc("::msgcat::mcset {#{locale}} {#{_get_eval_string(src_str, true)}}")
-                     })
+      @namespace.eval{
+        tk_call_without_enc('::msgcat::mcset', locale,
+                            _get_eval_string(src_str, true))
+      }
     end
   end
 
@@ -267,34 +253,77 @@ class TkMsgCatalog < TkObject
     trans_list.each{|src, trans|
       if trans && trans != None
         list << _get_eval_string(src, true)
-        list << Tk.UTF8_String(trans)
+        list << trans.to_s
       else
         list << _get_eval_string(src, true) << ''
       end
     }
-    number(ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}"))
+    number(tk_call_without_enc('::msgcat::mcmset', locale, list))
   end
   def set_translation_list(locale, trans_list, enc='utf-8')
     # trans_list ::= [ [src, trans], [src, trans], ... ]
+    # ScopeArgs overrides tk_call_without_enc to wrap with namespace eval
     list = []
     trans_list.each{|src, trans|
       if trans && trans != None
         list << _get_eval_string(src, true)
-        list << Tk.UTF8_String(trans)
+        list << trans.to_s
       else
         list << _get_eval_string(src, true) << ''
       end
     }
     number(@namespace.eval{
-             ip_eval_without_enc("::msgcat::mcmset {#{locale}} {#{_get_eval_string(list)}}")
+             tk_call_without_enc('::msgcat::mcmset', locale, list)
            })
   end
 
+  # Register a callback for unknown (missing) translations.
+  # Uses msgcat 1.5+ mcpackageconfig unknowncmd API.
   def self.def_unknown_proc(cmd=nil, &block)
-    TkMsgCatalog::UNKNOWN_CBTBL[TkCore::INTERP.__getip]['::'] = cmd || block
+    ns_path = '::'
+    TkMsgCatalog::UNKNOWN_CBTBL[TkCore::INTERP.__getip][ns_path] = cmd || block
+    _setup_unknowncmd(ns_path)
   end
+
   def def_unknown_proc(cmd=nil, &block)
-    TkMsgCatalog::UNKNOWN_CBTBL[TkCore::INTERP.__getip][@namespace.path] = cmd || block
+    ns_path = @namespace.path
+    TkMsgCatalog::UNKNOWN_CBTBL[TkCore::INTERP.__getip][ns_path] = cmd || block
+    _setup_unknowncmd(ns_path)
+  end
+
+  private
+
+  # Set up mcpackageconfig unknowncmd for the given namespace
+  def _setup_unknowncmd(ns_path)
+    self.class._setup_unknowncmd(ns_path)
+  end
+
+  # Callback IDs indexed by interpreter (like UNKNOWN_CBTBL)
+  UNKNOWN_CB_IDS = {}
+
+  def self._setup_unknowncmd(ns_path)
+    # Create a unique Tcl proc name for this namespace's unknown handler
+    # Replace :: with _ to make a valid proc name
+    proc_suffix = ns_path.gsub('::', '_').sub(/^_/, '')
+    proc_suffix = 'global' if proc_suffix.empty?
+    proc_name = "::ruby_tk::msgcat_unknown_#{proc_suffix}"
+
+    # Register Ruby callback if not already done (per-interpreter)
+    ip = TkCore::INTERP.__getip
+    UNKNOWN_CB_IDS[ip] ||= TkCore::INTERP.register_callback(
+      proc { |*args| TkMsgCatalog.unknown_callback(*args) }
+    )
+    cb_id = UNKNOWN_CB_IDS[ip]
+
+    # Create the Tcl proc that will call back to Ruby
+    tk_call_without_enc('namespace', 'eval', '::ruby_tk', '')
+    TkCore::INTERP._invoke_without_enc('proc', proc_name, 'args',
+      "ruby_callback #{cb_id} {#{ns_path}} {*}$args")
+
+    # Register it as the unknowncmd for this namespace
+    TkCore::INTERP._invoke_without_enc(
+      'namespace', 'eval', ns_path,
+      "::msgcat::mcpackageconfig set unknowncmd #{proc_name}")
   end
 end
 

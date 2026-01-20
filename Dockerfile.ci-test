@@ -143,6 +143,11 @@ FROM ubuntu:25.04 AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# UTF-8 locale for Ruby's default external encoding.
+# Without this, Encoding.default_external is US-ASCII and gems like
+# method_source fail when reading files containing non-ASCII (e.g., i18n tests).
+ENV LANG=C.UTF-8
+
 # Skip docs/man pages
 RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
     echo 'path-exclude=/usr/share/man/*' >> /etc/dpkg/dpkg.cfg.d/excludes && \
@@ -152,6 +157,7 @@ RUN echo 'path-exclude=/usr/share/doc/*' > /etc/dpkg/dpkg.cfg.d/excludes && \
 ARG TCL_VERSION=9.0
 ENV TCL_VERSION=${TCL_VERSION}
 
+# Base runtime packages
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
     xvfb \
@@ -168,21 +174,31 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libreadline8 \
     zlib1g \
     libssl3t64 \
-    libxcursor1 && \
+    libxcursor1
+
+# Tcl/Tk version-specific packages
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     if [ "${TCL_VERSION}" = "8.6" ]; then \
-        apt-get install -y --no-install-recommends tcl tk libtk-img; \
+        apt-get update && apt-get install -y --no-install-recommends tcl tk libtk-img; \
     else \
-        apt-get install -y --no-install-recommends tcl9.0 tk9.0 && \
-        ln -sf /usr/bin/tclsh9.0 /usr/bin/tclsh && \
+        apt-get update && apt-get install -y --no-install-recommends tcl9.0 tk9.0 && \
+        ln -sf /usr/bin/tclsh9.0 /usr/bin/tclsh; \
+    fi
+
+# libtk-img for Tcl 9 (not in Ubuntu 25.04, fetch from Debian)
+# Note: Package versions differ by arch (arm64 has +b1 rebuild suffix)
+RUN if [ "${TCL_VERSION}" != "8.6" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends wget && \
         ARCH=$(dpkg --print-architecture) && \
-        apt-get install -y --no-install-recommends wget && \
-        wget -q -O /tmp/libjpeg62-turbo.deb "http://ftp.us.debian.org/debian/pool/main/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
-        wget -q -O /tmp/libtk-img.deb "http://ftp.us.debian.org/debian/pool/main/libt/libtk-img/libtk-img_2.1.0+dfsg1-1_${ARCH}.deb" && \
+        DEBIAN_POOL="http://ftp.us.debian.org/debian/pool/main" && \
+        wget -O /tmp/libjpeg62-turbo.deb "${DEBIAN_POOL}/libj/libjpeg-turbo/libjpeg62-turbo_2.1.5-4_${ARCH}.deb" && \
+        TKIMG_PKG=$(wget -qO- "${DEBIAN_POOL}/libt/libtk-img/" | grep -o "libtk-img_2\.1[^\"]*_${ARCH}\.deb" | sort -V | tail -1) && \
+        wget -O /tmp/libtk-img.deb "${DEBIAN_POOL}/libt/libtk-img/${TKIMG_PKG}" && \
         dpkg -i /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
         rm /tmp/libjpeg62-turbo.deb /tmp/libtk-img.deb && \
-        apt-get purge -y wget && apt-get autoremove -y; \
-    fi && \
-    rm -rf /var/lib/apt/lists/*
+        apt-get purge -y wget && apt-get autoremove -y && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
 
 ENV TCLLIBPATH="/usr/share/tcltk /app/ext/trofs"
 ENV TROFS_LIBRARY=/app/ext/trofs/library
