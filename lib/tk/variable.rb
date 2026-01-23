@@ -500,8 +500,22 @@ class TkVariable
   def _element_value(*idxs)
     index = idxs.collect{|idx| _get_eval_string(idx, true)}.join(',')
     begin
-      INTERP._get_global_var2(@id, index)
+      result = INTERP._get_global_var2(@id, index)
+      # Use default value if result is nil and a default is configured
+      if result.nil? && @def_default
+        case @def_default
+        when :proc
+          @default_val.call(self, *idxs)
+        when :val
+          @default_val
+        else
+          result
+        end
+      else
+        result
+      end
     rescue => e
+      # Tcl error - use default if available, otherwise re-raise
       case @def_default
       when :proc
         @default_val.call(self, *idxs)

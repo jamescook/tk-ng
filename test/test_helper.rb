@@ -13,13 +13,16 @@
 
 if ENV['COVERAGE']
   require 'simplecov'
+  require 'simplecov_json_formatter'
   require_relative 'simplecov_config'
 
   coverage_name = ENV['COVERAGE_NAME'] || 'default'
   SimpleCov.coverage_dir "#{SimpleCovConfig::PROJECT_ROOT}/coverage/results/#{coverage_name}"
   SimpleCov.command_name "#{coverage_name}:#{Process.pid}"
   SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter.new([
-    SimpleCov::Formatter::SimpleFormatter
+    SimpleCov::Formatter::SimpleFormatter,
+    SimpleCov::Formatter::HTMLFormatter,
+    SimpleCov::Formatter::JSONFormatter
   ])
 
   SimpleCov.start do

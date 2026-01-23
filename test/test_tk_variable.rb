@@ -10,6 +10,7 @@
 # rather than eval-based variable access.
 
 require_relative 'test_helper'
+require_relative 'tk_test_helper'
 require 'tk'
 
 class TestTkVariable < Minitest::Test
@@ -1219,5 +1220,387 @@ class TestTkVariable < Minitest::Test
   def test_check_trace_opt_rejects_empty
     var = make_var("test")
     assert_raises(ArgumentError) { var.trace('') { } }
+  end
+
+  # --- Default value with block (proc) ---
+
+  def test_default_value_with_block_returns_self
+    var = make_var({})
+    result = var.default_value { |v, *keys| "default" }
+    assert_same var, result
+  end
+
+  def test_default_value_with_block_sets_def_default_to_proc
+    var = make_var({})
+    var["exists"] = "real_value"
+
+    # Set a proc as the default value generator
+    var.default_value { |v, *keys| "default_for_#{keys.join('_')}" }
+
+    # Existing key returns real value
+    assert_equal "real_value", var["exists"]
+
+    # Accessing missing element should use the proc
+    result = var["missing_key"]
+    assert_equal "default_for_missing_key", result
+  end
+
+  def test_default_proc_is_called_with_correct_args
+    var = make_var({})
+    var["exists"] = "x"  # Make it a hash
+    call_log = []
+
+    var.default_proc { |v, *keys|
+      call_log << [v.object_id, keys]
+      "generated"
+    }
+
+    result = var["nonexistent"]
+    assert_equal "generated", result
+    assert_equal 1, call_log.size
+    assert_equal var.object_id, call_log[0][0]
+    assert_equal ["nonexistent"], call_log[0][1]
+  end
+
+  # --- Default value fallback for missing elements ---
+
+  def test_set_default_value_used_for_missing_element
+    var = make_var({})
+    var["present"] = "here"  # Make it a hash
+    var.set_default_value("fallback_value")
+
+    # Existing element returns its value
+    assert_equal "here", var["present"]
+
+    # Missing element returns the default value
+    result = var["missing"]
+    assert_equal "fallback_value", result
+  end
+
+  # --- Error cases for scalar operations ---
+
+  def test_keys_on_scalar_raises_error
+    var = make_var("scalar_value")
+    assert_raises(RuntimeError) { var.keys }
+  end
+
+  def test_clear_on_scalar_raises_error
+    var = make_var("scalar_value")
+    assert_raises(RuntimeError) { var.clear }
+  end
+
+  def test_update_on_scalar_raises_error
+    var = make_var("scalar_value")
+    assert_raises(RuntimeError) { var.update({"a" => "1"}) }
+  end
+
+  # --- variable and variable_element methods ---
+
+  def test_variable_returns_tkvaraccess
+    var = make_var({})
+    var["ref"] = "some_var_name"
+
+    # variable_element should return a TkVarAccess wrapping the element value
+    result = var.variable_element("ref")
+    assert_kind_of TkVarAccess, result
+    @created_vars << result
+  end
+
+  def test_set_variable_with_tkvariable
+    var1 = make_var("source")
+    var2 = make_var("")
+
+    var2.set_variable(var1)
+    # Should store var1's id, not its value
+    assert_equal var1.id, var2.value
+  end
+
+  def test_set_variable_element
+    var = make_var({})
+    source = make_var("source_value")
+
+    var.set_variable_element("key", source)
+    assert_equal source.id, var["key"]
+  end
+
+  def test_set_variable_type
+    var = make_var("")
+    source = make_var("referenced")
+
+    result = var.set_variable_type(source)
+    assert_same var, result
+    assert_equal :variable, var.default_value_type
+    assert_equal source.id, var.to_s
+  end
+
+  # --- Type coercion with NilClass ---
+
+  def test_type_from_nilclass_resets_type
+    var = make_var("42")
+    var.default_value_type = :numeric
+    assert_equal 42, var.value
+
+    # NilClass should reset to no type conversion
+    var.default_value_type = NilClass
+    assert_nil var.default_value_type
+    assert_equal "42", var.value  # Back to raw string
+  end
+
+  # --- Type coercion with TkVariable class ---
+
+  def test_type_from_tkvariable_class
+    var = make_var("some_var_name")
+    var.default_value_type = TkVariable
+
+    assert_equal :variable, var.default_value_type
+    result = var.value
+    assert_kind_of TkVarAccess, result
+    @created_vars << result
+  end
+
+  # --- Procedure methods ---
+
+  def test_set_procedure
+    var = make_var("")
+    result = var.set_procedure("some_command")
+    assert_same var, result
+    assert_equal "some_command", var.value
+  end
+
+  def test_set_procedure_element
+    var = make_var({})
+    result = var.set_procedure_element("cmd", "my_proc")
+    assert_same var, result
+    assert_equal "my_proc", var["cmd"]
+  end
+
+  def test_set_procedure_element_with_tkvariable
+    var = make_var({})
+    source = make_var("source_cmd")
+    var.set_procedure_element("key", source)
+    assert_equal "source_cmd", var["key"]
+  end
+
+  def test_set_procedure_element_with_array_index
+    var = make_var({})
+    var.set_procedure_element(["a", "b"], "multi_cmd")
+    assert_equal "multi_cmd", var["a", "b"]
+  end
+
+  def test_set_procedure_type
+    var = make_var("")
+    result = var.set_procedure_type("my_command")
+    assert_same var, result
+    assert_equal :procedure, var.default_value_type
+    assert_equal "my_command", var.to_s
+  end
+
+  def test_to_proc_with_symbol_value
+    var = make_var("upcase")
+    # to_proc converts the string to a symbol, then to a proc
+    p = var.to_proc
+    assert_respond_to p, :call
+    assert_equal "HELLO", p.call("hello")
+  end
+
+  # --- Window methods (basic, without actual Tk windows) ---
+
+  def test_set_window_with_string
+    var = make_var("")
+    result = var.set_window(".mywindow")
+    assert_same var, result
+    assert_equal ".mywindow", var.value
+  end
+
+  def test_set_window_with_tkvariable
+    var = make_var("")
+    source = make_var(".button1")
+    var.set_window(source)
+    assert_equal ".button1", var.value
+  end
+
+  def test_set_window_element
+    var = make_var({})
+    result = var.set_window_element("win", ".frame")
+    assert_same var, result
+    assert_equal ".frame", var["win"]
+  end
+
+  def test_set_window_element_with_array_index
+    var = make_var({})
+    var.set_window_element(["x", "y"], ".canvas")
+    assert_equal ".canvas", var["x", "y"]
+  end
+
+  def test_set_window_element_with_tkvariable
+    var = make_var({})
+    source = make_var(".label")
+    var.set_window_element("ref", source)
+    assert_equal ".label", var["ref"]
+  end
+
+  def test_set_window_type
+    var = make_var("")
+    result = var.set_window_type(".toplevel")
+    assert_same var, result
+    assert_equal :window, var.default_value_type
+    assert_equal ".toplevel", var.to_s
+  end
+
+  # --- Type coercion for procedure/window string literals ---
+
+  def test_default_value_type_procedure_string
+    var = make_var("my_proc")
+    var.default_value_type = :procedure
+    assert_equal :procedure, var.default_value_type
+  end
+
+  def test_default_value_type_window_string
+    var = make_var(".mywin")
+    var.default_value_type = :window
+    assert_equal :window, var.default_value_type
+  end
+
+  def test_default_value_type_procedure_from_string_literal
+    var = make_var("cmd")
+    var.default_value_type = 'procedure'
+    assert_equal :procedure, var.default_value_type
+  end
+
+  def test_default_value_type_window_from_string_literal
+    var = make_var(".win")
+    var.default_value_type = 'window'
+    assert_equal :window, var.default_value_type
+  end
+
+  def test_default_value_type_variable_from_string_literal
+    var = make_var("varname")
+    var.default_value_type = 'variable'
+    assert_equal :variable, var.default_value_type
+  end
+
+  # --- Window/Procedure tests requiring Tk runtime ---
+
+  include TkTestHelper
+
+  def test_window_returns_tk_window
+    assert_tk_app("window method returns TkWindow", method(:app_window_returns_tk_window))
+  end
+
+  def app_window_returns_tk_window
+    require 'tk'
+    btn = TkButton.new(root)
+    var = TkVariable.new(btn.path)
+
+    win = var.window
+    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+    raise "paths should match" unless win.path == btn.path
+  end
+
+  def test_window_element_returns_tk_window
+    assert_tk_app("window_element returns TkWindow", method(:app_window_element_returns_tk_window))
+  end
+
+  def app_window_element_returns_tk_window
+    require 'tk'
+    btn = TkButton.new(root)
+    var = TkVariable.new({})
+    var["widget"] = btn.path
+
+    win = var.window_element("widget")
+    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+    raise "paths should match" unless win.path == btn.path
+  end
+
+  def test_set_window_element_type
+    assert_tk_app("set_window_element_type sets type and value", method(:app_set_window_element_type))
+  end
+
+  def app_set_window_element_type
+    require 'tk'
+    btn = TkButton.new(root)
+    var = TkVariable.new({})
+
+    var.set_window_element_type("ref", btn.path)
+
+    raise "type should be :window" unless var.default_element_value_type("ref") == :window
+    win = var["ref"]
+    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+  end
+
+  def test_window_type_coercion
+    assert_tk_app("window type auto-converts value", method(:app_window_type_coercion))
+  end
+
+  def app_window_type_coercion
+    require 'tk'
+    btn = TkButton.new(root)
+    var = TkVariable.new(btn.path)
+    var.default_value_type = :window
+
+    val = var.value
+    raise "expected TkWindow, got #{val.class}" unless val.is_a?(TkWindow)
+    raise "paths should match" unless val.path == btn.path
+  end
+
+  def test_procedure_method_runs
+    assert_tk_app("procedure method executes", method(:app_procedure_method_runs))
+  end
+
+  def app_procedure_method_runs
+    require 'tk'
+    # TkComm.procedure returns a callable only for rb_out pattern commands,
+    # otherwise returns the string. Test that it runs without error.
+    var = TkVariable.new("some_command")
+    result = var.procedure
+
+    # For non-rb_out values, procedure returns the string as-is
+    raise "expected string, got #{result.class}" unless result.is_a?(String)
+    raise "expected 'some_command', got '#{result}'" unless result == "some_command"
+  end
+
+  def test_procedure_element_runs
+    assert_tk_app("procedure_element executes", method(:app_procedure_element_runs))
+  end
+
+  def app_procedure_element_runs
+    require 'tk'
+    var = TkVariable.new({})
+    var["cmd"] = "my_command"
+
+    result = var.procedure_element("cmd")
+    raise "expected string, got #{result.class}" unless result.is_a?(String)
+    raise "expected 'my_command', got '#{result}'" unless result == "my_command"
+  end
+
+  def test_procedure_type_coercion
+    assert_tk_app("procedure type coercion works", method(:app_procedure_type_coercion))
+  end
+
+  def app_procedure_type_coercion
+    require 'tk'
+    var = TkVariable.new("test_cmd")
+    var.default_value_type = :procedure
+
+    # With :procedure type, value method calls TkComm.procedure
+    # For non-rb_out values, it returns the string as-is
+    result = var.value
+    raise "expected 'test_cmd', got '#{result}'" unless result == "test_cmd"
+  end
+
+  def test_type_from_tkwindow_class
+    assert_tk_app("TkWindow class sets :window type", method(:app_type_from_tkwindow_class))
+  end
+
+  def app_type_from_tkwindow_class
+    require 'tk'
+    btn = TkButton.new(root)
+    var = TkVariable.new(btn.path)
+    var.default_value_type = TkWindow
+
+    raise "type should be :window" unless var.default_value_type == :window
+
+    val = var.value
+    raise "expected TkWindow, got #{val.class}" unless val.is_a?(TkWindow)
   end
 end

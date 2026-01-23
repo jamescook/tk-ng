@@ -48,6 +48,7 @@ namespace :coverage do
   desc "Collate coverage results from multiple test runs into a single report"
   task :collate do
     require 'simplecov'
+    require 'simplecov_json_formatter'
     require_relative 'test/simplecov_config'
 
     # Find all result files from named test runs
@@ -61,11 +62,15 @@ namespace :coverage do
 
     SimpleCov.collate(result_files) do
       coverage_dir 'coverage'
+      formatter SimpleCov::Formatter::MultiFormatter.new([
+        SimpleCov::Formatter::HTMLFormatter,
+        SimpleCov::Formatter::JSONFormatter
+      ])
       SimpleCovConfig.apply_filters(self)
       SimpleCovConfig.apply_groups(self)
     end
 
-    puts "Coverage report generated: coverage/index.html"
+    puts "Coverage report generated: coverage/index.html, coverage/coverage.json"
   end
 end
 
