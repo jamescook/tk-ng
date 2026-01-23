@@ -477,36 +477,40 @@ class TestTkWinfo < Minitest::Test
   # --- Containing query ---
 
   def test_winfo_containing
-    assert_tk_app("winfo containing finds widget at coords", method(:app_containing))
-  end
+    # Use subprocess for complete isolation - this test depends on
+    # absolute screen coordinates which can be affected by prior test state
+    assert_tk_subprocess("winfo containing finds widget at coords") do
+      <<~RUBY
+        require 'tk'
+        root = TkRoot.new
+        root.geometry("200x100+0+0")  # Explicit position
+        root.deiconify
 
-  def app_containing
-    require 'tk'
-    root.deiconify
-    btn = TkButton.new(root, text: "Test")
-    btn.pack
+        btn = TkButton.new(root, text: "Test")
+        btn.pack
 
-    # Wait for button to have non-zero dimensions (geometry may need time to settle in CI)
-    wait_for_display.call("true", timeout: 2.0) {
-      Tk.update
-      btn.winfo_width > 0 && btn.winfo_height > 0
-    }
+        # Wait for geometry to settle
+        20.times do
+          Tk.update
+          break if btn.winfo_width > 0 && btn.winfo_height > 0
+          sleep 0.05
+        end
 
-    # Get button's screen position
-    rx = btn.winfo_rootx
-    ry = btn.winfo_rooty
-    w = btn.winfo_width
-    h = btn.winfo_height
+        rx = btn.winfo_rootx
+        ry = btn.winfo_rooty
+        w = btn.winfo_width
+        h = btn.winfo_height
+        center_x = rx + w / 2
+        center_y = ry + h / 2
 
-    raise "button has zero dimensions: #{w}x#{h}" if w == 0 || h == 0
+        widget = TkWinfo.containing(center_x, center_y)
+        unless widget
+          raise "containing returned nil at \#{center_x},\#{center_y}. btn: \#{rx},\#{ry} \#{w}x\#{h}"
+        end
 
-    # Query what's at the center of the button
-    center_x = rx + w / 2
-    center_y = ry + h / 2
-
-    widget = TkWinfo.containing(center_x, center_y)
-    # Should find the button or one of its internal components
-    raise "containing should return a widget at #{center_x},#{center_y}, got #{widget.inspect}" if widget.nil?
+        root.destroy
+      RUBY
+    end
   end
 
   # --- Screen mm dimensions ---
