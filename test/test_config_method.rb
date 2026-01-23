@@ -569,12 +569,19 @@ class TestConfigMethod < Minitest::Test
   def app_cget_wm_shim_geometry
     require 'tk'
 
+    root.deiconify
     root.geometry("400x300+100+50")
+
+    # Wait for geometry to settle (CI may need time)
+    wait_for_display.call("true", timeout: 2.0) {
+      Tk.update
+      root.winfo_width > 0 && root.winfo_height > 0
+    }
 
     result = root.cget(:geometry)
 
     # Result should be a geometry string like "400x300+100+50"
-    raise "Expected geometry string, got #{result.inspect}" unless result =~ /\d+x\d+/
+    raise "Expected geometry string with positive dimensions, got #{result.inspect}" unless result =~ /\d+x\d+/
   end
 
   def test_configinfo_wm_shim_title
