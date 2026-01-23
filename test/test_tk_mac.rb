@@ -187,6 +187,87 @@ class TestTkMac < Minitest::Test
 
 
   # ===========================================
+  # System configuration variables
+  # ===========================================
+
+  def test_use_compatibility_metrics
+    assert_tk_app("Tk::Mac useCompatibilityMetrics", method(:use_compat_metrics_app))
+  end
+
+  def use_compat_metrics_app
+    require 'tk'
+    require 'tk/tk_mac'
+
+    errors = []
+
+    # Set and verify
+    Tk::Mac.useCompatibilityMetrics(true)
+    val = Tk.tk_call('set', '::tk::mac::useCompatibilityMetrics')
+    errors << "should be 1 when true" unless val.to_i == 1
+
+    Tk::Mac.useCompatibilityMetrics(false)
+    val = Tk.tk_call('set', '::tk::mac::useCompatibilityMetrics')
+    errors << "should be 0 when false" unless val.to_i == 0
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_cg_antialias_limit
+    assert_tk_app("Tk::Mac CGAntialiasLimit", method(:cg_aa_limit_app))
+  end
+
+  def cg_aa_limit_app
+    require 'tk'
+    require 'tk/tk_mac'
+
+    errors = []
+
+    Tk::Mac.CGAntialiasLimit(8)
+    val = Tk.tk_call('set', '::tk::mac::CGAntialiasLimit')
+    errors << "should be 8" unless val.to_i == 8
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_antialiasedtext
+    assert_tk_app("Tk::Mac antialiasedtext", method(:aa_text_app))
+  end
+
+  def aa_text_app
+    require 'tk'
+    require 'tk/tk_mac'
+
+    errors = []
+
+    Tk::Mac.antialiasedtext(0)
+    val = Tk.tk_call('set', '::tk::mac::antialiasedtext')
+    errors << "should be 0" unless val.to_i == 0
+
+    Tk::Mac.antialiasedtext(-1)
+    val = Tk.tk_call('set', '::tk::mac::antialiasedtext')
+    errors << "should be -1" unless val.to_i == -1
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_use_themed_toplevel
+    assert_tk_app("Tk::Mac useThemedToplevel", method(:themed_toplevel_app))
+  end
+
+  def themed_toplevel_app
+    require 'tk'
+    require 'tk/tk_mac'
+
+    errors = []
+
+    Tk::Mac.useThemedToplevel(true)
+    val = Tk.tk_call('set', '::tk::mac::useThemedToplevel')
+    errors << "should be 1 when true" unless val.to_i == 1
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  # ===========================================
   # Additional available commands
   # ===========================================
 

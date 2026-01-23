@@ -68,25 +68,29 @@ module Tk::Mac
   end
 
 
-  # Deprecated methods - removed in modern Tcl/Tk
-  def self.useCompatibilityMetrics(*)
-    warn "Tk::Mac.useCompatibilityMetrics has been removed from Tcl/Tk", uplevel: 1
-    raise NotImplementedError, "useCompatibilityMetrics no longer exists in Tcl/Tk"
+  # System configuration variables
+  # These are Tcl namespace variables, not commands
+  # See: https://www.tcl-lang.org/man/tcl9.0/TkCmd/tk_mac.html
+
+  # Preserves compatibility with older Tk/Aqua metrics; set to false for more native spacing
+  def self.useCompatibilityMetrics(bool)
+    tk_call('set', '::tk::mac::useCompatibilityMetrics', bool ? 1 : 0)
   end
 
-  def self.CGAntialiasLimit(*)
-    warn "Tk::Mac.CGAntialiasLimit has been removed from Tcl/Tk", uplevel: 1
-    raise NotImplementedError, "CGAntialiasLimit no longer exists in Tcl/Tk"
+  # Sets the antialiasing limit; lines thinner than limit pixels will not be antialiased
+  # Default is 0 (all lines antialiased)
+  def self.CGAntialiasLimit(limit)
+    tk_call('set', '::tk::mac::CGAntialiasLimit', limit)
   end
 
-  def self.antialiasedtext(*)
-    warn "Tk::Mac.antialiasedtext has been removed from Tcl/Tk", uplevel: 1
-    raise NotImplementedError, "antialiasedtext no longer exists in Tcl/Tk"
+  # Controls text antialiasing: -1 (system default), 0 (no AA), 1 (AA enabled)
+  def self.antialiasedtext(num)
+    tk_call('set', '::tk::mac::antialiasedtext', num)
   end
 
-  def self.useThemedToplevel(*)
-    warn "Tk::Mac.useThemedToplevel has been removed from Tcl/Tk", uplevel: 1
-    raise NotImplementedError, "useThemedToplevel no longer exists in Tcl/Tk"
+  # Sets toplevel windows to draw with modern grayish/pinstripe Mac background
+  def self.useThemedToplevel(bool)
+    tk_call('set', '::tk::mac::useThemedToplevel', bool ? 1 : 0)
   end
 
 end
