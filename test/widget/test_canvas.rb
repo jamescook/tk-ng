@@ -95,9 +95,9 @@ class TestCanvasWidget < Minitest::Test
     # Move an item
     canvas.move(rect, 5, 5)
 
-    # Get bounding box
+    # Get bounding box - should return [x1, y1, x2, y2]
     bbox = canvas.bbox(rect)
-    errors << "bbox failed" unless bbox.is_a?(Array) && bbox.size == 4
+    errors << "bbox should have 4 elements, got #{bbox.inspect}" unless bbox&.size == 4
 
     # Find items
     all_items = canvas.find_all
@@ -190,11 +190,8 @@ class TestCanvasWidget < Minitest::Test
     my_tag = TkcTag.new(canvas)
     tagged_rect = TkcRectangle.new(canvas, 300, 100, 350, 150, tags: [my_tag])
     retrieved_tags = tagged_rect.cget(:tags)
-    errors << "canvas tags val2ruby should return array" unless retrieved_tags.is_a?(Array)
-    errors << "canvas tags val2ruby should have elements" if retrieved_tags.empty?
-    # The registered TkcTag should be returned as a TkcTag object
-    errors << "canvas tags val2ruby first tag should be TkcTag" unless retrieved_tags.first.respond_to?(:id)
-    errors << "canvas tags val2ruby should return same tag" unless retrieved_tags.first.id == my_tag.id
+    # The registered TkcTag should be returned as a TkcTag object with matching id
+    errors << "canvas tags should return tag with id #{my_tag.id}, got #{retrieved_tags.inspect}" unless retrieved_tags&.first&.id == my_tag.id
 
     # Check errors before tk_end (which may block in visual mode)
     unless errors.empty?

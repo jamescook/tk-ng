@@ -10,6 +10,7 @@
 #   Tk::Warnings.disable_all           # silence all ruby-tk warnings
 #   Tk::Warnings.enable(:pickplace)    # re-enable specific warning
 #   Tk::Warnings.enable_all            # re-enable all warnings
+#   Tk::Warnings.suppress(:key) { }    # temporarily suppress in block
 #
 
 module Tk
@@ -51,6 +52,17 @@ module Tk
       # @param keys [Symbol...] warning keys to enable
       def enable(*keys)
         keys.each { |k| @disabled.delete(k) }
+      end
+
+      # Temporarily disable warning(s) for the duration of a block.
+      # @param keys [Symbol...] warning keys to suppress
+      # @yield block to execute with warnings suppressed
+      def suppress(*keys)
+        previously_disabled = keys.select { |k| @disabled[k] }
+        disable(*keys)
+        yield
+      ensure
+        keys.each { |k| @disabled.delete(k) unless previously_disabled.include?(k) }
       end
 
       # Re-enable all ruby-tk warnings.

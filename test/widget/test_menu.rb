@@ -145,8 +145,7 @@ class TestMenuWidget < Minitest::Test
     # This exercises __item_val2ruby_optkeys conversion
     cascade_index = menu.index("More Options")
     retrieved_submenu = menu.entrycget(cascade_index, :menu)
-    errors << "cascade menu val2ruby should return TkMenu" unless retrieved_submenu.is_a?(TkMenu) || retrieved_submenu.is_a?(Tk::Menu)
-    errors << "cascade menu val2ruby should return same menu" unless retrieved_submenu.path == submenu.path
+    errors << "cascade menu should return same menu path, got #{retrieved_submenu.inspect}" unless retrieved_submenu&.path == submenu.path
 
     # ========================================
     # Menu Entry Configuration Tests (entryconfigure/entrycget)

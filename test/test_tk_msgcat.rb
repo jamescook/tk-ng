@@ -52,9 +52,9 @@ class TestTkMsgCatalog < Minitest::Test
 
     msgcat = TkMsgCatalog.new('::testns')
 
-    # Get default locale (system-dependent, but should be a string)
+    # Get default locale (system-dependent, but should not be nil/empty)
     default_locale = msgcat.locale
-    errors << "locale should return a string" unless default_locale.is_a?(String)
+    errors << "locale should not be empty, got #{default_locale.inspect}" if default_locale.nil? || default_locale.empty?
 
     # Set locale - Tcl normalizes to lowercase
     msgcat.locale = 'en_US'
@@ -81,10 +81,8 @@ class TestTkMsgCatalog < Minitest::Test
     msgcat.locale = 'en_US'
 
     prefs = msgcat.preferences
-    errors << "preferences should return an Array" unless prefs.is_a?(Array)
-    errors << "preferences should not be empty" if prefs.empty?
     # For en_US, preferences should include fallbacks like 'en_us', 'en', ''
-    errors << "preferences should include 'en_us'" unless prefs.include?('en_us')
+    errors << "preferences should include 'en_us', got #{prefs.inspect}" unless prefs&.include?('en_us')
     errors << "preferences should include 'en'" unless prefs.include?('en')
 
     raise errors.join("\n") unless errors.empty?
@@ -373,9 +371,8 @@ class TestTkMsgCatalog < Minitest::Test
     msgcat.set_translation('en', 'Medium text', 'Medium text')
     msgcat.set_translation('en', 'This is longer text', 'This is longer text')
 
-    # maxlen returns max length of translated strings
+    # maxlen returns max length of translated strings (longest is 19 chars)
     max = msgcat.maxlen('Short', 'Medium text', 'This is longer text')
-    errors << "maxlen should return an integer" unless max.is_a?(Integer)
     errors << "maxlen should be >= 19 (length of longest), got #{max}" unless max >= 19
 
     raise errors.join("\n") unless errors.empty?
@@ -397,10 +394,9 @@ class TestTkMsgCatalog < Minitest::Test
 
     # Class method affects global namespace
     original = TkMsgCatalog.locale
-    errors << "class locale should return a string" unless original.is_a?(String)
 
     TkMsgCatalog.locale = 'fr'
-    errors << "class locale should be 'fr'" unless TkMsgCatalog.locale == 'fr'
+    errors << "class locale should be 'fr', got #{TkMsgCatalog.locale.inspect}" unless TkMsgCatalog.locale == 'fr'
 
     # Restore
     TkMsgCatalog.locale = original
@@ -444,9 +440,8 @@ class TestTkMsgCatalog < Minitest::Test
     TkMsgCatalog.locale = 'ja_JP'
     prefs = TkMsgCatalog.preferences
 
-    errors << "preferences should be an array" unless prefs.is_a?(Array)
-    errors << "preferences should include 'ja_jp'" unless prefs.include?('ja_jp')
-    errors << "preferences should include 'ja'" unless prefs.include?('ja')
+    errors << "preferences should include 'ja_jp', got #{prefs.inspect}" unless prefs&.include?('ja_jp')
+    errors << "preferences should include 'ja', got #{prefs.inspect}" unless prefs&.include?('ja')
 
     raise errors.join("\n") unless errors.empty?
   end

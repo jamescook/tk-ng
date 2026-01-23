@@ -39,7 +39,10 @@ class TestClock < Minitest::Test
     diff = (tcl_time - ruby_time).abs
     errors << "seconds diff too large: #{diff}" if diff > 1
 
-    errors << "should be integer" unless tcl_time.is_a?(Integer)
+    # Should be a reasonable Unix timestamp
+    year_2020 = Time.new(2020, 1, 1).to_i
+    year_2100 = Time.new(2100, 1, 1).to_i
+    errors << "seconds out of range: #{tcl_time}" unless tcl_time.between?(year_2020, year_2100)
 
     raise errors.join("\n") unless errors.empty?
   end
@@ -55,8 +58,7 @@ class TestClock < Minitest::Test
     errors = []
 
     ms = Tk::Clock.milliseconds
-    errors << "should be integer" unless ms.is_a?(Integer)
-    errors << "should be positive" unless ms > 0
+    errors << "milliseconds should be positive, got #{ms}" unless ms > 0
 
     # Should be roughly 1000x seconds
     secs = Tk::Clock.seconds
@@ -77,8 +79,7 @@ class TestClock < Minitest::Test
     errors = []
 
     us = Tk::Clock.microseconds
-    errors << "should be integer" unless us.is_a?(Integer)
-    errors << "should be positive" unless us > 0
+    errors << "microseconds should be positive, got #{us}" unless us > 0
 
     # Should be roughly 1000x milliseconds
     ms = Tk::Clock.milliseconds
@@ -102,24 +103,24 @@ class TestClock < Minitest::Test
 
     errors = []
 
-    # Default clicks
+    # Default clicks - should be positive
     c1 = Tk::Clock.clicks
-    errors << "clicks should be integer" unless c1.is_a?(Integer)
+    errors << "clicks should be positive, got #{c1}" unless c1 > 0
 
-    # Milliseconds
+    # Milliseconds variant
     c2 = Tk::Clock.clicks(:milliseconds)
-    errors << "clicks(:milliseconds) should work" unless c2.is_a?(Integer)
+    errors << "clicks(:milliseconds) should be positive, got #{c2}" unless c2 > 0
 
-    # Microseconds
+    # Microseconds variant
     c3 = Tk::Clock.clicks(:microseconds)
-    errors << "clicks(:microseconds) should work" unless c3.is_a?(Integer)
+    errors << "clicks(:microseconds) should be positive, got #{c3}" unless c3 > 0
 
     # String variants
     c4 = Tk::Clock.clicks('mil')
-    errors << "clicks('mil') should work" unless c4.is_a?(Integer)
+    errors << "clicks('mil') should be positive, got #{c4}" unless c4 > 0
 
     c5 = Tk::Clock.clicks('mic')
-    errors << "clicks('mic') should work" unless c5.is_a?(Integer)
+    errors << "clicks('mic') should be positive, got #{c5}" unless c5 > 0
 
     raise errors.join("\n") unless errors.empty?
   end
@@ -141,8 +142,7 @@ class TestClock < Minitest::Test
     # Format current time with default format
     now = Tk::Clock.seconds
     formatted = Tk::Clock.format(now)
-    errors << "format should return string" unless formatted.is_a?(String)
-    errors << "format should not be empty" if formatted.empty?
+    errors << "format should not be empty, got #{formatted.inspect}" if formatted.nil? || formatted.empty?
 
     # Format with custom format string (Tcl format codes)
     year = Tk::Clock.format(now, '%Y')
@@ -167,12 +167,9 @@ class TestClock < Minitest::Test
 
     now = Tk::Clock.seconds
 
-    # formatGMT should give UTC time
+    # formatGMT should give UTC time in HH:MM format
     gmt = Tk::Clock.formatGMT(now, '%H:%M')
-    local = Tk::Clock.format(now, '%H:%M')
-
-    # They might be same or different depending on timezone
-    errors << "formatGMT should return string" unless gmt.is_a?(String)
+    errors << "formatGMT should match HH:MM pattern, got #{gmt.inspect}" unless gmt =~ /^\d{2}:\d{2}$/
 
     raise errors.join("\n") unless errors.empty?
   end
@@ -191,9 +188,9 @@ class TestClock < Minitest::Test
 
     errors = []
 
-    # Scan a date string
+    # Scan a date string - 1970-01-01 should be near epoch (within a day for timezone)
     ts = Tk::Clock.scan('1970-01-01')
-    errors << "scan should return integer" unless ts.is_a?(Integer)
+    errors << "scan('1970-01-01') should be near 0, got #{ts}" unless ts.abs < 86400
 
     # Round-trip: format then scan
     now = Tk::Clock.seconds
@@ -217,12 +214,9 @@ class TestClock < Minitest::Test
 
     errors = []
 
-    # Scan as GMT
+    # Scan as GMT - epoch should be exactly 0
     ts = Tk::Clock.scanGMT('1970-01-01 00:00:00')
-    errors << "scanGMT should return integer" unless ts.is_a?(Integer)
-
-    # Epoch in GMT should be 0
-    errors << "1970-01-01 00:00:00 GMT should be ~0, got #{ts}" unless ts.abs < 86400
+    errors << "scanGMT('1970-01-01 00:00:00') should be 0, got #{ts}" unless ts == 0
 
     raise errors.join("\n") unless errors.empty?
   end

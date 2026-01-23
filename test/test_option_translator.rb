@@ -80,17 +80,17 @@ class TestOptionTranslator < Minitest::Test
 
     errors = []
 
-    # Suppress warnings for this test since we're intentionally using padx/pady
-    Tk::Tile::OptionTranslator.suppress_warnings!
+    # Suppress padding translation warning for this test since we're intentionally using padx/pady
+    Tk::Warnings.suppress(:"tile_padding_Tk::Tile::TLabel") do
+      # Create label and configure with padx/pady (should be translated to padding)
+      lbl = Tk::Tile::TLabel.new(root, text: "Test")
+      lbl.configure('padx' => 5, 'pady' => 10)
 
-    # Create label and configure with padx/pady (should be translated to padding)
-    lbl = Tk::Tile::TLabel.new(root, text: "Test")
-    lbl.configure('padx' => 5, 'pady' => 10)
-
-    # Verify padding was set (translation worked)
-    padding = lbl.cget(:padding)
-    if padding.nil? || padding.to_s.empty?
-      errors << "padding not set after padx/pady translation"
+      # Verify padding was set (translation worked)
+      padding = lbl.cget(:padding)
+      if padding.nil? || padding.to_s.empty?
+        errors << "padding not set after padx/pady translation"
+      end
     end
 
     unless errors.empty?

@@ -36,7 +36,7 @@ class TestMenubar < Minitest::Test
     errors = []
 
     menubar = TkMenubar.new
-    errors << "should be a Frame" unless menubar.is_a?(Tk::Frame)
+    errors << "should have a Tk path" unless menubar.path =~ /^\./
     errors << "should have no menus" unless menubar[0].nil?
 
     raise errors.join("\n") unless errors.empty?
@@ -63,8 +63,8 @@ class TestMenubar < Minitest::Test
 
     # [0] returns [menubutton, menu] pair
     mbtn, menu = menubar[0]
-    errors << "first element should be menubutton" unless mbtn.is_a?(TkMenubutton)
-    errors << "second element should be menu" unless menu.is_a?(TkMenu)
+    errors << "menubutton should have text 'File'" unless mbtn.cget(:text) == 'File'
+    errors << "menu should have entries" unless menu.index('end') >= 0
 
     raise errors.join("\n") unless errors.empty?
   end
@@ -267,7 +267,7 @@ class TestMenubar < Minitest::Test
 
     # Get the submenu and invoke an item
     submenu = menu.entrycget(0, 'menu')
-    errors << "should have submenu" unless submenu.is_a?(TkMenu)
+    errors << "submenu should have entries" unless submenu.index('end') >= 0
 
     submenu.invoke(0)
     errors << "submenu command should work" unless sub_clicked
@@ -593,19 +593,15 @@ class TestMenubar < Minitest::Test
 
     menubar = TkMenubar.new(nil, menu_spec)
 
-    errors << "[0] should return array" unless menubar[0].is_a?(Array)
-    errors << "[1] should return array" unless menubar[1].is_a?(Array)
-    errors << "[2] should return array" unless menubar[2].is_a?(Array)
-    errors << "[3] should be nil" unless menubar[3].nil?
-
     # Verify we get the right menus
     file_btn, _ = menubar[0]
     edit_btn, _ = menubar[1]
     help_btn, _ = menubar[2]
 
-    errors << "first menu should be File" unless file_btn.cget(:text) == 'File'
-    errors << "second menu should be Edit" unless edit_btn.cget(:text) == 'Edit'
-    errors << "third menu should be Help" unless help_btn.cget(:text) == 'Help'
+    errors << "first menu should be File, got #{file_btn&.cget(:text)}" unless file_btn&.cget(:text) == 'File'
+    errors << "second menu should be Edit, got #{edit_btn&.cget(:text)}" unless edit_btn&.cget(:text) == 'Edit'
+    errors << "third menu should be Help, got #{help_btn&.cget(:text)}" unless help_btn&.cget(:text) == 'Help'
+    errors << "[3] should be nil" unless menubar[3].nil?
 
     raise errors.join("\n") unless errors.empty?
   end

@@ -275,8 +275,7 @@ class TestTimer < Minitest::Test
 
     status = timer.current_status
     # Returns: [running, current_sleep, current_proc, current_args, do_loop, cancel_on_exception]
-    errors << "current_status should be array" unless status.is_a?(Array)
-    errors << "current_status[0] should be running state" unless status[0] == true
+    errors << "current_status[0] should be running state, got #{status.inspect}" unless status&.[](0) == true
 
     timer.cancel
 
@@ -298,8 +297,7 @@ class TestTimer < Minitest::Test
 
     procs = timer.get_procs
     # Returns: [init_sleep, init_proc, init_args, sleep_time, loop_exec, loop_proc]
-    errors << "get_procs should be array" unless procs.is_a?(Array)
-    errors << "get_procs should have 6 elements, got #{procs.size}" unless procs.size == 6
+    errors << "get_procs should have 6 elements, got #{procs.inspect}" unless procs&.size == 6
 
     # sleep_time is index 3
     errors << "sleep_time should be 100" unless procs[3] == 100
@@ -832,11 +830,10 @@ class TestTimer < Minitest::Test
 
     timer.start
 
-    # After start, info should return array with timer and type
+    # After start, info should return [timer, 'timer']
     info = timer.info
-    errors << "info should be array after start" unless info.is_a?(Array)
-    errors << "info[0] should be the timer object" unless info[0] == timer
-    errors << "info[1] should be 'timer'" unless info[1] == 'timer'
+    errors << "info[0] should be the timer object, got #{info.inspect}" unless info&.[](0) == timer
+    errors << "info[1] should be 'timer', got #{info.inspect}" unless info&.[](1) == 'timer'
 
     timer.cancel
 
@@ -861,13 +858,11 @@ class TestTimer < Minitest::Test
 
     # Class method info() returns all pending timers
     all_info = TkTimer.info
-    errors << "TkTimer.info should return array" unless all_info.is_a?(Array)
-    errors << "should have at least 2 timers" unless all_info.size >= 2
+    errors << "TkTimer.info should have at least 2 timers, got #{all_info.inspect}" unless all_info&.size.to_i >= 2
 
     # Info for specific timer
     info = TkTimer.info(timer1)
-    errors << "info for specific timer should be array" unless info.is_a?(Array)
-    errors << "info[0] should be timer1" unless info[0] == timer1
+    errors << "info[0] should be timer1, got #{info.inspect}" unless info&.[](0) == timer1
 
     timer1.cancel
     timer2.cancel

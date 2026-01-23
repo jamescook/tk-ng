@@ -418,7 +418,7 @@ class TestConfigMethod < Minitest::Test
 
         # Query using the alias - should resolve to real option
         info = entry.configinfo(:vcmd)
-        raise "Expected Array" unless info.is_a?(Array)
+        raise "Expected option name 'validatecommand', got \#{info.inspect}" unless info[0] == "validatecommand"
 
         root.destroy
       RUBY

@@ -746,8 +746,7 @@ class TestTextWidget < Minitest::Test
 
     # tag_cget_tkstring - returns raw Tcl string
     fg_str = text.tag_cget_tkstring("testtag", :foreground)
-    errors << "tag_cget_tkstring failed" unless fg_str.is_a?(String)
-    errors << "tag_cget_tkstring value wrong" unless fg_str == "red"
+    errors << "tag_cget_tkstring value wrong, got #{fg_str.inspect}" unless fg_str == "red"
 
     # tag_cget_strict - strict typed value
     ul = text.tag_cget_strict("testtag", :underline)
@@ -1043,7 +1042,7 @@ class TestTextWidget < Minitest::Test
 
     # peer_names - list peer widgets (empty initially)
     peers = text.peer_names
-    errors << "peer_names should return array" unless peers.is_a?(Array)
+    errors << "peer_names should be empty, got #{peers.inspect}" unless peers == []
 
     raise errors.join("\n") unless errors.empty?
   end
@@ -1107,7 +1106,6 @@ class TestTextWidget < Minitest::Test
 
     # tag_bindinfo - get binding info
     info = text.tag_bindinfo("clickable")
-    errors << "tag_bindinfo should return array, got #{info.class}" unless info.is_a?(Array)
     errors << "tag_bindinfo should include Enter, got #{info.inspect}" unless info.any? { |e| e.to_s.include?("Enter") }
 
     # tag_bind_append - append to existing binding
