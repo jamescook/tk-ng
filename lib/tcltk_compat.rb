@@ -6,6 +6,8 @@
 # Our new bridge defines them at the TclTkLib top level. These wrappers
 # provide backwards compatibility for code expecting the old structure.
 
+require_relative 'tk/warnings'
+
 # ---------------------------------------------------------
 # Safe signal handling for SIGTERM/SIGINT
 #
@@ -224,8 +226,9 @@ module TkCore
   # ---------------------------------------------------------
   def self.const_missing(name)
     if name == :INTERP
-      warn "TkCore::INTERP is deprecated. Use TkCore.interp or call methods " \
-           "directly on a TclTkIp instance.", uplevel: 1
+      Tk::Warnings.warn_once(:tkcore_interp_constant,
+        "TkCore::INTERP is deprecated. Use TkCore.interp or call methods " \
+        "directly on a TclTkIp instance.")
       interp
     else
       super
@@ -328,24 +331,16 @@ end
 
 # Legacy TkConfigMethod modules - no longer functional but kept for compatibility
 module TkConfigMethod
-  @ignore_unknown_warned = false
-
   def self.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(value)
-    unless @ignore_unknown_warned
-      warn "TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect"
-      @ignore_unknown_warned = true
-    end
+    Tk::Warnings.warn_once(:config_method_ignore_unknown,
+      "TkConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect")
   end
 end
 
 module TkItemConfigMethod
-  @ignore_unknown_warned = false
-
   def self.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__!(value)
-    unless @ignore_unknown_warned
-      warn "TkItemConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect"
-      @ignore_unknown_warned = true
-    end
+    Tk::Warnings.warn_once(:item_config_method_ignore_unknown,
+      "TkItemConfigMethod.__set_IGNORE_UNKNOWN_CONFIGURE_OPTION__! is deprecated and has no effect")
   end
 end
 
@@ -365,7 +360,6 @@ end
 # ---------------------------------------------------------
 module Tk
   @allow_string_eval = false
-  @allow_string_eval_warned = false
 
   class << self
     def allow_string_eval
@@ -373,11 +367,11 @@ module Tk
     end
 
     def allow_string_eval=(value)
-      if value && !@allow_string_eval_warned
-        warn "[ruby-tk] Tk.allow_string_eval enabled. String commands will be " \
-             "evaluated as Ruby code. Only enable this if you trust all command " \
-             "strings in your application."
-        @allow_string_eval_warned = true
+      if value
+        Tk::Warnings.warn_once(:allow_string_eval,
+          "Tk.allow_string_eval enabled. String commands will be " \
+          "evaluated as Ruby code. Only enable this if you trust all command " \
+          "strings in your application.")
       end
       @allow_string_eval = value
     end
@@ -415,8 +409,9 @@ end
 module TkTextTagCompat
   def const_missing(name)
     if name == :TTagID_TBL
-      warn "TkTextTag::TTagID_TBL has been removed (caused memory leaks, was redundant). " \
-           "Use TkTextTag.id2obj(text, id) or text.tagid2obj(id) instead.", uplevel: 1
+      Tk::Warnings.warn_once(:text_tag_id_tbl_removed,
+        "TkTextTag::TTagID_TBL has been removed (caused memory leaks, was redundant). " \
+        "Use TkTextTag.id2obj(text, id) or text.tagid2obj(id) instead.")
       nil
     else
       super
@@ -427,8 +422,9 @@ end
 module TkTextMarkCompat
   def const_missing(name)
     if name == :TMarkID_TBL
-      warn "TkTextMark::TMarkID_TBL has been removed (caused memory leaks, was redundant). " \
-           "Use TkTextMark.id2obj(text, id) or text.tagid2obj(id) instead.", uplevel: 1
+      Tk::Warnings.warn_once(:text_mark_id_tbl_removed,
+        "TkTextMark::TMarkID_TBL has been removed (caused memory leaks, was redundant). " \
+        "Use TkTextMark.id2obj(text, id) or text.tagid2obj(id) instead.")
       nil
     else
       super
@@ -443,8 +439,9 @@ end
 module TkcItemCompat
   def const_missing(name)
     if name == :CItemID_TBL
-      warn "TkcItem::CItemID_TBL has been removed (caused memory leaks, was redundant). " \
-           "Use TkcItem.id2obj(canvas, id) or canvas.itemid2obj(id) instead.", uplevel: 1
+      Tk::Warnings.warn_once(:canvas_item_id_tbl_removed,
+        "TkcItem::CItemID_TBL has been removed (caused memory leaks, was redundant). " \
+        "Use TkcItem.id2obj(canvas, id) or canvas.itemid2obj(id) instead.")
       nil
     else
       super
@@ -459,8 +456,9 @@ end
 module TkcTagCompat
   def const_missing(name)
     if name == :CTagID_TBL
-      warn "TkcTag::CTagID_TBL has been removed (caused memory leaks, was redundant). " \
-           "Use TkcTag.id2obj(canvas, id) or canvas.canvastagid2obj(id) instead.", uplevel: 1
+      Tk::Warnings.warn_once(:canvas_tag_id_tbl_removed,
+        "TkcTag::CTagID_TBL has been removed (caused memory leaks, was redundant). " \
+        "Use TkcTag.id2obj(canvas, id) or canvas.canvastagid2obj(id) instead.")
       nil
     else
       super
@@ -514,17 +512,17 @@ module TkOptionDBCompat
   MSG
 
   def new_proc_class(*)
-    warn REMOVED_MESSAGE, uplevel: 1
+    Tk::Warnings.warn_once(:optiondb_proc_class_removed, REMOVED_MESSAGE)
     raise NotImplementedError, "new_proc_class removed - define procs in Ruby code"
   end
 
   def new_proc_class_random(*)
-    warn REMOVED_MESSAGE, uplevel: 1
+    Tk::Warnings.warn_once(:optiondb_proc_class_removed, REMOVED_MESSAGE)
     raise NotImplementedError, "new_proc_class_random removed - define procs in Ruby code"
   end
 
   def eval_under_random_base(*)
-    warn REMOVED_MESSAGE, uplevel: 1
+    Tk::Warnings.warn_once(:optiondb_proc_class_removed, REMOVED_MESSAGE)
     raise NotImplementedError, "eval_under_random_base removed - define procs in Ruby code"
   end
 end

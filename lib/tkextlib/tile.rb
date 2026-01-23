@@ -126,8 +126,9 @@ module Tk
     end
 
     def self.__Import_Tile_Widgets__!
-      warn 'Warning: "Tk::Tile::__Import_Tile_Widgets__!" is obsolete.' <<
-           ' To control default widget set, use "Tk.default_widget_set = :Ttk"'
+      Tk::Warnings.warn_once(:tile_import_obsolete,
+        '"Tk::Tile::__Import_Tile_Widgets__!" is obsolete. ' \
+        'To control default widget set, use "Tk.default_widget_set = :Ttk"')
       Tk.tk_call('namespace', 'import', '-force', 'ttk::*')
     end
 
@@ -320,20 +321,6 @@ module Tk
     # Translates Tk options to Ttk equivalents (e.g., padx/pady -> padding)
     # Prepended to widget classes via TileWidget inclusion
     module OptionTranslator
-      @warned = {}
-      @suppress_warnings = false
-
-      def self.suppress_warnings!
-        @suppress_warnings = true
-      end
-
-      def self.warn_once(message, key)
-        return if @suppress_warnings
-        return if @warned[key]
-        @warned[key] = true
-        warn "[ruby-tk] #{message}"
-      end
-
       def self.translate_options(keys, widget_class: nil)
         keys = keys.dup
 
@@ -344,9 +331,9 @@ module Tk
           unless keys.key?('padding') || keys.key?(:padding)
             keys['padding'] = [padx || 0, pady || 0]
             class_name = widget_class ? widget_class.name : 'Ttk widget'
-            warn_once("Translated padx/pady to padding for #{class_name}. " \
-                      "Consider using -padding directly for Ttk widgets.",
-                      "padding:#{class_name}")
+            Tk::Warnings.warn_once(:"tile_padding_#{class_name}",
+              "Translated padx/pady to padding for #{class_name}. " \
+              "Consider using -padding directly for Ttk widgets.")
           end
         end
 

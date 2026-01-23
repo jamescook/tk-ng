@@ -12,12 +12,9 @@
 require 'tk' unless defined?(Tk)
 
 class TkFont
-  @deprecation_warned = false
-
   def self.warn_deprecation
-    return if @deprecation_warned
-    warn "TkFont is deprecated. Use font strings directly, e.g., 'Helvetica 12 bold'", uplevel: 3
-    @deprecation_warned = true
+    Tk::Warnings.warn_once(:tkfont_deprecated,
+      "TkFont is deprecated. Use font strings directly, e.g., 'Helvetica 12 bold'")
   end
 
   # TkFont.new('Helvetica 12') or TkFont.new(family: 'Helvetica', size: 12)

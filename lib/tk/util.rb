@@ -12,6 +12,8 @@
 # - case/when for type dispatch (YJIT optimizes this well)
 # - Avoid intermediate object creation where possible
 
+require_relative 'warnings'
+
 module TkUtil
   # Tcl boolean string to Ruby boolean
   # Handles: integers, true/false, and strings like "yes", "no", "on", "off", "true", "false"
@@ -150,25 +152,15 @@ module TkUtil
   end
 
   # Legacy encoding methods - no-ops since modern Ruby/Tcl use UTF-8 natively
-  @_to_utf8_warned = false
-  @_from_utf8_warned = false
-  class << self
-    attr_accessor :_to_utf8_warned, :_from_utf8_warned
-  end
-
   def _toUTF8(str, encoding = nil)
-    unless TkUtil._to_utf8_warned
-      warn "_toUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
-      TkUtil._to_utf8_warned = true
-    end
+    Tk::Warnings.warn_once(:util_to_utf8,
+      "_toUTF8 is deprecated. Ruby strings are already UTF-8.")
     str.to_s
   end
 
   def _fromUTF8(str, encoding = nil)
-    unless TkUtil._from_utf8_warned
-      warn "_fromUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
-      TkUtil._from_utf8_warned = true
-    end
+    Tk::Warnings.warn_once(:util_from_utf8,
+      "_fromUTF8 is deprecated. Ruby strings are already UTF-8.")
     str.to_s
   end
 

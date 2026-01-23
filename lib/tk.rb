@@ -10,6 +10,7 @@ require_relative 'tkcomm'
 require_relative 'tk/tk_kernel'        # TkKernel base class
 require_relative 'tk/tk_callback_entry' # TkCallbackEntry marker class
 require_relative 'tk/util'             # TkUtil module (pure Ruby)
+require_relative 'tk/warnings'         # Tk::Warnings module
 require_relative 'tkcore'              # TkCore module
 
 # autoload
@@ -36,17 +37,6 @@ module Tk
   include TkCore
   extend Tk
 
-  # Deprecation warning flags (warn only once)
-  @tk_instance_update_warned = false
-  @tk_thread_update_warned = false
-  @tk_to_utf8_warned = false
-  @tk_from_utf8_warned = false
-  class << self
-    attr_accessor :tk_instance_update_warned
-    attr_accessor :tk_thread_update_warned
-    attr_accessor :tk_to_utf8_warned
-    attr_accessor :tk_from_utf8_warned
-  end
 
   TCL_VERSION = INTERP._invoke_without_enc("info", "tclversion").freeze
   TCL_PATCHLEVEL = INTERP._invoke_without_enc("info", "patchlevel").freeze
@@ -368,10 +358,8 @@ module Tk
   end
   def update(idle=nil)
     # only for backward compatibility (This never be recommended to use)
-    unless Tk.tk_instance_update_warned
-      warn "Calling #update on a Tk widget instance is deprecated. Use Tk.update instead.", uplevel: 1
-      Tk.tk_instance_update_warned = true
-    end
+    Tk::Warnings.warn_once(:instance_update,
+      "Calling #update on a Tk widget instance is deprecated. Use Tk.update instead.")
     Tk.update(idle)
     self
   end
@@ -379,11 +367,9 @@ module Tk
   # NOTE: thread_update was a custom Tcl command in the legacy C extension.
   # It no longer exists - these methods now just delegate to regular update.
   def Tk.thread_update(idle=nil)
-    unless Tk.tk_thread_update_warned
-      warn "Tk.thread_update is deprecated and now just calls Tk.update. " \
-           "The underlying 'thread_update' Tcl command no longer exists.", uplevel: 1
-      Tk.tk_thread_update_warned = true
-    end
+    Tk::Warnings.warn_once(:thread_update,
+      "Tk.thread_update is deprecated and now just calls Tk.update. " \
+      "The underlying 'thread_update' Tcl command no longer exists.")
     update(idle)
   end
   def Tk.thread_update_idletasks
@@ -440,18 +426,14 @@ module Tk
   end
 
   def Tk.toUTF8(str, encoding = nil)
-    unless Tk.tk_to_utf8_warned
-      warn "Tk.toUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
-      Tk.tk_to_utf8_warned = true
-    end
+    Tk::Warnings.warn_once(:to_utf8,
+      "Tk.toUTF8 is deprecated. Ruby strings are already UTF-8.")
     str.to_s
   end
 
   def Tk.fromUTF8(str, encoding = nil)
-    unless Tk.tk_from_utf8_warned
-      warn "Tk.fromUTF8 is deprecated. Ruby strings are already UTF-8.", uplevel: 1
-      Tk.tk_from_utf8_warned = true
-    end
+    Tk::Warnings.warn_once(:from_utf8,
+      "Tk.fromUTF8 is deprecated. Ruby strings are already UTF-8.")
     str.to_s
   end
 

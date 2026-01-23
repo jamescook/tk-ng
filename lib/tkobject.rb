@@ -131,7 +131,8 @@ class TkObject<TkKernel
     if opt
       opt.from_tcl(raw_value, widget: self)
     else
-      warn "#{self.class}#cget(:#{slot}) - option not declared, returning raw string"
+      Tk::Warnings.warn_once(:"cget_undeclared_#{self.class}_#{slot}",
+        "#{self.class}#cget(:#{slot}) - option not declared, returning raw string")
       raw_value
     end
   end
@@ -246,7 +247,8 @@ class TkObject<TkKernel
     return false unless self.class.respond_to?(:option_version_required)
     required = self.class.option_version_required(option_name)
     return false unless required
-    warn "#{self.class}: option '#{option_name}' requires Tcl/Tk #{required}.0+ (current: #{Tk::TK_VERSION}). Option ignored."
+    Tk::Warnings.warn_once(:"version_required_#{self.class}_#{option_name}",
+      "#{self.class}: option '#{option_name}' requires Tcl/Tk #{required}.0+ (current: #{Tk::TK_VERSION}). Option ignored.")
     true
   end
 end

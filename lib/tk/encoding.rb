@@ -7,10 +7,9 @@
 
 require 'tk' unless defined?(Tk)
 
-unless defined?(Tk::Encoding::DEPRECATION_WARNED)
-  warn "require 'tk/encoding' is deprecated. Encoding methods are now part of 'tk'. " \
-       "Simply use `require 'tk'` instead.", uplevel: 1
-end
+Tk::Warnings.warn_once(:encoding_require,
+  "require 'tk/encoding' is deprecated. Encoding methods are now part of 'tk'. " \
+  "Simply use `require 'tk'` instead.")
 
 # :nocov:
 module Tk
@@ -36,12 +35,14 @@ module Tk
     end
 
     def default_encoding=(enc)
-      warn "Tk.default_encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+      Tk::Warnings.warn_once(:default_encoding_setter,
+        "Tk.default_encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively")
       TkCore::INTERP.default_encoding = 'utf-8'
     end
 
     def encoding=(enc)
-      warn "Tk.encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+      Tk::Warnings.warn_once(:encoding_setter,
+        "Tk.encoding= is deprecated: modern Tcl/Ruby use UTF-8 natively")
       TkCore::INTERP.encoding = 'utf-8'
     end
 
@@ -69,7 +70,8 @@ module Tk
     end
 
     def encoding_system=(enc)
-      warn "Tk.encoding_system= is deprecated: modern Tcl/Ruby use UTF-8 natively", uplevel: 1
+      Tk::Warnings.warn_once(:encoding_system_setter,
+        "Tk.encoding_system= is deprecated: modern Tcl/Ruby use UTF-8 natively")
     end
 
     def encoding_system_name
@@ -83,7 +85,8 @@ module Tk
     alias encoding_system encoding_system_name
 
     def encoding_convertfrom(str, enc=nil)
-      warn "Tk::Encoding.encoding_convertfrom is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
+      Tk::Warnings.warn_once(:encoding_convertfrom,
+        "Tk::Encoding.encoding_convertfrom is deprecated: modern Ruby/Tcl use UTF-8 natively")
       str = str.dup
       str.force_encoding(::Encoding::UTF_8)
       str
@@ -91,7 +94,8 @@ module Tk
     alias encoding_convert_from encoding_convertfrom
 
     def encoding_convertto(str, enc=nil)
-      warn "Tk::Encoding.encoding_convertto is deprecated: modern Ruby/Tcl use UTF-8 natively", uplevel: 1
+      Tk::Warnings.warn_once(:encoding_convertto,
+        "Tk::Encoding.encoding_convertto is deprecated: modern Ruby/Tcl use UTF-8 natively")
       str = str.dup
       str.force_encoding(::Encoding::UTF_8)
       str
@@ -105,7 +109,6 @@ module Tk
     def encoding_dirs=(dir_list)
       Tk.tk_call_without_enc('encoding', 'dirs', dir_list)
     end
-    DEPRECATION_WARNED = true
   end
 
   extend Encoding
