@@ -219,15 +219,54 @@ class TkWorker
     private
 
     def reset_tk_state!
+      # Use grid forget on children first (clears their grid config)
+      # then destroy them
       @root.winfo_children.each do |child|
-        child.destroy rescue nil
+        begin
+          Tk.tk_call_without_enc('grid', 'forget', child.path)
+        rescue TclError
+          # Widget might not be managed by grid
+        end
+        child.destroy
       end
       @root.withdraw
+
+      # Reset grid column/row configurations on root
+      # (these persist even after widgets are removed)
+      reset_grid_config!(@root)
 
       # Reset BWidget state if loaded (must be done AFTER destroying children
       # so that recreated internal widgets aren't immediately destroyed)
       if defined?(Tk::BWidget) && Tk::BWidget.respond_to?(:reset)
         Tk::BWidget.reset
+      end
+    end
+
+    # Reset grid geometry manager state for a widget.
+    # Column/row weights, minsize, pad, uniform settings persist after
+    # children are removed, so we must explicitly clear them.
+    def reset_grid_config!(widget)
+      path = widget.path
+
+      # Check if grid was used - avoid overhead if not
+      result = Tk.tk_call_without_enc('grid', 'size', path)
+      cols, rows = result.to_s.split.map(&:to_i)
+      return if cols == 0 && rows == 0
+
+      # Reset anchor and propagate to defaults
+      Tk.tk_call_without_enc('grid', 'anchor', path, 'nw')
+      Tk.tk_call_without_enc('grid', 'propagate', path, 1)
+
+      # Reset each column's config to defaults
+      cols.times do |c|
+        Tk.tk_call_without_enc('grid', 'columnconfigure', path, c,
+                               '-weight', 0, '-minsize', 0, '-pad', 0, '-uniform', '')
+      end
+
+      # Reset each row's config to defaults
+      rows.times do |r|
+        Tk.tk_call_without_enc('grid', 'rowconfigure', path, r,
+                               '-weight', 0, '-minsize', 0, '-pad', 0, '-uniform', '')
       end
     end
   end

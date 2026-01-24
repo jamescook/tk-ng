@@ -349,6 +349,7 @@ end
 
 ########################
 
+# TODO: Refactor - self.new bypasses initialize via allocate+instance_eval
 class Tk::Tile::Treeview::Root < Tk::Tile::Treeview::Item
   def self.new(tree, keys = {})
     tpath = tree.path

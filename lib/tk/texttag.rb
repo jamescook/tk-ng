@@ -224,11 +224,7 @@ class TkTextTag<TkObject
 end
 TktTag = TkTextTag
 
-# TODO: This class uses a non-idiomatic pattern where self.new uses
-# allocate + instance_eval to bypass initialize for cached objects.
-# Consider refactoring to use a factory method or have new call super
-# for new objects. The initialize method below is marked as "dummy"
-# but still has a full implementation that should be consolidated.
+# TODO: Refactor - self.new bypasses initialize via allocate+instance_eval
 class TkTextNamedTag<TkTextTag
   def self.new(parent, name, *args)
     # Check if tag already exists via the text widget's @tags

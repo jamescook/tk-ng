@@ -1,4 +1,11 @@
 # frozen_string_literal: true
+#
+# TODO: TkComm is a grab-bag module that could benefit from refactoring:
+# - Name doesn't reflect contents ("Comm" but does type conversion, binding, callbacks)
+# - Mixed abstraction levels (low-level tk_tcl2ruby alongside mid-level bind)
+# - Confusing private/module_function pattern makes API surface unclear
+# - Could be split into: TkConvert (type coercion), TkCallback, TkBind
+# - See also: TkCore (focused on interpreter) vs TkComm (unfocused misc)
 
 require_relative 'tk/util'    # TkUtil
 require_relative 'tk/event'   # TkEvent

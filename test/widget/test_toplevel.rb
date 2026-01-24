@@ -121,4 +121,238 @@ class TestToplevelWidget < Minitest::Test
 
     top.destroy
   end
+
+  # --- WM_PROPERTIES shim tests ---
+
+  def test_toplevel_wm_properties_cget
+    assert_tk_app("Toplevel WM properties via cget", method(:app_wm_cget))
+  end
+
+  def app_wm_cget
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    top = TkToplevel.new(root) { withdraw }
+
+    # cget with wm property should route to wm command
+    top.wm_title("Test Title")
+    title = top.cget(:title)
+    errors << "cget(:title) should return 'Test Title', got #{title.inspect}" unless title == "Test Title"
+
+    # geometry is a wm property - need to deiconify for size to take effect
+    top.deiconify
+    top.wm_geometry("300x200+100+100")
+    Tk.update
+    geom = top.cget(:geometry)
+    errors << "cget(:geometry) should include '300x200', got #{geom.inspect}" unless geom.include?("300x200")
+    top.withdraw
+
+    # state is a wm property
+    state = top.cget(:state)
+    errors << "cget(:state) should return withdrawn" unless state == "withdrawn"
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_toplevel_wm_properties_configure
+    assert_tk_app("Toplevel WM properties via configure", method(:app_wm_configure))
+  end
+
+  def app_wm_configure
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    top = TkToplevel.new(root) { withdraw }
+
+    # configure with wm property should route to wm command
+    top.configure(title: "Configured Title")
+    title = top.wm_title
+    errors << "configure(:title) should set wm title" unless title == "Configured Title"
+
+    # configure with hash containing wm properties
+    top.configure(minsize: [200, 150])
+    minsize = top.wm_minsize
+    errors << "configure minsize should work" unless minsize[0] == 200 && minsize[1] == 150
+
+    # configure with mixed wm and real options
+    top.configure(title: "Mixed Test", width: 400, height: 300)
+    errors << "mixed configure title" unless top.wm_title == "Mixed Test"
+    errors << "mixed configure width" unless top.cget(:width).to_i == 400
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_toplevel_wm_properties_configinfo
+    assert_tk_app("Toplevel WM properties via configinfo", method(:app_wm_configinfo))
+  end
+
+  def app_wm_configinfo
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    top = TkToplevel.new(root) { withdraw }
+    top.wm_title("ConfigInfo Test")
+
+    # configinfo for specific wm property
+    info = top.configinfo(:title)
+    errors << "configinfo(:title) should return array" unless info.is_a?(Array)
+    errors << "configinfo(:title) should have 5 elements" unless info.size == 5
+    errors << "configinfo(:title) value should be title" unless info[4] == "ConfigInfo Test"
+
+    # configinfo for real option
+    top.configure(width: 500)
+    real_info = top.configinfo(:width)
+    errors << "configinfo(:width) should return array" unless real_info.is_a?(Array)
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  # --- specific_class tests ---
+
+  def test_toplevel_specific_class
+    assert_tk_app("Toplevel specific_class", method(:app_specific_class))
+  end
+
+  def app_specific_class
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    # Default classname
+    top1 = TkToplevel.new(root) { withdraw }
+    errors << "default specific_class should be 'Toplevel'" unless top1.specific_class == "Toplevel"
+    top1.destroy
+
+    # Custom classname via hash
+    top2 = TkToplevel.new(root, classname: "MyCustomClass") { withdraw }
+    errors << "custom specific_class should be 'MyCustomClass'" unless top2.specific_class == "MyCustomClass"
+    top2.destroy
+
+    # Custom classname via 'class' key
+    top3 = TkToplevel.new(root, class: "AnotherClass") { withdraw }
+    errors << "class key specific_class should be 'AnotherClass'" unless top3.specific_class == "AnotherClass"
+    top3.destroy
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  # --- add_menu tests ---
+
+  def test_toplevel_add_menu
+    assert_tk_app("Toplevel add_menu", method(:app_add_menu))
+  end
+
+  def app_add_menu
+    require 'tk'
+    require 'tk/toplevel'
+    require 'tk/menu'
+
+    errors = []
+
+    top = TkToplevel.new(root) { withdraw }
+
+    # add_menu creates a menubutton from spec
+    # Format: ['Label', underline_index] for menu title, ['Label', command, underline_index] for items
+    menu_info = [['File', 0],
+                 ['Open', proc {}, 0],
+                 ['Save', proc {}, 0],
+                 '---',
+                 ['Exit', proc {}, 0]]
+    top.add_menu(menu_info)
+
+    # Verify menu was created
+    menu = top.cget(:menu)
+    errors << "add_menu should create menu" unless menu
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_toplevel_add_menubar
+    assert_tk_app("Toplevel add_menubar", method(:app_add_menubar))
+  end
+
+  def app_add_menubar
+    require 'tk'
+    require 'tk/toplevel'
+    require 'tk/menu'
+
+    errors = []
+
+    top = TkToplevel.new(root) { withdraw }
+
+    # add_menubar creates full menubar from spec array
+    # Format: each element is [['MenuTitle', underline], ['Item', cmd, underline], ...]
+    menu_spec = [
+      [['File', 0], ['New', proc {}, 0], ['Open', proc {}, 0]],
+      [['Edit', 0], ['Cut', proc {}, 0], ['Copy', proc {}, 0], ['Paste', proc {}, 0]]
+    ]
+    result = top.add_menubar(menu_spec)
+
+    # Should return the menu
+    errors << "add_menubar should return menu" unless result
+
+    # Verify menu was set
+    menu = top.cget(:menu)
+    errors << "add_menubar should set menu" unless menu
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  # --- database_class methods ---
+
+  def test_toplevel_database_class
+    assert_tk_app("Toplevel database_class", method(:app_database_class))
+  end
+
+  def app_database_class
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    # Base class returns itself
+    db_class = Tk::Toplevel.database_class
+    errors << "database_class should return class" unless db_class == Tk::Toplevel
+
+    db_name = Tk::Toplevel.database_classname
+    errors << "database_classname should be 'Tk::Toplevel'" unless db_name == "Tk::Toplevel"
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  # --- initialization with wm options ---
+
+  def test_toplevel_init_with_wm_options
+    assert_tk_app("Toplevel init with wm options", method(:app_init_wm_options))
+  end
+
+  def app_init_wm_options
+    require 'tk'
+    require 'tk/toplevel'
+
+    errors = []
+
+    # Create toplevel with wm options in hash
+    top = TkToplevel.new(root, title: "Init Title", minsize: [300, 200]) { withdraw }
+
+    errors << "init title should be set" unless top.wm_title == "Init Title"
+
+    minsize = top.wm_minsize
+    errors << "init minsize should be set" unless minsize[0] == 300 && minsize[1] == 200
+
+    top.destroy
+    raise errors.join("\n") unless errors.empty?
+  end
 end

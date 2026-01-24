@@ -123,6 +123,7 @@ class TkTextMark<TkObject
 end
 TktMark = TkTextMark
 
+# TODO: Refactor - self.new bypasses initialize via allocate+instance_eval
 class TkTextNamedMark<TkTextMark
   def self.new(parent, name, index=nil)
     # Check if mark already exists via the text widget's @tags

@@ -313,6 +313,7 @@ class TkcTag<TkObject
   alias withtag set_to_withtag
 end
 
+# TODO: Refactor - self.new bypasses initialize via allocate+instance_eval
 class TkcTagString<TkcTag
   def self.new(parent, name, mode=nil, *args)
     # Check if tag already exists via the canvas's @canvas_tags
