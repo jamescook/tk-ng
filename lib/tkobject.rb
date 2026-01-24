@@ -68,10 +68,10 @@ class TkObject<TkKernel
     when 0
       begin
         cget(name)
-      rescue
+      rescue => e
         if self.kind_of?(TkWindow) && name != "to_ary" && name != "to_str"
           fail NameError,
-               "unknown option '#{id}' for #{self.inspect} (deleted widget?)"
+               "unknown option '#{id}' for #{self.inspect} (deleted widget?) - original error: #{e.class}: #{e.message}"
         else
           super(id, *args)
         end
@@ -189,6 +189,12 @@ class TkObject<TkKernel
 
   def configure_cmd(slot, value)
     configure(slot, install_cmd(value))
+  end
+
+  # Apply a font to this widget. Called by TkFont when font attributes change.
+  # Widgets with special font handling can override this method.
+  def apply_font(font_name)
+    configure('font', font_name)
   end
 
   # Get Tcl configure info for option(s)

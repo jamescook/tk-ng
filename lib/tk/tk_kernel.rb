@@ -6,7 +6,7 @@
 class TkKernel
   def self.new(*args, &block)
     obj = super(*args)
-    obj.instance_exec(&block) if block
+    obj.instance_exec(obj, &block) if block
     obj
   end
 end

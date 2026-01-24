@@ -126,9 +126,17 @@ module Tk
 
       # Font - wraps font string in TkFont for backwards compatibility
       # Allows font.weight('bold') style method chaining
+      # Uses TkFont.id2obj to return the same TkFont object if already registered
+      # Passes widget reference so font setters can reconfigure the widget
       Font = OptionType.new(:font,
         to_tcl: ->(v) { v.to_s },
-        from_tcl: ->(v) { v.to_s.empty? ? nil : TkFont.new(v) }
+        from_tcl: ->(v, widget:) {
+          return nil if v.to_s.empty?
+          existing = TkFont.id2obj(v)
+          return existing if existing
+          # Create new TkFont with widget reference for auto-reconfigure
+          TkFont.new(v, nil, widget: widget)
+        }
       )
 
       # Callback - Tcl command string, typically registered via install_cmd

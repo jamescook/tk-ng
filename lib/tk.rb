@@ -152,6 +152,23 @@ module Tk
     end
   end
 
+  # Compatibility: UTF8_String is no longer needed in Ruby 3.x (strings are UTF-8).
+  # This converts \uXXXX escapes in single-quoted strings for old demo compatibility.
+  class UTF8_String < String
+    def initialize(str)
+      Tk::Warnings.warn_once(:utf8_string,
+        "Tk::UTF8_String is deprecated. Use regular Ruby strings (already UTF-8).")
+      # Convert \uXXXX escapes (from single-quoted strings) to actual unicode
+      converted = str.gsub(/\\u([0-9a-fA-F]{4})/) { [$1.to_i(16)].pack('U') }
+      super(converted)
+    end
+  end
+
+  # Module function form: Tk::UTF8_String("text")
+  def Tk.UTF8_String(str)
+    UTF8_String.new(str)
+  end
+
   def Tk.errorInfo
     INTERP._invoke_without_enc('global', 'errorInfo')
     INTERP._invoke_without_enc('set', 'errorInfo')
