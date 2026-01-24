@@ -125,9 +125,8 @@ class TestTileStyle < Minitest::Test
     bg = Tk::Tile::Style.lookup('TButton', 'background')
     errors << "lookup should return a value" if bg.nil? || bg.to_s.empty?
 
-    # Lookup with state
-    bg_active = Tk::Tile::Style.lookup('TButton', 'background', 'active')
-    # Result may be empty if not defined, that's ok
+    # Lookup with state (result may be empty if not defined, that's ok)
+    _bg_active = Tk::Tile::Style.lookup('TButton', 'background', 'active')
 
     raise errors.join("\n") unless errors.empty?
   end

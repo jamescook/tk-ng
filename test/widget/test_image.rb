@@ -74,6 +74,219 @@ class TestImageWidget < Minitest::Test
     unless errors.empty?
       raise "Image test failures:\n  " + errors.join("\n  ")
     end
+  end
 
+  # --- TkPhotoImage operations ---
+
+  def test_photo_blank
+    assert_tk_app("TkPhotoImage blank", method(:app_photo_blank))
+  end
+
+  def app_photo_blank
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 10, height: 10)
+    # Put some data first
+    photo.put("{red red red} {red red red} {red red red}", to: [0, 0])
+
+    result = photo.blank
+    errors << "blank should return self" unless result == photo
+
+    # After blank, pixel should be transparent (get returns {0 0 0} or similar for transparent)
+    # Actually checking transparency is better
+    errors << "pixel should be transparent after blank" unless photo.get_transparency(0, 0)
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_get_put
+    assert_tk_app("TkPhotoImage get/put", method(:app_photo_get_put))
+  end
+
+  def app_photo_get_put
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 10, height: 10)
+
+    # Put a red pixel at 0,0
+    photo.put("#ff0000", to: [0, 0, 1, 1])
+
+    # Get the pixel
+    rgb = photo.get(0, 0)
+    errors << "get should return array" unless rgb.is_a?(Array)
+    errors << "get should return 3 values, got #{rgb.size}" unless rgb.size == 3
+    errors << "red component should be 255, got #{rgb[0]}" unless rgb[0] == 255
+    errors << "green component should be 0, got #{rgb[1]}" unless rgb[1] == 0
+    errors << "blue component should be 0, got #{rgb[2]}" unless rgb[2] == 0
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_transparency
+    assert_tk_app("TkPhotoImage transparency", method(:app_photo_transparency))
+  end
+
+  def app_photo_transparency
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 10, height: 10)
+
+    # New photo pixels are transparent by default
+    errors << "new pixel should be transparent" unless photo.get_transparency(0, 0)
+
+    # Make it opaque
+    photo.set_transparency(0, 0, false)
+    errors << "pixel should be opaque after set_transparency(false)" if photo.get_transparency(0, 0)
+
+    # Make it transparent again
+    result = photo.set_transparency(0, 0, true)
+    errors << "set_transparency should return self" unless result == photo
+    errors << "pixel should be transparent after set_transparency(true)" unless photo.get_transparency(0, 0)
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_copy
+    assert_tk_app("TkPhotoImage copy", method(:app_photo_copy))
+  end
+
+  def app_photo_copy
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    src = TkPhotoImage.new(width: 10, height: 10)
+    src.put("#00ff00", to: [0, 0, 10, 10])  # Fill with green
+
+    dst = TkPhotoImage.new(width: 20, height: 20)
+
+    # Copy src to dst
+    result = dst.copy(src)
+    errors << "copy should return self" unless result == dst
+
+    # Check that dst has green at 0,0
+    rgb = dst.get(0, 0)
+    errors << "copied pixel should be green, got #{rgb.inspect}" unless rgb[1] == 255
+
+    # Copy with options
+    dst2 = TkPhotoImage.new(width: 20, height: 20)
+    dst2.copy(src, from: [0, 0, 5, 5], to: [5, 5])
+    rgb2 = dst2.get(5, 5)
+    errors << "copy with from/to should work" unless rgb2[1] == 255
+
+    src.delete
+    dst.delete
+    dst2.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_data
+    assert_tk_app("TkPhotoImage data", method(:app_photo_data))
+  end
+
+  def app_photo_data
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 2, height: 2)
+    photo.put("#ff0000", to: [0, 0, 2, 2])  # Fill with red
+
+    data = photo.data
+    errors << "data should return array" unless data.is_a?(Array)
+    errors << "data should have rows" unless data.size > 0
+
+    # Data with grayscale option
+    gray_data = photo.data(grayscale: true)
+    errors << "grayscale data should return array" unless gray_data.is_a?(Array)
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_inuse
+    assert_tk_app("TkPhotoImage inuse", method(:app_photo_inuse))
+  end
+
+  def app_photo_inuse
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 10, height: 10)
+
+    # Not in use yet
+    errors << "inuse should return boolean" unless [true, false].include?(photo.inuse)
+
+    # Put it in a label to make it "in use"
+    label = TkLabel.new(root, image: photo)
+    label.pack
+
+    # Now it should be in use
+    errors << "inuse should be true when displayed" unless photo.inuse
+
+    label.destroy
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_redither
+    assert_tk_app("TkPhotoImage redither", method(:app_photo_redither))
+  end
+
+  def app_photo_redither
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 10, height: 10)
+    photo.put("#808080", to: [0, 0, 10, 10])
+
+    result = photo.redither
+    errors << "redither should return self" unless result == photo
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_photo_cget
+    assert_tk_app("TkPhotoImage cget", method(:app_photo_cget))
+  end
+
+  def app_photo_cget
+    require 'tk'
+    require 'tk/image'
+
+    errors = []
+
+    photo = TkPhotoImage.new(width: 50, height: 30, gamma: 1.5)
+
+    w = photo.cget(:width)
+    errors << "cget width should be 50, got #{w}" unless w == 50
+
+    h = photo.cget(:height)
+    errors << "cget height should be 30, got #{h}" unless h == 30
+
+    g = photo.cget(:gamma)
+    errors << "cget gamma should be ~1.5, got #{g}" unless (g.to_f - 1.5).abs < 0.01
+
+    photo.delete
+    raise errors.join("\n") unless errors.empty?
   end
 end

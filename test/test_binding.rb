@@ -78,9 +78,8 @@ class TestBinding < Minitest::Test
     my_tag = TkBindTag.new
     raise "TkBindTag should have an id" if my_tag.to_eval.nil?
 
-    # Bind to it
-    called = false
-    my_tag.bind('Enter') { called = true }
+    # Bind to it (callback not invoked in this test)
+    my_tag.bind('Enter') { }
 
     # Add to widget
     btn = TkButton.new(root)

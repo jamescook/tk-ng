@@ -198,10 +198,10 @@ class TestPalette < Minitest::Test
 
     errors = []
 
-    # Create a widget hierarchy
+    # Create a widget hierarchy (labels are children for recolorTree to affect)
     frame = TkFrame.new(root)
-    label1 = TkLabel.new(frame, text: 'Label 1')
-    label2 = TkLabel.new(frame, text: 'Label 2')
+    _label1 = TkLabel.new(frame, text: 'Label 1')
+    _label2 = TkLabel.new(frame, text: 'Label 2')
 
     # First set a known palette
     TkPalette.set('background' => 'white', 'foreground' => 'black')

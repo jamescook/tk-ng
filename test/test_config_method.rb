@@ -53,9 +53,8 @@ class TestConfigMethod < Minitest::Test
     require 'tk/checkbutton'
 
     cb = TkCheckButton.new(root)
-    # takefocus is a boolean-ish option
-    result = cb.cget(:takefocus)
-    # Should be truthy/falsy, not raise
+    # takefocus is a boolean-ish option - just verify it doesn't raise
+    cb.cget(:takefocus)
   end
 
   def test_cget_tkstring_returns_raw

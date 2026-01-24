@@ -235,21 +235,8 @@ module TkCore
     end
   end
 
-  # ---------------------------------------------------------
-  # Module methods that delegate to the (single) interpreter
-  # These use TkCore.interp which enforces single-interp or errors
-  # ---------------------------------------------------------
-  def after(ms, cmd = nil, &block)
-    TkCore.interp.after(ms, cmd, &block)
-  end
-
-  def after_idle(cmd = nil, &block)
-    TkCore.interp.after_idle(cmd, &block)
-  end
-
-  def after_cancel(cb_id)
-    TkCore.interp.after_cancel(cb_id)
-  end
+  # Note: after, after_idle, after_cancel are defined in tkcore.rb
+  # (which is loaded after this file) with the actual implementations.
 end
 
 module TclTkLib

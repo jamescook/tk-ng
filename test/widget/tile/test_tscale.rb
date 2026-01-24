@@ -78,17 +78,16 @@ class TestTScaleWidget < Minitest::Test
     errors << "variable update failed" unless bound_scale.get.to_f == 75.0
 
     # --- Command callback ---
-    callback_value = nil
+    # Note: command is called when value changes via widget, set may or may not trigger it
     callback_scale = Tk::Tile::TScale.new(frame,
       orient: "horizontal",
       from: 0,
       to: 100,
-      command: proc { |val| callback_value = val.to_f }
+      command: proc { |_val| }  # callback may not trigger from set()
     )
     callback_scale.pack(fill: "x", pady: 5)
 
     callback_scale.set(30)
-    # Note: command is called when value changes via widget, set may or may not trigger it
     # Just verify command is configurable
     cmd = callback_scale.cget(:command)
     errors << "command cget failed" if cmd.nil?

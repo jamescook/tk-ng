@@ -335,10 +335,8 @@ class TestSelection < Minitest::Test
     label = TkLabel.new(root, text: 'Handler')
     label.pack
 
-    # Register a selection handler
-    handler_called = false
-    TkSelection.handle(label, proc { |offset, maxbytes|
-      handler_called = true
+    # Register a selection handler (not invoked in this test)
+    TkSelection.handle(label, proc { |_offset, _maxbytes|
       "Selection data"
     })
 

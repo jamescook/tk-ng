@@ -157,10 +157,12 @@ module Tk
       end
 
       # Get regular options sorted alphabetically, with their aliases
+      # Used by ERB template via binding
       options_with_aliases = entries.reject(&:alias?).sort_by(&:name).map do |entry|
         aliases = (alias_map[entry.name] || []).sort
         { entry: entry, aliases: aliases }
       end
+      _ = options_with_aliases  # referenced in ERB
 
       template = File.read(File.join(TEMPLATES_DIR, 'item_options_widget.erb'))
       ERB.new(template, trim_mode: '-').result(binding)

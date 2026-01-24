@@ -492,13 +492,20 @@ namespace :docker do
     tcl_version = tcl_version_from_env
     image_name = docker_image_name(tcl_version)
 
-    puts "Building Docker image for Tcl #{tcl_version}..."
+    verbose = ENV['VERBOSE'] || ENV['V']
+    quiet = !verbose
+    if quiet
+      puts "Building Docker image for Tcl #{tcl_version}... (VERBOSE=1 for details)"
+    else
+      puts "Building Docker image for Tcl #{tcl_version}..."
+    end
     cmd = "docker build -f #{DOCKERFILE}"
+    cmd += " -q" if quiet
     cmd += " --label #{DOCKER_LABEL}"
     cmd += " --build-arg TCL_VERSION=#{tcl_version}"
     cmd += " -t #{image_name} ."
 
-    sh cmd
+    sh cmd, verbose: !quiet
   end
 
   desc "Run tests in Docker (TCL_VERSION=9.0|8.6, TEST=path/to/test.rb)"

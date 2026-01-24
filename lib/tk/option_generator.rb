@@ -146,10 +146,12 @@ module Tk
       end
 
       # Get regular options sorted alphabetically, with their aliases
+      # Used by ERB template via binding
       options_with_aliases = entries.reject(&:alias?).sort_by(&:name).map do |entry|
         aliases = (alias_map[entry.name] || []).sort
         { entry: entry, aliases: aliases }
       end
+      _ = options_with_aliases  # referenced in ERB
 
       template = File.read(File.join(TEMPLATES_DIR, 'widget_module.erb'))
       ERB.new(template, trim_mode: '-').result(binding)
@@ -157,8 +159,10 @@ module Tk
 
     # Generate the full options file for all widgets
     def generate_options_file(widgets)
+      # Used by ERB template via binding
       version_const = tcl_version.gsub('.', '_')
       timestamp = Time.now.utc.iso8601
+      _ = [version_const, timestamp]  # referenced in ERB
 
       template = File.read(File.join(TEMPLATES_DIR, 'options_file.erb'))
       ERB.new(template, trim_mode: '-').result(binding)
@@ -179,10 +183,12 @@ module Tk
       end
 
       # Get regular options sorted alphabetically, with their aliases
+      # Used by ERB template via binding
       options_with_aliases = entries.reject(&:alias?).sort_by(&:name).map do |entry|
         aliases = (alias_map[entry.name] || []).sort
         { entry: entry, aliases: aliases }
       end
+      _ = options_with_aliases  # referenced in ERB
 
       template = File.read(File.join(TEMPLATES_DIR, 'widget_file.erb'))
       ERB.new(template, trim_mode: '-').result(binding)

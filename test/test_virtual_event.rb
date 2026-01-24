@@ -77,17 +77,15 @@ class TestVirtualEvent < Minitest::Test
     require 'tk/virtevent'
 
     vevent = TkVirtualEvent.new('Control-t')
-    called = false
 
     btn = TkButton.new(root)
-    btn.bind(vevent.path) { called = true }
+    btn.bind(vevent.path) { }  # callback may not trigger in test environment
 
-    # Generate the virtual event
+    # Generate the virtual event (may not trigger without real display)
     btn.event_generate(vevent.path)
     Tk.update
 
     vevent.delete
-    # Note: event_generate may not trigger in test environment
     # Just verify no errors occurred
   end
 

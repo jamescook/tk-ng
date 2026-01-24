@@ -339,11 +339,11 @@ class TestTkUtil < Minitest::Test
     assert_raises(ArgumentError) { TkUtil.hash_kv(123) }
   end
 
-  def test_string_passthrough
+  def test_enc_str_string_passthrough
     assert_equal "hello", TkUtil._get_eval_enc_str("hello")
   end
 
-  def test_integer
+  def test_enc_str_integer
     assert_equal "42", TkUtil._get_eval_enc_str(42)
   end
 

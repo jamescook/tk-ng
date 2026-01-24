@@ -1088,9 +1088,8 @@ class TestTextWidget < Minitest::Test
     text.value = "Click here"
     text.tag_add("clickable", "1.0", "1.10")
 
-    # tag_bind - bind event to tag
-    clicked = false
-    text.tag_bind("clickable", "Enter", proc { clicked = true })
+    # tag_bind - bind event to tag (callback not invoked in this test)
+    text.tag_bind("clickable", "Enter", proc { })
 
     # tag_bindinfo - get binding info
     info = text.tag_bindinfo("clickable")
@@ -1102,7 +1101,7 @@ class TestTextWidget < Minitest::Test
     # tag_bind_remove - remove binding
     text.tag_bind_remove("clickable", "Enter")
     info_after = text.tag_bindinfo("clickable", "Enter")
-    # After removal, binding should be empty or nil
+    errors << "binding should be removed" unless info_after.nil? || info_after.empty?
 
     raise errors.join("\n") unless errors.empty?
   end

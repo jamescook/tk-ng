@@ -30,9 +30,8 @@ class TestTimer < Minitest::Test
 
     errors = []
 
-    # Create a timer with interval and proc
-    called = false
-    timer = TkTimer.new(100, 1, proc { called = true })
+    # Create a timer with interval and proc (not started, callback not invoked)
+    timer = TkTimer.new(100, 1, proc { })
 
     errors << "should not be running before start" if timer.running?
     errors << "after_id should be nil before start" if timer.after_id
@@ -751,10 +750,6 @@ class TestTimer < Minitest::Test
     # Reset should restart from beginning
     timer.reset
 
-    # current_pos should be back to 0
-    status = timer.current_status
-    # status[4] is do_loop (remaining loops)
-
     timer.cancel if timer.running?
 
     # Reset should have been called without error
@@ -949,11 +944,10 @@ class TestTimer < Minitest::Test
 
     errors = []
 
-    result = nil
-    timer = TkTimer.new(30, 1, proc { result = "done" })
+    timer = TkTimer.new(30, 1, proc { "done" })
     timer.start
 
-    # wait should block until timer completes and return the return_value
+    # wait should block until timer completes and return the callback result
     ret = timer.wait
     errors << "wait should return callback result" unless ret == "done"
     errors << "timer should not be running after wait" if timer.running?
