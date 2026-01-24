@@ -299,8 +299,7 @@ class TestTkComm < Minitest::Test
     btn = TkButton.new(root, text: "Bind test")
 
     # Bind a callback - use Tk.bind which includes TkComm
-    clicked = false
-    Tk.bind(btn.path, "Button-1") { clicked = true }
+    Tk.bind(btn.path, "Button-1") { }
 
     # Check bindinfo
     info = Tk.bindinfo(btn.path, "Button-1")

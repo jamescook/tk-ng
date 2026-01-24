@@ -481,9 +481,9 @@ class TestMenubar < Minitest::Test
 
     mbtn, _ = menubar[0]
     font = mbtn.cget(:font)
-    # Font might be returned as a TkFont object or string
-    font_str = font.respond_to?(:to_s) ? font.to_s : font
-    errors << "font should include Helvetica" unless font_str.downcase.include?('helvetica')
+    errors << "font should be TkFont" unless font.is_a?(TkFont)
+    # Font family may be substituted if Helvetica unavailable, just verify it's set
+    errors << "font family should not be empty" if font.family.to_s.empty?
 
     raise errors.join("\n") unless errors.empty?
   end

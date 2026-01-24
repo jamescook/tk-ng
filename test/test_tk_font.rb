@@ -105,7 +105,7 @@ class TestTkFont < Minitest::Test
     require 'tk'
 
     font = TkFont.new(family: 'Helvetica', size: 12)
-    label = TkLabel.new(root, text: 'Test', font: font)
+    TkLabel.new(root, text: 'Test', font: font)
 
     # Change family - should update the widget automatically
     font.family = 'Courier'
@@ -207,8 +207,6 @@ class TestTkFont < Minitest::Test
     # Get font via widget.font accessor (method_missing -> cget)
     font = text.font
     raise "text.font should return TkFont" unless font.is_a?(TkFont)
-
-    original_family = font.family
 
     # Mutate font via accessor - this is the toolbar demo pattern
     text.font.family = 'Courier'

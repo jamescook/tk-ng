@@ -91,7 +91,10 @@ class TestTileLabelWidget < Minitest::Test
     )
     lbl.pack
 
-    errors << "font not set" unless lbl.cget(:font).to_s.include?("Helvetica")
+    font = lbl.cget(:font)
+    errors << "font should be TkFont" unless font.is_a?(TkFont)
+    # Font family may be substituted if Helvetica unavailable, just verify it's set
+    errors << "font family should not be empty" if font.family.to_s.empty?
     errors << "foreground not set" unless lbl.cget(:foreground) == "blue"
     errors << "background not set" unless lbl.cget(:background) == "yellow"
 

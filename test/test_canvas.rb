@@ -131,9 +131,8 @@ class TestTkCanvas < Minitest::Test
 
     canvas = TkCanvas.new(root)
     rect1 = TkcRectangle.new(canvas, 10, 10, 50, 50)
-    rect2 = TkcRectangle.new(canvas, 20, 20, 60, 60)
+    TkcRectangle.new(canvas, 20, 20, 60, 60)  # rect2 - created above rect1
 
-    # rect2 is above rect1 in stacking order
     found = canvas.find_above(rect1)
     errors << "find_above should return array" unless found.is_a?(Array)
     errors << "find_above should find rect2" if found.empty?
@@ -152,10 +151,9 @@ class TestTkCanvas < Minitest::Test
     errors = []
 
     canvas = TkCanvas.new(root)
-    rect1 = TkcRectangle.new(canvas, 10, 10, 50, 50)
+    TkcRectangle.new(canvas, 10, 10, 50, 50)  # rect1 - created below rect2
     rect2 = TkcRectangle.new(canvas, 20, 20, 60, 60)
 
-    # rect1 is below rect2
     found = canvas.find_below(rect2)
     errors << "find_below should return array" unless found.is_a?(Array)
     errors << "find_below should find rect1" if found.empty?
@@ -174,7 +172,7 @@ class TestTkCanvas < Minitest::Test
     errors = []
 
     canvas = TkCanvas.new(root)
-    rect = TkcRectangle.new(canvas, 10, 10, 50, 50)
+    TkcRectangle.new(canvas, 10, 10, 50, 50)
 
     found = canvas.find_closest(30, 30)
     errors << "find_closest should return array" unless found.is_a?(Array)
@@ -196,7 +194,7 @@ class TestTkCanvas < Minitest::Test
     errors = []
 
     canvas = TkCanvas.new(root)
-    rect = TkcRectangle.new(canvas, 20, 20, 40, 40)
+    TkcRectangle.new(canvas, 20, 20, 40, 40)
 
     # Region that fully encloses the rectangle
     found = canvas.find_enclosed(10, 10, 50, 50)
@@ -217,7 +215,7 @@ class TestTkCanvas < Minitest::Test
     errors = []
 
     canvas = TkCanvas.new(root)
-    rect = TkcRectangle.new(canvas, 20, 20, 60, 60)
+    TkcRectangle.new(canvas, 20, 20, 60, 60)
 
     # Region that overlaps the rectangle
     found = canvas.find_overlapping(10, 10, 30, 30)
