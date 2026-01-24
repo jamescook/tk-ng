@@ -91,6 +91,14 @@ namespace :test do
 
   task widget: [:compile, :clean_coverage]
 
+  Rake::TestTask.new(:tkimg) do |t|
+    t.libs << 'test'
+    t.test_files = FileList['test/tkextlib/tkimg/test_*.rb']
+    t.verbose = true
+  end
+
+  task tkimg: :compile
+
   desc "Run all tests (main, bwidget, tkdnd)"
   task all: ['test', 'bwidget:test', 'tkdnd:test']
 end
@@ -591,6 +599,20 @@ namespace :docker do
       end
       cmd += " #{image_name}"
       cmd += " xvfb-run -a bundle exec rake tkdnd:test"
+
+      sh cmd
+    end
+
+    desc "Run tkimg tests in Docker (TCL_VERSION=9.0|8.6)"
+    task tkimg: 'docker:build' do
+      tcl_version = tcl_version_from_env
+      image_name = docker_image_name(tcl_version)
+
+      puts "Running tkimg tests in Docker (Tcl #{tcl_version})..."
+      cmd = "docker run --rm --init"
+      cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " #{image_name}"
+      cmd += " xvfb-run -a bundle exec rake test:tkimg"
 
       sh cmd
     end
