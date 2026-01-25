@@ -113,30 +113,31 @@ Removed APIs:
 
 Tcl 8.1 (April 1999) added native Unicode support ([Tcl chronology](https://wiki.tcl-lang.org/page/Tcl+chronology)). Use standard `font` options with UTF-8 strings.
 
-### Simplified: TkFont Class
+### Modernized: TkFont Class
 
-The original `TkFont` class (~2340 lines) has been replaced with a lightweight compatibility shim. The old class had complex font management that is unnecessary with modern Tcl/Tk, which handles fonts as simple strings.
-
-The shim provides basic backward compatibility:
+The original `TkFont` class (~2340 lines) has been replaced with a modern implementation (~200 lines) that creates named Tcl fonts.
 
 ```ruby
-# These work (with a deprecation warning)
+# Create fonts
 font = TkFont.new('Helvetica 12 bold')
-font = TkFont.new(family: 'Helvetica', size: 12)
-button.configure('font' => font)
+font = TkFont.new(family: 'Courier', size: 14)
+label = TkLabel.new(root, font: font)
+
+# Modify font - all widgets using it update automatically
+font.family = 'Times'
+font.size = 18
+
+# Modify via widget accessor
+label.font.family = 'Arial'
 
 # Class methods
 TkFont.families        # list available font families
 TkFont.measure(font, text)  # measure text width in pixels
 ```
 
-**Recommended**: Use font strings directly for new code:
-```ruby
-button.configure('font' => 'Helvetica 12 bold')
-button.configure('font' => 'TkDefaultFont')
-```
+Named Tcl fonts propagate changes to all widgets using them, so changing `font.size = 24` updates every widget configured with that font.
 
-**Not supported**: Advanced features from the old TkFont like `TkNamedFont`, font_configure methods, and font compound operations have been removed.
+**Not supported**: Features from the old TkFont like `TkNamedFont`, `latinfont`/`kanjifont` compound fonts, and `font_configure` methods have been removed.
 
 ### Deprecated Internal APIs
 
@@ -174,18 +175,7 @@ If your code explicitly required `tk/itemconfig` or included `TkItemConfigMethod
 
 The global flag `TkConfigMethod.__IGNORE_UNKNOWN_CONFIGURE_OPTION__` has been removed. This flag silently swallowed errors when `configure` or `cget` encountered unknown widget options - a design that hid bugs and made debugging difficult.
 
-New design:
-
-```ruby
-class MyWidget < TkWindow
-  # This option only exists in Tk 9.0+
-  option :placeholder, type: :string, min_version: 9
-end
-```
-
-Options with `min_version` are automatically filtered out on older Tk versions, with a warning. This is a better solution - declare what you need, and the system handles compatibility.
-
-3. **Truly optional error handling** - If you absolutely need to ignore errors for a specific call, use standard Ruby:
+If you need to handle version-specific options, check the version explicitly:
 
 ```ruby
 # Not recommended, but if you must:
@@ -214,7 +204,30 @@ widget.current_configinfo         # => {"text" => "Hello", "width" => 100, ...}
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies.
+
+### Running Tests
+
+Docker is the preferred way to run tests (avoids Tk windows popping up):
+
+```bash
+rake docker:test                              # Run tests in container
+rake docker:test TEST=test/test_tk_font.rb    # Single file
+rake docker:test:all                          # Full suite with extensions
+```
+
+For local testing:
+```bash
+rake test                                     # Runs with real Tk windows
+```
+
+### Tcl Version
+
+Tests run against Tcl 9.0 by default. To test against 8.6:
+
+```bash
+TCL_VERSION=8.6 rake docker:test
+```
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
