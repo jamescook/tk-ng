@@ -5,7 +5,7 @@
 # DEPRECATED: This file is no longer needed. Modern Tcl (8.1+) and Ruby use
 # UTF-8 natively. Simply use `require 'tk'` instead.
 
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 Tk::Warnings.warn_once(:encoding_require,
   "require 'tk/encoding' is deprecated. Encoding methods are now part of 'tk'. " \

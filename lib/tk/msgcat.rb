@@ -3,7 +3,7 @@
 #   tk/msgcat.rb : methods for Tcl message catalog
 #                     by Hidetoshi Nagai <nagai@ai.kyutech.ac.jp>
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 #class TkMsgCatalog
 class TkMsgCatalog < TkObject

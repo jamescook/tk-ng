@@ -17,7 +17,7 @@
 #   # Or via widget.font accessor:
 #   label.font.family = 'Arial'
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 class TkFont
   @font_id = 0

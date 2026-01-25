@@ -5,7 +5,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/spinbox.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/entry'
 
 class Tk::Spinbox<Tk::Entry

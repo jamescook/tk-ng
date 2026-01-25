@@ -8,7 +8,7 @@
 #
 # :nocov:
 # Windows-only packages (DDE, Registry) - requires Windows to test
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module Tk::WinDDE
 end

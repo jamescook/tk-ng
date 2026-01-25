@@ -4,7 +4,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/message.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/label'
 
 class Tk::Message<Tk::Label

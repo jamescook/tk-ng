@@ -5,7 +5,7 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/menu.html
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/menuspec'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'

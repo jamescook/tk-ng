@@ -5,7 +5,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/canvas.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/canvastag'
 require 'tk/scrollable'
 require 'tk/option_dsl'

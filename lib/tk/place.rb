@@ -2,7 +2,7 @@
 #
 # tk/place.rb : control place geometry manager
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module TkPlace
   include Tk

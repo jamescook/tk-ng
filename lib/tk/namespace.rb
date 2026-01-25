@@ -3,7 +3,7 @@
 #   tk/namespace.rb : methods to manipulate Tcl/Tk namespace
 #                           by Hidetoshi Nagai <nagai@ai.kyutech.ac.jp>
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/option_dsl'
 
 class TkNamespace < TkObject

@@ -2,7 +2,7 @@
 #
 # tk/selection.rb : control selection
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module TkSelection
   include Tk

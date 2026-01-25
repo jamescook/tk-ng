@@ -4,7 +4,7 @@
 #
 # :nocov:
 # X Input Method - requires X11 with input method configured to test
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module TkXIM
   include Tk

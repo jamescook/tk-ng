@@ -5,7 +5,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_panedwindow.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
 

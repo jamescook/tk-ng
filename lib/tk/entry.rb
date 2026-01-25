@@ -5,7 +5,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/entry.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/label'
 require 'tk/scrollable'
 require 'tk/validation'

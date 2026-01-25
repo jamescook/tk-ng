@@ -2,7 +2,7 @@
 #
 # tk/texttag.rb - methods for treating text tags
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/text'
 require 'tk/tagfont'
 

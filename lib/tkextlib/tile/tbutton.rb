@@ -5,7 +5,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_button.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tkextlib/tile.rb'
 
 module Tk

@@ -4,7 +4,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/tk_mac.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module Tk
   module Mac

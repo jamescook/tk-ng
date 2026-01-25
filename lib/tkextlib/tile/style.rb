@@ -20,7 +20,7 @@
 #   - Tile Wiki: https://wiki.tcl-lang.org/page/Tile
 #   - ttk::style manual: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_style.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tkextlib/tile.rb'
 
 module Tk

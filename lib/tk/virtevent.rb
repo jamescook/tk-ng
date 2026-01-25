@@ -41,7 +41,7 @@
 #   # Access predefined virtual events (platform-dependent)
 #   TkVirtualEvent.info  #=> [<<Copy>>, <<Paste>>, <<Cut>>, ...]
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 class TkVirtualEvent<TkObject
   extend Tk

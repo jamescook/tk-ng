@@ -2,7 +2,7 @@
 #
 # tk/bind.rb : control event binding
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 class TkBindTag
   include TkBindCore

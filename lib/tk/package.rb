@@ -2,7 +2,7 @@
 #
 # tk/package.rb : package command
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module TkPackage
   include TkCore

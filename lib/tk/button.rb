@@ -4,7 +4,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/button.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/label'
 require 'tk/option_dsl'
 

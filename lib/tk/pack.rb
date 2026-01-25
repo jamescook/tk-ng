@@ -2,7 +2,7 @@
 #
 # tk/pack.rb : control pack geometry manager
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 
 module TkPack
   include Tk

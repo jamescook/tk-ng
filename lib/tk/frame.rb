@@ -4,7 +4,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/frame.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/option_dsl'
 
 class Tk::Frame<TkWindow

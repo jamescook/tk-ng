@@ -4,7 +4,7 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/label.html
 #
-require 'tk' unless defined?(Tk)
+require 'tk'
 require 'tk/option_dsl'
 
 class Tk::Label<TkWindow
