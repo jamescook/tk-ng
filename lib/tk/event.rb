@@ -472,7 +472,7 @@ module TkEvent
           extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
           begin
             TkUtil.eval_cmd(cmd, *(ex_args.concat(klass.scan_args(keys, arg))))
-          rescue Exception=>e
+          rescue StandardError => e
             if TkCore::INTERP.kind_of?(TclTkIp)
               fail e
             else
@@ -492,7 +492,7 @@ module TkEvent
         id = install_cmd(proc{
                            begin
                              TkUtil.eval_cmd(cmd)
-                           rescue Exception=>e
+                           rescue StandardError => e
                              if TkCore::INTERP.kind_of?(TclTkIp)
                                fail e
                              else
@@ -515,7 +515,7 @@ module TkEvent
           extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
           begin
             TkUtil.eval_cmd(cmd, *(ex_args << klass.new(*klass.scan_args(keys, arg))))
-          rescue Exception=>e
+          rescue StandardError => e
             if TkCore::INTERP.kind_of?(TclTkIp)
               fail e
             else

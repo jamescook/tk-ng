@@ -71,7 +71,7 @@ class Tk::Scrollbar<TkWindow
   def assign(*wins)
     begin
       self.command(@scroll_proc) if self.cget('command').cmd != @scroll_proc
-    rescue Exception
+    rescue StandardError
       self.command(@scroll_proc)
     end
     orient = self.orient
@@ -90,7 +90,7 @@ class Tk::Scrollbar<TkWindow
   def assigned_list
     begin
       return @assigned.dup if self.cget('command').cmd == @scroll_proc
-    rescue Exception
+    rescue StandardError
     end
     fail RuntimeError, "not depend on the assigned_list"
   end

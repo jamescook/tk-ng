@@ -79,7 +79,7 @@ class TkTimer
       exit(0)
     rescue Interrupt
       exit!(1)
-    rescue Exception => e
+    rescue StandardError => e
       if @cancel_on_exception &&
           @cancel_on_exception.find{|exc| e.kind_of?(exc)}
         cancel

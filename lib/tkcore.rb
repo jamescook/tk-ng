@@ -175,7 +175,7 @@ module TkCore
                                         widget.__destroy_hook__
                                       end
                                     end
-                                  rescue Exception=>e
+                                  rescue StandardError => e
                                       p e if $DEBUG
                                   end
                                 end
@@ -248,7 +248,7 @@ module TkCore
       exit(e.status)
     rescue Interrupt=>e
       fail(e)
-    rescue Exception => e
+    rescue StandardError => e
       begin
         msg = e.class.inspect + ': ' +
               e.message + "\n" +
@@ -256,7 +256,7 @@ module TkCore
               e.backtrace.join("\n") +
               "\n---< backtrace of Tk side >-------"
         msg.force_encoding('utf-8')
-      rescue Exception
+      rescue StandardError
         msg = e.class.inspect + ': ' + e.message + "\n" +
               "\n---< backtrace of Ruby side >-----\n" +
               e.backtrace.join("\n") +

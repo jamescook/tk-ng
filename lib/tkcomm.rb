@@ -431,7 +431,7 @@ module TkComm
     if local_cmdtbl && local_cmdtbl.kind_of?(Array)
       begin
         local_cmdtbl << id
-      rescue Exception
+      rescue StandardError
         # ignore
       end
     end
@@ -451,7 +451,7 @@ module TkComm
     if local_cmdtbl && local_cmdtbl.kind_of?(Array)
       begin
         local_cmdtbl.delete(id)
-      rescue Exception
+      rescue StandardError
         # ignore
       end
     end

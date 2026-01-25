@@ -54,7 +54,7 @@ class TkMsgCatalog < TkObject
       exit(0)
     rescue Interrupt
       exit!(1)
-    rescue Exception => e
+    rescue StandardError => e
       begin
         msg = e.class.inspect + ': ' +
               e.message + "\n" +
@@ -62,7 +62,7 @@ class TkMsgCatalog < TkObject
               e.backtrace.join("\n") +
               "\n---< backtrace of Tk side >-------"
         msg.force_encoding('utf-8')
-      rescue Exception
+      rescue StandardError
         msg = e.class.inspect + ': ' + e.message + "\n" +
               "\n---< backtrace of Ruby side >-----\n" +
               e.backtrace.join("\n") +
