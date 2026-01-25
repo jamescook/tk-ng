@@ -13,98 +13,15 @@ require 'tkextlib/setup.rb'
 # library directory
 require 'tkextlib/tile/setup.rb'
 
-# load package
-# TkPackage.require('tile', '0.4')
-# TkPackage.require('tile', '0.6')
-# TkPackage.require('tile', '0.7')
-if Tk::TK_MAJOR_VERSION > 8 ||
-    (Tk::TK_MAJOR_VERSION == 8 && Tk::TK_MINOR_VERSION >= 5)
-  begin
-    TkPackage.require('tile') # for compatibility (version check of 'tile')
-  rescue RuntimeError
-    # ignore, even if cannot find package 'tile'
-  end
-  pkgname = 'Ttk'
-else
-  pkgname = 'tile'
-end
+# Ttk is built into Tcl/Tk 8.5+ (we require 8.6+)
+TkPackage.require('Ttk')
 
-begin
-  verstr = TkPackage.require(pkgname)
-rescue RuntimeError
-  # define dummy methods
-  module Tk
-    module Tile
-      CANNOT_FIND_PACKAGE = true
-      def self.const_missing(sym)
-        TkPackage.require(PACKAGE_NAME)
-      end
-      def self.method_missing(*args)
-        TkPackage.require(PACKAGE_NAME)
-      end
-    end
-  end
-  Tk.__cannot_find_tk_package_for_widget_set__(:Ttk, pkgname)
-  if pkgname == 'Ttk'
-    verstr = Tk::TK_PATCHLEVEL  # dummy
-  else
-    verstr = '0.7'  # dummy
-  end
-end
-
-ver = verstr.split('.')
-if ver[0].to_i == 0
-  # Tile extension package
-  if ver[1].to_i <= 4
-    # version 0.4 or former
-    module Tk
-      module Tile
-        USE_TILE_NAMESPACE = true
-        USE_TTK_NAMESPACE  = false
-        TILE_SPEC_VERSION_ID = 0
-      end
-    end
-  elsif ver[1].to_i <= 6
-    # version 0.5 -- version 0.6
-    module Tk
-      module Tile
-        USE_TILE_NAMESPACE = true
-        USE_TTK_NAMESPACE  = true
-        TILE_SPEC_VERSION_ID = 5
-      end
-    end
-  elsif ver[1].to_i <= 7
-    module Tk
-      module Tile
-        USE_TILE_NAMESPACE = false
-        USE_TTK_NAMESPACE  = true
-        TILE_SPEC_VERSION_ID = 7
-      end
-    end
-  else
-    # version 0.8 or later
-    module Tk
-      module Tile
-        USE_TILE_NAMESPACE = false
-        USE_TTK_NAMESPACE  = true
-        TILE_SPEC_VERSION_ID = 8
-      end
-    end
-  end
-
-  module Tk::Tile
-    PACKAGE_NAME = 'tile'.freeze
-  end
-else
-  # Ttk package merged Tcl/Tk core (Tcl/Tk 8.5+)
-  module Tk
-    module Tile
-      USE_TILE_NAMESPACE = false
-      USE_TTK_NAMESPACE  = true
-      TILE_SPEC_VERSION_ID = 8
-
-      PACKAGE_NAME = 'Ttk'.freeze
-    end
+module Tk
+  module Tile
+    USE_TILE_NAMESPACE = false
+    USE_TTK_NAMESPACE  = true
+    TILE_SPEC_VERSION_ID = 8
+    PACKAGE_NAME = 'Ttk'.freeze
   end
 end
 
@@ -132,96 +49,64 @@ module Tk
       Tk.tk_call('namespace', 'import', '-force', 'ttk::*')
     end
 
+    # Define LoadImages proc in Tcl namespace for old Tcl/Tk scripts
     def self.__define_LoadImages_proc_for_compatibility__!
-      # Ttk 8.5 (Tile 0.8) lost 'LoadImages' utility procedure.
-      # So, some old scripts don't work, because those scripts use the
-      # procedure to define local styles.
-      # Of course, rewriting such Tcl/Tk scripts isn't difficult for
-      # Tcl/Tk users. However, it may be troublesome for Ruby/Tk users
-      # who use such Tcl/Tk scripts as it is.
-      # This method may help Ruby/Tk users who don't want to modify old
-      # Tcl/Tk scripts for the latest version of Ttk (Tile) extension.
-      # This method defines a compatible 'LoadImages' procedure on the
-      # Tcl/Tk interpreter working under Ruby/Tk.
-      # Please give attention to use this method. It may conflict with
-      # some definitions on Tcl/Tk scripts.
-      proc_name = 'LoadImages'
-      if Tk::Tile::USE_TTK_NAMESPACE
-        ns_list = ['::tile']
-        if Tk.info(:commands, "::ttk::#{proc_name}").empty?
-          ns_list << '::ttk'
-        end
-      else # Tk::Tile::USE_TILE_NAMESPACE
-        ns_list = ['::ttk']
-        if Tk.info(:commands, "::tile::#{proc_name}").empty?
-          ns_list << '::tile'
-        end
-      end
-
-      ns_list.each{|ns|
-        cmd = "#{ns}::#{proc_name}"
-        unless Tk.info(:commands, cmd).empty?
-          #fail RuntimeError, "can't define '#{cmd}' command (already exist)"
-
-          # do nothing !!!
-          warn "Warning: can't define '#{cmd}' command (already exist)" if $DEBUG
-          next
-        end
-        TkNamespace.eval(ns){
-          TkCore::INTERP.add_tk_procs(proc_name, 'imgdir {patterns {*.gif}}',
-                                      <<-'EOS')
-            foreach pattern $patterns {
-              foreach file [glob -directory $imgdir $pattern] {
-                set img [file tail [file rootname $file]]
-                if {![info exists images($img)]} {
-                  set images($img) [image create photo -file $file]
+      tcl_script = <<-'TCL'
+        namespace eval ::tile {
+          if {[info commands ::tile::LoadImages] eq ""} {
+            proc LoadImages {imgdir {patterns {*.gif}}} {
+              foreach pattern $patterns {
+                foreach file [glob -directory $imgdir $pattern] {
+                  set img [file tail [file rootname $file]]
+                  if {![info exists images($img)]} {
+                    set images($img) [image create photo -file $file]
+                  }
                 }
               }
-            }
-            return [array get images]
-          EOS
-        }
-      }
-    end
-
-    def self.load_images(imgdir, pat=nil)
-      if Tk::Tile::TILE_SPEC_VERSION_ID < 8
-        if Tk::Tile::USE_TTK_NAMESPACE
-          cmd = '::ttk::LoadImages'
-        else # Tk::Tile::USE_TILE_NAMESPACE
-          cmd = '::tile::LoadImages'
-        end
-        pat ||= TkComm::None
-        images = Hash[*TkComm.simplelist(Tk.tk_call(cmd, imgdir, pat))]
-        images.keys.each{|k|
-          images[k] = TkPhotoImage.new(:imagename=>images[k],
-                                       :without_creating=>true)
-        }
-      else ## TILE_SPEC_VERSION_ID >= 8
-        pat ||= '*.gif'
-        if pat.kind_of?(Array)
-          pat_list = pat
-        else
-          pat_list = [ pat ]
-        end
-        Dir.chdir(imgdir){
-          pat_list.each{|pat|
-            Dir.glob(pat).each{|f|
-              img = File.basename(f, '.*')
-              unless TkComm.bool(Tk.info('exists', "images(#{img})"))
-                Tk.tk_call('set', "images(#{img})",
-                           Tk.tk_call('image', 'create', 'photo', '-file', f))
-              end
+              return [array get images]
             }
           }
         }
-        images = Hash[*TkComm.simplelist(Tk.tk_call('array', 'get', 'images'))]
-        images.keys.each{|k|
-          images[k] = TkPhotoImage.new(:imagename=>images[k],
-                                       :without_creating=>true)
+        namespace eval ::ttk {
+          if {[info commands ::ttk::LoadImages] eq ""} {
+            proc LoadImages {imgdir {patterns {*.gif}}} {
+              foreach pattern $patterns {
+                foreach file [glob -directory $imgdir $pattern] {
+                  set img [file tail [file rootname $file]]
+                  if {![info exists images($img)]} {
+                    set images($img) [image create photo -file $file]
+                  }
+                }
+              }
+              return [array get images]
+            }
+          }
         }
-      end
+      TCL
+      Tk.tk_call('eval', tcl_script)
+    end
 
+    def self.load_images(imgdir, pat=nil)
+      pat ||= '*.gif'
+      pat_list = pat.kind_of?(Array) ? pat : [pat]
+
+      Dir.chdir(imgdir) {
+        pat_list.each { |pattern|
+          Dir.glob(pattern).each { |f|
+            img = File.basename(f, '.*')
+            unless TkComm.bool(Tk.info('exists', "images(#{img})"))
+              Tk.tk_call('set', "images(#{img})",
+                         Tk.tk_call('image', 'create', 'photo', '-file', f))
+            end
+          }
+        }
+      }
+
+      images = Hash[*TkComm.simplelist(Tk.tk_call('array', 'get', 'images'))]
+      images.keys.each { |k|
+        images[k] = TkPhotoImage.new(:imagename => images[k],
+                                     :without_creating => true)
+      }
       images
     end
 
@@ -229,17 +114,9 @@ module Tk
       args.map!{|arg| TkComm._get_eval_string(arg)}.join('.')
     end
 
-    def self.themes(glob_ptn = nil)
-      if TILE_SPEC_VERSION_ID < 8 && Tk.info(:commands, '::ttk::themes').empty?
-        fail RuntimeError, 'not support glob option' if glob_ptn
-        cmd = ['::tile::availableThemes']
-      else
-        glob_ptn = '*' unless glob_ptn
-        cmd = ['::ttk::themes', glob_ptn]
-      end
-
+    def self.themes(glob_ptn = '*')
       begin
-        TkComm.simplelist(Tk.tk_call_without_enc(*cmd))
+        TkComm.simplelist(Tk.tk_call_without_enc('::ttk::themes', glob_ptn))
       rescue
         TkComm.simplelist(Tk.tk_call('lsearch', '-all', '-inline',
                                      Tk::Tile::Style.theme_names,
@@ -248,34 +125,20 @@ module Tk
     end
 
     def self.set_theme(theme)
-      if TILE_SPEC_VERSION_ID < 8 && Tk.info(:commands, '::ttk::setTheme').empty?
-        cmd = '::tile::setTheme'
-      else
-        cmd = '::ttk::setTheme'
-      end
-
       begin
-        Tk.tk_call_without_enc(cmd, theme)
+        Tk.tk_call_without_enc('::ttk::setTheme', theme)
       rescue
         Tk::Tile::Style.theme_use(theme)
       end
     end
 
+    # KeyNav was for ancient Tile - these are no-ops on modern Ttk
     module KeyNav
-      if Tk::Tile::TILE_SPEC_VERSION_ID < 8
-        def self.enableMnemonics(w)
-          Tk.tk_call('::keynav::enableMnemonics', w)
-        end
-        def self.defaultButton(w)
-          Tk.tk_call('::keynav::defaultButton', w)
-        end
-      else # dummy
-        def self.enableMnemonics(w)
-          ""
-        end
-        def self.defaultButton(w)
-          ""
-        end
+      def self.enableMnemonics(w)
+        ""
+      end
+      def self.defaultButton(w)
+        ""
       end
     end
 
