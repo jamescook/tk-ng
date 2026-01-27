@@ -1,4 +1,5 @@
 # frozen_string_literal: false
+# tk-record
 #
 # Ruby/Tk Goldverg demo (called by 'widget')
 #
@@ -2019,11 +2020,13 @@ end
 
 $goldberg_instance = TkGoldberg_Demo.new(base_frame)
 
-# Auto-start for recording (TK_RECORD=1 ruby ... goldberg.rb)
-# CODEC=vp9 SCREEN_SIZE=850x700 ./scripts/docker-record.sh sample/demos-en/goldberg.rb
-if ENV['TK_RECORD']
+# Automated demo support (testing and recording)
+require 'tk/demo_support'
+
+if TkDemo.recording?
   Tk.root.withdraw  # Hide root window, we use a Toplevel
   $goldberg_demo.geometry('+0+0')  # Position at top-left for screen capture
+  $goldberg_demo.configure(:cursor => 'none')  # Hide cursor for recording
   Tk.after(1000) { $goldberg_instance.start }
   Tk.mainloop
 end

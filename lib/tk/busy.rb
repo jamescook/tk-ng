@@ -2,7 +2,6 @@
 #
 # tk/busy.rb: support 'tk busy' command (Tcl/Tk8.6 or later)
 #
-require 'tk'
 require 'tk/item_option_dsl'
 
 module Tk::Busy

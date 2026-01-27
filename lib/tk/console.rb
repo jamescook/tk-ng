@@ -2,7 +2,6 @@
 #
 #   tk/console.rb : control the console on system without a real console
 #
-require 'tk'
 
 module TkConsole
   include Tk

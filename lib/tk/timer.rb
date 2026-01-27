@@ -4,7 +4,6 @@
 #
 #   $Id$
 #
-require 'tk'
 
 class TkTimer
   include TkCore

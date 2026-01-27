@@ -2,7 +2,6 @@
 #
 # tk/tagfont.rb : control font of tags
 #
-require 'tk'
 
 module TkTreatTagFont
   def font_configinfo

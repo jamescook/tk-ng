@@ -3,7 +3,6 @@
 # tk/image.rb : treat Tk image objects
 #
 
-require 'tk'
 require 'tk/option_dsl'
 
 class TkImage<TkObject

@@ -159,6 +159,11 @@ module Tk
       )
     end
 
+    # Generate a standalone file for a single widget's item options
+    def generate_widget_file(widget_name, entries)
+      generate_module_from_entries(widget_name, entries)
+    end
+
     private
 
     def build_options_with_aliases(entries)
@@ -172,11 +177,6 @@ module Tk
         aliases = (alias_map[entry.name] || []).sort
         { entry: entry, aliases: aliases }
       end
-    end
-
-    # Generate a standalone file for a single widget's item options
-    def generate_widget_file(widget_name, entries)
-      generate_module_from_entries(widget_name, entries)
     end
   end
 end

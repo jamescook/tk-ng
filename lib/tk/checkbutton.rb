@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/checkbutton.html
 #
-require 'tk'
 require 'tk/radiobutton'
 
 class Tk::CheckButton<Tk::RadioButton

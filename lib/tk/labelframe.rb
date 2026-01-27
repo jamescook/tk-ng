@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/labelframe.html
 #
-require 'tk'
 require 'tk/frame'
 
 class Tk::LabelFrame<Tk::Frame

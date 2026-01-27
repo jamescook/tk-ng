@@ -2,7 +2,6 @@
 #
 # tk/composite.rb :
 #
-require 'tk'
 
 module TkComposite
   include Tk

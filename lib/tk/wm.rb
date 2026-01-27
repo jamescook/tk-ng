@@ -2,7 +2,8 @@
 #
 # tk/wm.rb : methods for wm command
 #
-require 'tk'
+# Note: This file is autoloaded from tk.rb - do not require 'tk' here
+# to avoid circular require. TkCore, TkComm etc. are available.
 
 module Tk
   module Wm

@@ -2,7 +2,6 @@
 #
 #  tk/validation.rb - validation support module for entry, spinbox, and so on
 #
-require 'tk'
 
 module Tk
   module ValidateConfigure

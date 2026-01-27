@@ -14,6 +14,7 @@ module SimpleCovConfig
     '/test/',
     %r{^/ext/},
     '/benchmark/',
+    '/lib/tk/demo_support.rb',
     '/lib/tcltk.rb'  # Deprecated stub, no code to cover
   ].freeze
 

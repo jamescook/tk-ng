@@ -2,7 +2,6 @@
 #
 # tk/scrollable.rb : module for scrollable widget
 #
-require 'tk'
 
 module Tk
   module XScrollable

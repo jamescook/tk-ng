@@ -64,8 +64,11 @@ STOP_PIPE=$(mktemp -u)
 mkfifo "$STOP_PIPE"
 trap 'rm -f "$STOP_PIPE"' EXIT
 
-# Start app with stop pipe FD
-TK_RECORD=1 TK_STOP_PIPE="$STOP_PIPE" $RUBY_CMD -rtk "$SAMPLE" &
+# Thumbnail path (same name as output, .png extension)
+THUMBNAIL="${OUTPUT%.*}.png"
+
+# Start app with stop pipe FD and thumbnail path
+TK_RECORD=1 TK_STOP_PIPE="$STOP_PIPE" TK_THUMBNAIL_PATH="$THUMBNAIL" $RUBY_CMD -rtk "$SAMPLE" &
 APP_PID=$!
 
 # Wait for window to appear (--sync blocks until found)

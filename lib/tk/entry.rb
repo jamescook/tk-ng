@@ -5,7 +5,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/entry.html
 #
-require 'tk'
 require 'tk/label'
 require 'tk/scrollable'
 require 'tk/validation'

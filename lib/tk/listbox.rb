@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html
 #
-require 'tk'
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'

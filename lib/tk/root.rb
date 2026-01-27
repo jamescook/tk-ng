@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/toplevel.html
 #
-require 'tk'
 require 'tk/wm'
 require 'tk/menuspec'
 require 'tk/option_dsl'

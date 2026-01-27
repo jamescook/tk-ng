@@ -745,11 +745,27 @@ namespace :docker do
     Rake::Task[t].enhance { Rake::Task['docker:prune'].invoke }
   end
 
-  # Demos that support TK_RECORD for automated recording
-  RECORDABLE_DEMOS = [
-    { sample: 'sample/demos-en/goldberg.rb', screen_size: '850x700' },
-    { sample: 'sample/24hr_clock.rb', screen_size: '420x450' },
-  ].freeze
+  # Scan sample files for # tk-record magic comment
+  # Format: # tk-record: screen_size=420x450, codec=vp9
+  def find_recordable_samples
+    defaults = { 'screen_size' => '850x700' }
+
+    Dir['sample/**/*.rb'].filter_map do |path|
+      first_lines = File.read(path, 500) # Read enough to find the comment
+      match = first_lines.match(/^#\s*tk-record(?::\s*(.+))?$/)
+      next unless match
+
+      options = defaults.dup
+      if match[1]
+        match[1].split(',').each do |pair|
+          key, value = pair.strip.split('=', 2)
+          options[key.strip] = value&.strip if key
+        end
+      end
+      options['sample'] = path
+      options
+    end
+  end
 
   desc "Record demos in Docker (TCL_VERSION=9.0|8.6, DEMO=sample/foo.rb)"
   task record_demos: :build do
@@ -761,16 +777,22 @@ namespace :docker do
 
     demos = if ENV['DEMO']
               # Single demo from env var
-              [{ sample: ENV['DEMO'], screen_size: ENV['SCREEN_SIZE'] || '850x700' }]
+              find_recordable_samples.select { |d| d['sample'] == ENV['DEMO'] }
             else
-              RECORDABLE_DEMOS
+              find_recordable_samples
             end
 
-    demos.each do |demo|
-      sample = demo[:sample]
-      screen_size = demo[:screen_size]
-      codec = ENV['CODEC'] || 'x264'
+    if demos.empty?
+      puts "No recordable samples found. Add '# tk-record' comment to samples."
+      next
+    end
 
+    demos.each do |demo|
+      sample = demo['sample']
+      screen_size = demo['screen_size']
+      codec = ENV['CODEC'] || demo['codec'] || 'x264'
+
+      puts
       puts "Recording #{sample} (#{screen_size}, #{codec})..."
       sh "SCREEN_SIZE=#{screen_size} CODEC=#{codec} ./scripts/docker-record.sh #{sample}"
     end

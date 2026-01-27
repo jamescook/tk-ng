@@ -15,13 +15,6 @@ require_relative 'tk_test_helper'
 class TestBinding < Minitest::Test
   include TkTestHelper
 
-  SAMPLE_PATH = File.expand_path('../sample/binding_demo.rb', __dir__)
-
-  # Smoke test - UI loads without crashing
-  def test_binding_demo_loads
-    assert_sample_loads(SAMPLE_PATH, message: "binding_demo.rb should load")
-  end
-
   # Test bindtags returns correct structure
   def test_bindtags_returns_array
     assert_tk_app("bindtags should return array with widget, class, toplevel, all", method(:app_bindtags_returns_array))

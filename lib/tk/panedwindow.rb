@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/panedwindow.html
 #
-require 'tk'
 require 'tk/option_dsl'
 
 class Tk::PanedWindow<TkWindow

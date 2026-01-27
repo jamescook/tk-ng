@@ -2,7 +2,6 @@
 #
 # tk/optiondb.rb : treat option database
 #
-require 'tk'
 
 module TkOptionDB
   include Tk

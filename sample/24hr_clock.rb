@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
+# tk-record: screen_size=420x450
 
 require 'tk'
 

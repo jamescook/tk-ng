@@ -45,6 +45,6 @@ docker run --rm \
     -v "$(pwd)/lib/tk.rb:/app/lib/tk.rb:ro" \
     -v "$(pwd)/recordings:/app/recordings" \
     "${IMAGE}" \
-    bash -c "./scripts/record-sample.sh '${SAMPLE}' && mv '${OUTPUT}' recordings/"
+    bash -c "./scripts/record-sample.sh '${SAMPLE}' && mv '${OUTPUT}' recordings/ && mv '${BASENAME}.png' recordings/ 2>/dev/null || true"
 
 echo "Done: recordings/${OUTPUT}"

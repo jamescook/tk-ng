@@ -5,8 +5,6 @@
 module TkWinfo
 end
 
-require 'tk'
-
 module TkWinfo
   include Tk
   extend Tk

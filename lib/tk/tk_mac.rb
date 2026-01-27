@@ -4,7 +4,6 @@
 #
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/tk_mac.html
 #
-require 'tk'
 
 module Tk
   module Mac

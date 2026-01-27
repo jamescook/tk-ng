@@ -2,7 +2,6 @@
 #
 # tk/textmark.rb - methods for treating text marks
 #
-require 'tk'
 require 'tk/text'
 
 class TkTextMark<TkObject
