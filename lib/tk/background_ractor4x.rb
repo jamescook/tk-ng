@@ -3,15 +3,33 @@
 # Ruby 4.x Ractor-based background work for Tk applications.
 # Uses Ractor::Port for streaming and Ractor.shareable_proc for blocks.
 # Uses thread-inside-ractor pattern for non-blocking message handling.
+#
+# == Ruby 4.x vs 3.x Ractor Differences
+#
+# | Aspect                      | 3.x                          | 4.x                           |
+# |-----------------------------|------------------------------|-------------------------------|
+# | Output mechanism            | Ractor.yield (BLOCKS)        | Port.send (non-blocking)      |
+# | Orphaned threads on exit    | Hangs in rb_ractor_terminate | Exits cleanly                 |
+# | Block support               | Must use worker class        | Ractor.shareable_proc works   |
+# | close_incoming after yield  | Bug: doesn't wake threads    | Works correctly               |
+#
+# Because of these differences, the 3.x implementation requires workarounds
+# that are NOT needed here:
+# - Yielder thread (to decouple worker from blocking Ractor.yield)
+# - Timeout-based polling for messages (to avoid receiver thread cleanup bug)
+# - at_exit Ractor tracking (to handle cleanup issues)
+#
+# This 4.x implementation is simpler because Ruby 4.x Ractors just work.
 
 module TkBackgroundRactor4x
   # Default poll interval: 16ms ≈ 60fps
   DEFAULT_POLL_MS = 16
 
   class BackgroundWork
-    def initialize(data, &block)
+    def initialize(data, worker: nil, &block)
+      # Ruby 4.x supports both block and worker class
       @data = data
-      @work_block = block
+      @work_block = block || (worker && proc { |t, d| worker.new.call(t, d) })
       @callbacks = { progress: nil, done: nil, message: nil }
       @started = false
       @done = false
@@ -19,6 +37,7 @@ module TkBackgroundRactor4x
       # Communication
       @output_queue = Thread::Queue.new
       @control_port = nil  # Set by worker, received back
+      @pending_messages = []  # Queued until control_port ready
       @worker_ractor = nil
       @bridge_thread = nil
     end
@@ -41,7 +60,11 @@ module TkBackgroundRactor4x
     end
 
     def send_message(msg)
-      @control_port&.send(msg)
+      if @control_port
+        @control_port.send(msg)
+      else
+        @pending_messages << msg
+      end
       self
     end
 
@@ -60,11 +83,19 @@ module TkBackgroundRactor4x
       self
     end
 
+    def close
+      @done = true
+      @worker_ractor&.close_incoming
+      @worker_ractor&.close_outgoing
+      self
+    end
+
     def start
       return self if @started
       @started = true
 
-      # Create shareable proc - Ruby 4.x guarantees this works
+      # Wrap in isolated proc for Ractor sharing. The block can only access
+      # its parameters (task, data), not outer-scope variables.
       shareable_block = Ractor.shareable_proc(&@work_block)
 
       start_ractor(shareable_block)
@@ -123,6 +154,8 @@ module TkBackgroundRactor4x
             result = output_port.receive
             if result.is_a?(Array) && result[0] == :control_port
               @control_port = result[1]
+              @pending_messages.each { |m| @control_port.send(m) }
+              @pending_messages.clear
             else
               @output_queue << result
               break if result[0] == :done

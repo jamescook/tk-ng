@@ -46,21 +46,21 @@ module TkRactorSupport
   # Mode :ractor uses true parallel execution (Ruby version appropriate impl).
   # Mode :thread uses traditional threading (GVL limited but always works).
   #
-  # Example:
+  # Ruby 4.x Example (block syntax):
   #   task = TkRactorSupport::BackgroundWork.new(data, mode: :ractor) do |t, d|
-  #     d.each do |item|
-  #       t.check_pause
-  #       t.yield(process(item))
-  #     end
+  #     d.each { |item| t.yield(process(item)) }
   #   end.on_progress { |r| update_ui(r) }
-  #     .on_done { puts "Done!" }
   #
-  #   task.pause   # Send pause message
-  #   task.resume  # Send resume message
-  #   task.stop    # Send stop message
+  # Ruby 3.x Example (worker class required for :ractor mode):
+  #   class MyWorker
+  #     def call(task, data)
+  #       data.each { |item| task.yield(process(item)) }
+  #     end
+  #   end
+  #   task = TkRactorSupport::BackgroundWork.new(data, mode: :ractor, worker: MyWorker)
   #
   class BackgroundWork
-    def initialize(data, mode: :ractor, &block)
+    def initialize(data, mode: :ractor, worker: nil, &block)
       impl_class = case mode
       when :ractor
         RactorImpl::BackgroundWork
@@ -70,7 +70,7 @@ module TkRactorSupport
         raise ArgumentError, "Unknown mode: #{mode}. Use :ractor or :thread"
       end
 
-      @impl = impl_class.new(data, &block)
+      @impl = impl_class.new(data, worker: worker, &block)
     end
 
     def on_progress(&block)
@@ -108,6 +108,11 @@ module TkRactorSupport
       self
     end
 
+    def close
+      @impl.close if @impl.respond_to?(:close)
+      self
+    end
+
     def start
       @impl.start
       self
@@ -124,22 +129,22 @@ module TkRactorSupport
   #
   class RactorStream
     def initialize(data, &block)
-      # For Ruby 4.x, we need to make the block shareable before wrapping
-      # because captured procs become nil when the wrapper is made shareable
+      # Ruby 4.x: use Ractor with shareable_proc
+      # Ruby 3.x: use threads (blocks can't be passed to Ractors)
       if RACTOR_SHAREABLE_PROC
         shareable_block = Ractor.shareable_proc(&block)
         wrapped_block = Ractor.shareable_proc do |task, d|
           yielder = StreamYielder.new(task)
           shareable_block.call(yielder, d)
         end
+        @impl = RactorImpl::BackgroundWork.new(data, &wrapped_block)
       else
         wrapped_block = proc do |task, d|
           yielder = StreamYielder.new(task)
           block.call(yielder, d)
         end
+        @impl = TkBackgroundThread::BackgroundWork.new(data, &wrapped_block)
       end
-
-      @impl = RactorImpl::BackgroundWork.new(data, &wrapped_block)
     end
 
     def on_progress(&block)

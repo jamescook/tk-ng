@@ -237,14 +237,14 @@ module TkTestHelper
   #     raise "wrong" unless label.cget(:text) == "Hello"
   #   end
   #
-  def assert_tk_app(message, app_method)
+  def assert_tk_app(message, app_method, pipe_capture: false)
     require_relative 'tk_worker'
 
     # Extract method body (skip def line and closing end)
     source_lines = app_method.source.lines
     body = source_lines[1..-2].join
 
-    result = TkWorker.run_test(body)
+    result = TkWorker.run_test(body, pipe_capture: pipe_capture)
 
     # Show warnings (interpreter cleanup, etc.) even on success
     if result[:warnings]&.any?

@@ -24,9 +24,10 @@ module TkBackgroundThread
   #   task.stop
   #
   class BackgroundWork
-    def initialize(data, &block)
+    def initialize(data, worker: nil, &block)
+      # Thread mode supports both block and worker class for API consistency
       @data = data
-      @work_block = block
+      @work_block = block || (worker && proc { |t, d| worker.new.call(t, d) })
       @callbacks = { progress: nil, done: nil, message: nil }
       @started = false
       @done = false
@@ -77,6 +78,12 @@ module TkBackgroundThread
       self
     end
 
+    def close
+      @done = true
+      @worker_thread&.kill
+      self
+    end
+
     def start
       return self if @started
       @started = true
@@ -86,10 +93,13 @@ module TkBackgroundThread
         task = TaskContext.new(@output_queue, @message_queue)
         begin
           @work_block.call(task, @data)
+          @output_queue << [:done]
         rescue StopIteration
-          # Clean exit via stop
+          @output_queue << [:done]
+        rescue => e
+          @output_queue << [:error, "#{e.class}: #{e.message}\n#{e.backtrace.first(3).join("\n")}"]
+          @output_queue << [:done]
         end
-        @output_queue << [:done]
       end
 
       start_polling
@@ -119,6 +129,8 @@ module TkBackgroundThread
               @callbacks[:progress]&.call(value)
             when :message
               @callbacks[:message]&.call(value)
+            when :error
+              warn "[Thread] Background work error: #{value}"
             end
           end
         rescue ThreadError

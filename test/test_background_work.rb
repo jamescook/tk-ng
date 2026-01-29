@@ -162,27 +162,34 @@ class TestBackgroundWork < Minitest::Test
 
   # Ractor mode basic test
   def test_background_work_ractor_basic
-    assert_tk_app("background_work :ractor mode should work", method(:app_background_work_ractor_basic))
+    assert_tk_app("background_work :ractor mode should work", method(:app_background_work_ractor_basic), pipe_capture: true)
   end
 
   def app_background_work_ractor_basic
     require 'tk'
+
+    # Worker class for Ractor mode (Ruby 3.x requires class, not block)
+    worker_class = Class.new do
+      def call(task, data)
+        data.each { |n| task.yield(n * 10) }
+      end
+    end
 
     TkCore.background_work_mode = :ractor
 
     results = []
     done = false
 
-    TkCore.background_work([1, 2, 3]) do |t, data|
-      data.each { |n| t.yield(n * 10) }
-    end.on_progress do |result|
-      results << result
-    end.on_done do
-      done = true
-    end
+    # Ruby 3.x requires worker class for Ractor mode (blocks carry bindings)
+    TkCore.background_work([1, 2, 3], worker: worker_class)
+      .on_progress do |result|
+        results << result
+      end.on_done do
+        done = true
+      end
 
     start = Time.now
-    while !done && (Time.now - start) < 10
+    while !done && (Time.now - start) < 5
       Tk.update
       sleep 0.01
     end

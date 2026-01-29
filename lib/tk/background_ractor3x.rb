@@ -2,28 +2,79 @@
 
 # Ruby 3.x Ractor-based background work for Tk applications.
 # Uses Ractor.yield/take for streaming (no Port API).
-# Uses bridge thread pattern for non-blocking communication.
 #
-# Note: In Ruby 3.x, procs cannot be passed to Ractors unless they
-# are written without capturing outer scope variables or self.
-# If the proc can't be made shareable, falls back to thread mode.
+# In Ruby 3.x, procs cannot be passed to Ractors because they carry
+# their lexical binding. Instead, provide a worker CLASS which is
+# shareable and gets instantiated inside the Ractor.
+#
+# Example:
+#   class FileHasher
+#     def call(task, data)
+#       data[:files].each { |f| task.yield(Digest::SHA256.file(f).hexdigest) }
+#     end
+#   end
+#
+#   TkCore.background_work(data, worker: FileHasher)
+#     .on_progress { |hash| puts hash }
 
 module TkBackgroundRactor3x
   # Default poll interval: 16ms ≈ 60fps
   DEFAULT_POLL_MS = 16
 
+  # Track active Ractors for cleanup at exit
+  @active_ractors = []
+  @mutex = Mutex.new
+
+  def self.register_ractor(r)
+    @mutex.synchronize { @active_ractors << r }
+  end
+
+  def self.unregister_ractor(r)
+    @mutex.synchronize { @active_ractors.delete(r) }
+  end
+
+  def self.close_all_ractors
+    @mutex.synchronize do
+      @active_ractors.each do |r|
+        r.close_incoming rescue nil
+        r.close_outgoing rescue nil
+      end
+      @active_ractors.clear
+    end
+  end
+
+  at_exit { close_all_ractors }
+
   class BackgroundWork
-    def initialize(data, &block)
+    def initialize(data, worker: nil, &block)
+      if block
+        raise ArgumentError, <<~MSG
+          Ruby 3.x Ractors cannot accept blocks (they carry lexical bindings).
+          Provide a worker class instead:
+
+            class MyWorker
+              def call(task, data)
+                data[:items].each { |item| task.yield(process(item)) }
+              end
+            end
+
+            TkCore.background_work(data, mode: :ractor, worker: MyWorker)
+        MSG
+      end
+
+      unless worker
+        raise ArgumentError, "worker: class is required for Ruby 3.x Ractor mode"
+      end
+
       @data = data
-      @work_block = block
+      @worker_class = worker
       @callbacks = { progress: nil, done: nil, message: nil }
       @started = false
       @done = false
-      @fell_back_to_thread = false
 
       # Communication
       @output_queue = Thread::Queue.new
-      @control_ractor = nil
+      @pending_messages = []
       @worker_ractor = nil
       @bridge_thread = nil
     end
@@ -46,10 +97,10 @@ module TkBackgroundRactor3x
     end
 
     def send_message(msg)
-      if @fell_back_to_thread
-        @message_queue << msg
+      if @worker_ractor
+        @worker_ractor.send(msg)
       else
-        @control_ractor&.send(msg)
+        @pending_messages << msg
       end
       self
     end
@@ -69,25 +120,19 @@ module TkBackgroundRactor3x
       self
     end
 
+    # Forcibly close the Ractor (for app shutdown)
+    def close
+      @done = true
+      @worker_ractor&.close_incoming
+      @worker_ractor&.close_outgoing
+      self
+    end
+
     def start
       return self if @started
       @started = true
 
-      # Try to make the block shareable
-      shareable_block = begin
-        Ractor.make_shareable(@work_block)
-      rescue Ractor::IsolationError
-        # Block captures non-shareable state - fall back to thread mode
-        nil
-      end
-
-      if shareable_block
-        start_ractor(shareable_block)
-      else
-        warn "TkBackgroundRactor3x: Block not shareable, falling back to thread mode"
-        start_thread_fallback
-      end
-
+      start_ractor
       start_polling
       self
     end
@@ -98,40 +143,56 @@ module TkBackgroundRactor3x
       start unless @started
     end
 
-    def start_ractor(shareable_block)
+    def start_ractor
       data = @data
+      worker_class = @worker_class
 
-      # Control ractor forwards messages to worker
-      @control_ractor = Ractor.new { loop { Ractor.yield(Ractor.receive) } }
+      @worker_ractor = Ractor.new(data, worker_class) do |d, klass|
+        # Ractor.yield blocks until someone takes, so we use a queue + yielder
+        # thread to decouple the worker from blocking yields.
+        yield_queue = Thread::Queue.new
 
-      @worker_ractor = Ractor.new(data, @control_ractor, shareable_block) do |d, ctrl, blk|
-        # Message queue bridged from control ractor via thread
-        msg_queue = Thread::Queue.new
-
-        Thread.new do
+        # Yielder thread: drains yield_queue and does blocking Ractor.yield
+        yielder = Thread.new do
           loop do
+            msg = yield_queue.pop
             begin
-              msg = ctrl.take
-              msg_queue << msg
-              break if msg == :stop
+              Ractor.yield(msg)
             rescue Ractor::ClosedError
-              break
+              break  # Outgoing port closed (app shutdown)
             end
+            break if msg[0] == :done
           end
         end
 
+        # NOTE: No receiver thread. Ruby 3.x has a bug where close_incoming
+        # doesn't wake up threads blocked on Ractor.receive after yield/take
+        # interactions have occurred. Instead, we poll with timeouts.
+
+        # Let yielder thread start before worker begins pushing to queue
+        Thread.pass
+
         Thread.current[:tk_in_background_work] = true
-        task = TaskContext.new(msg_queue)
         begin
-          blk.call(task, d)
-          Ractor.yield([:done])
+          task = TaskContext.new(yield_queue)
+          worker = klass.new
+          worker.call(task, d)
+          yield_queue << [:done]
         rescue StopIteration
-          Ractor.yield([:done])
+          yield_queue << [:done]
         rescue => e
-          Ractor.yield([:error, "#{e.class}: #{e.message}\n#{e.backtrace.first(3).join("\n")}"])
-          Ractor.yield([:done])
+          yield_queue << [:error, "#{e.class}: #{e.message}\n#{e.backtrace.first(3).join("\n")}"]
+          yield_queue << [:done]
+        ensure
+          yielder.join
         end
       end
+
+      TkBackgroundRactor3x.register_ractor(@worker_ractor)
+
+      # Flush any messages queued before ractor was ready
+      @pending_messages.each { |m| @worker_ractor.send(m) }
+      @pending_messages.clear
 
       # Bridge thread: Ractor.take -> Queue
       @bridge_thread = Thread.new do
@@ -143,26 +204,17 @@ module TkBackgroundRactor3x
           rescue Ractor::ClosedError
             @output_queue << [:done]
             break
+          rescue Ractor::RemoteError => e
+            # Ractor died with uncaught exception - report and finish
+            @output_queue << [:error, "Ractor died: #{e.cause&.class}: #{e.cause&.message}"]
+            @output_queue << [:done]
+            break
+          rescue => e
+            # Any other error
+            @output_queue << [:error, "Bridge thread error: #{e.class}: #{e.message}"]
+            @output_queue << [:done]
+            break
           end
-        end
-      end
-    end
-
-    def start_thread_fallback
-      @fell_back_to_thread = true
-      @message_queue = Thread::Queue.new
-
-      Thread.new do
-        Thread.current[:tk_in_background_work] = true
-        task = ThreadTaskContext.new(@output_queue, @message_queue)
-        begin
-          @work_block.call(task, @data)
-          @output_queue << [:done]
-        rescue StopIteration
-          @output_queue << [:done]
-        rescue => e
-          @output_queue << [:error, "#{e.class}: #{e.message}\n#{e.backtrace.first(3).join("\n")}"]
-          @output_queue << [:done]
         end
       end
     end
@@ -177,6 +229,10 @@ module TkBackgroundRactor3x
             case type
             when :done
               @done = true
+              # Close the Ractor to unblock any threads inside
+              @worker_ractor&.close_incoming
+              @worker_ractor&.close_outgoing
+              TkBackgroundRactor3x.unregister_ractor(@worker_ractor)
               @callbacks[:done]&.call
               break
             when :result
@@ -202,33 +258,40 @@ module TkBackgroundRactor3x
     end
 
     # Task context for Ractor mode (runs inside Ractor)
+    # Uses timeout-based polling for messages to avoid receiver thread.
     class TaskContext
-      def initialize(msg_queue)
-        @msg_queue = msg_queue
+      # Timeout for non-blocking message check (10ms)
+      CHECK_TIMEOUT = 0.01
+
+      def initialize(yield_queue)
+        @yield_queue = yield_queue
         @paused = false
       end
 
       def yield(value)
         check_pause_loop
-        Ractor.yield([:result, value])
+        @yield_queue << [:result, value]
       end
 
+      # Non-blocking check for messages. Uses short timeout.
       def check_message
-        msg = @msg_queue.pop(true)
+        msg = receive_with_timeout(CHECK_TIMEOUT)
+        return nil unless msg
         handle_control_message(msg)
         msg
-      rescue ThreadError
+      end
+
+      # Blocking wait for next message.
+      def wait_message
+        msg = Ractor.receive
+        handle_control_message(msg)
+        msg
+      rescue Ractor::ClosedError
         nil
       end
 
-      def wait_message
-        msg = @msg_queue.pop
-        handle_control_message(msg)
-        msg
-      end
-
       def send_message(msg)
-        Ractor.yield([:message, msg])
+        @yield_queue << [:message, msg]
       end
 
       def check_pause
@@ -236,6 +299,19 @@ module TkBackgroundRactor3x
       end
 
       private
+
+      # Receive with timeout - creates temporary thread, joins with timeout
+      def receive_with_timeout(timeout)
+        t = Thread.new { Ractor.receive }
+        if t.join(timeout)
+          t.value
+        else
+          t.kill
+          nil
+        end
+      rescue Ractor::ClosedError
+        nil
+      end
 
       def handle_control_message(msg)
         case msg
@@ -250,63 +326,8 @@ module TkBackgroundRactor3x
 
       def check_pause_loop
         while @paused
-          msg = @msg_queue.pop
-          handle_control_message(msg)
-        end
-      end
-    end
-
-    # Thread fallback context (same as BackgroundThread)
-    class ThreadTaskContext
-      def initialize(output_queue, message_queue)
-        @output_queue = output_queue
-        @message_queue = message_queue
-        @paused = false
-      end
-
-      def yield(value)
-        check_pause_loop
-        @output_queue << [:result, value]
-      end
-
-      def check_message
-        msg = @message_queue.pop(true)
-        handle_control_message(msg)
-        msg
-      rescue ThreadError
-        nil
-      end
-
-      def wait_message
-        msg = @message_queue.pop
-        handle_control_message(msg)
-        msg
-      end
-
-      def send_message(msg)
-        @output_queue << [:message, msg]
-      end
-
-      def check_pause
-        check_pause_loop
-      end
-
-      private
-
-      def handle_control_message(msg)
-        case msg
-        when :pause
-          @paused = true
-        when :resume
-          @paused = false
-        when :stop
-          raise StopIteration
-        end
-      end
-
-      def check_pause_loop
-        while @paused
-          msg = @message_queue.pop
+          msg = wait_message
+          break unless msg  # Closed
           handle_control_message(msg)
         end
       end

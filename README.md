@@ -70,6 +70,8 @@ task.resume  # Resume paused work
 task.stop    # Stop completely
 ```
 
+Callbacks (`on_progress`, `on_done`) can be chained in any order. Work starts automatically when the first callback is attached.
+
 **Important:** The work block runs in a background thread/Ractor and cannot access Tk directly. Use `t.yield()` to send results to `on_progress`, which runs on the main thread where Tk is available.
 
 ### Modes

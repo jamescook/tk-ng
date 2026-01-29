@@ -399,9 +399,9 @@ module TkCore
     attr_accessor :background_work_mode
   end
 
-  def self.background_work(data, mode: nil, &block)
+  def self.background_work(data, mode: nil, worker: nil, &block)
     mode ||= background_work_mode
-    TkRactorSupport::BackgroundWork.new(data, mode: mode, &block)
+    TkRactorSupport::BackgroundWork.new(data, mode: mode, worker: worker, &block)
   end
 
   WIDGET_DESTROY_HOOK = '<WIDGET_DESTROY_HOOK>'

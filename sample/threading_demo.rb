@@ -14,6 +14,42 @@ require 'digest'
 require 'tmpdir'
 require_relative 'tkballoonhelp'
 
+# Worker class for Ractor mode (Ruby 3.x requires class, not block)
+# Must be defined at top level so it's shareable
+class FileHashWorker
+  def call(task, data)
+    algo_class = Digest.const_get(data[:algo_name])
+    total = data[:files].size
+    pending = []
+
+    data[:files].each_with_index do |path, index|
+      # Check for pause message at batch boundaries
+      if data[:allow_pause] && pending.empty?
+        task.check_pause
+      end
+
+      begin
+        hash = algo_class.file(path).hexdigest
+        short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+        pending << "#{short_path}: #{hash}\n"
+      rescue StandardError => e
+        short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+        pending << "#{short_path}: ERROR - #{e.message}\n"
+      end
+
+      is_last = index == total - 1
+      if pending.size >= data[:chunk_size] || is_last
+        task.yield({
+          index: index,
+          total: total,
+          updates: pending.join
+        })
+        pending = []
+      end
+    end
+  end
+end
+
 class ThreadingDemo
   ALGORITHMS = %w[SHA256 SHA512 SHA384 SHA1 MD5].freeze
   MODES = %w[None Thread Ractor].freeze
@@ -38,6 +74,12 @@ class ThreadingDemo
     # Position at 0,0 for recording, preserve calculated size
     @root.geometry("#{@root.winfo_width}x#{@root.winfo_height}+0+0")
     @root.resizable(true, true)
+
+    # Clean up background task on window close
+    @root.protocol('WM_DELETE_WINDOW') do
+      @background_task&.close
+      @root.destroy
+    end
 
     # Report calculated size for recording setup
     puts "Window size: #{@root.winfo_width}x#{@root.winfo_height}"
@@ -374,37 +416,44 @@ class ThreadingDemo
       })
     end
 
-    @background_task = TkCore.background_work(work_data, mode: mode) do |task, data|
-      algo_class = Digest.const_get(data[:algo_name])
-      total = data[:files].size
-      pending = []
+    # Ractor mode uses worker class (required in Ruby 3.x, optional in 4.x)
+    # Thread mode uses block (simpler, works everywhere)
+    @background_task = if mode == :ractor
+      TkCore.background_work(work_data, mode: mode, worker: FileHashWorker)
+    else
+      TkCore.background_work(work_data, mode: mode) do |task, data|
+        algo_class = Digest.const_get(data[:algo_name])
+        total = data[:files].size
+        pending = []
 
-      data[:files].each_with_index do |path, index|
-        # Check for pause message at batch boundaries
-        if data[:allow_pause] && pending.empty?
-          task.check_pause
-        end
+        data[:files].each_with_index do |path, index|
+          if data[:allow_pause] && pending.empty?
+            task.check_pause
+          end
 
-        begin
-          hash = algo_class.file(path).hexdigest
-          short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-          pending << "#{short_path}: #{hash}\n"
-        rescue StandardError => e
-          short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-          pending << "#{short_path}: ERROR - #{e.message}\n"
-        end
+          begin
+            hash = algo_class.file(path).hexdigest
+            short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+            pending << "#{short_path}: #{hash}\n"
+          rescue StandardError => e
+            short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+            pending << "#{short_path}: ERROR - #{e.message}\n"
+          end
 
-        is_last = index == total - 1
-        if pending.size >= data[:chunk_size] || is_last
-          task.yield({
-            index: index,
-            total: total,
-            updates: pending.join
-          })
-          pending = []
+          is_last = index == total - 1
+          if pending.size >= data[:chunk_size] || is_last
+            task.yield({
+              index: index,
+              total: total,
+              updates: pending.join
+            })
+            pending = []
+          end
         end
       end
-    end.on_progress do |msg|
+    end
+
+    @background_task.on_progress do |msg|
       ui_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
       @log.insert(:end, msg[:updates])

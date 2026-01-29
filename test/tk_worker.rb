@@ -63,9 +63,9 @@ class TkWorker
       cleanup_stale_files
     end
 
-    def run_test(code)
+    def run_test(code, pipe_capture: false)
       start unless running?
-      send_command('run', code)
+      send_command('run', { code: code, pipe_capture: pipe_capture })
     end
 
     def running?
@@ -124,7 +124,8 @@ class TkWorker
 
         result = case msg[:cmd]
         when 'run'
-          run_test(msg[:data])
+          data = msg[:data]
+          run_test(data[:code], pipe_capture: data[:pipe_capture])
         when 'shutdown'
           # Write coverage BEFORE responding (parent closes pipes after response)
           # This must happen here, not in at_exit, because the parent process
@@ -143,18 +144,30 @@ class TkWorker
       end
     end
 
-    def run_test(code)
+    def run_test(code, pipe_capture: false)
       @test_count += 1
       # Use instance variable to avoid shadowing by test code's local variables
       @_test_result = { success: true, stdout: "", stderr: "", test_number: @test_count }
 
+      # Pipe-based capture is needed for Ractor tests (StringIO isn't thread-safe)
+      @pipe_capture = pipe_capture
+
       begin
         # Capture stdout/stderr
         old_stdout, old_stderr = $stdout, $stderr
-        captured_out = StringIO.new
-        captured_err = StringIO.new
-        $stdout = captured_out
-        $stderr = captured_err
+        if pipe_capture
+          @out_r, out_w = IO.pipe
+          @err_r, err_w = IO.pipe
+          out_w.sync = true
+          err_w.sync = true
+          $stdout = out_w
+          $stderr = err_w
+        else
+          captured_out = StringIO.new
+          captured_err = StringIO.new
+          $stdout = captured_out
+          $stderr = captured_err
+        end
 
         # Make root available to the test code
         b = binding
@@ -207,15 +220,29 @@ class TkWorker
         # Execute the test code
         eval(code, b, "(test)", 1)
 
-        @_test_result[:stdout] = captured_out.string
-        @_test_result[:stderr] = captured_err.string
+        if @pipe_capture
+          $stdout.close
+          $stderr.close
+          @_test_result[:stdout] = @out_r.read
+          @_test_result[:stderr] = @err_r.read
+        else
+          @_test_result[:stdout] = captured_out.string
+          @_test_result[:stderr] = captured_err.string
+        end
       rescue Exception => e
         @_test_result[:success] = false
         @_test_result[:error_class] = e.class.name
         @_test_result[:error_message] = e.message
         @_test_result[:backtrace] = e.backtrace || []
-        @_test_result[:stdout] = captured_out.string if captured_out
-        @_test_result[:stderr] = captured_err.string if captured_err
+        if @pipe_capture
+          $stdout.close rescue nil
+          $stderr.close rescue nil
+          @_test_result[:stdout] = @out_r.read rescue ""
+          @_test_result[:stderr] = @err_r.read rescue ""
+        else
+          @_test_result[:stdout] = captured_out.string if captured_out
+          @_test_result[:stderr] = captured_err.string if captured_err
+        end
 
         # Extract code context if error is in eval'd code
         if e.backtrace&.first&.start_with?('(test):')
@@ -234,6 +261,10 @@ class TkWorker
         end
       ensure
         $stdout, $stderr = old_stdout, old_stderr
+        if @pipe_capture
+          @out_r&.close rescue nil
+          @err_r&.close rescue nil
+        end
         reset_tk_state!
       end
 
