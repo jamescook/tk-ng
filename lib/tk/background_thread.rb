@@ -5,8 +5,6 @@
 # Uses GVL so not true parallelism, but keeps UI responsive.
 
 module TkBackgroundThread
-  # Default poll interval: 16ms ≈ 60fps
-  DEFAULT_POLL_MS = 16
 
   # High-level API for background work with messaging support.
   #
@@ -23,6 +21,9 @@ module TkBackgroundThread
   #   task.send_message(:resume)
   #   task.stop
   #
+  # Poll interval when paused (slower to save CPU)
+  PAUSED_POLL_MS = 10000
+
   class BackgroundWork
     def initialize(data, worker: nil, &block)
       # Thread mode supports both block and worker class for API consistency
@@ -31,6 +32,7 @@ module TkBackgroundThread
       @callbacks = { progress: nil, done: nil, message: nil }
       @started = false
       @done = false
+      @paused = false
 
       # Communication channels
       @output_queue = Thread::Queue.new    # Worker -> Main
@@ -64,12 +66,16 @@ module TkBackgroundThread
 
     # Convenience methods
     def pause
+      @paused = true
       send_message(:pause)
       self
     end
 
     def resume
+      @paused = false
       send_message(:resume)
+      # Restart polling (was stopped when paused)
+      Tk.after(0, &@poll_proc) if @poll_proc && !@done
       self
     end
 
@@ -82,6 +88,14 @@ module TkBackgroundThread
       @done = true
       @worker_thread&.kill
       self
+    end
+
+    def done?
+      @done
+    end
+
+    def paused?
+      @paused
     end
 
     def start
@@ -113,20 +127,36 @@ module TkBackgroundThread
     end
 
     def start_polling
-      poll = proc do
+      @dropped_count = 0
+      @choke_warned = false
+
+      @poll_proc = proc do
         next if @done
 
-        # Drain output queue
+        drop_intermediate = Tk.background_work_drop_intermediate
+        # Drain queue. If drop_intermediate, only use LATEST progress value.
+        # This prevents UI choking when worker yields faster than UI polls.
+        last_progress = nil
+        results_this_poll = 0
         begin
           while (msg = @output_queue.pop(true))
             type, value = msg
             case type
             when :done
               @done = true
+              # Call progress with final value before done callback
+              @callbacks[:progress]&.call(last_progress) if last_progress
+              last_progress = nil  # Prevent duplicate call after loop
+              warn_if_choked
               @callbacks[:done]&.call
               break
             when :result
-              @callbacks[:progress]&.call(value)
+              results_this_poll += 1
+              if drop_intermediate
+                last_progress = value  # Keep only latest
+              else
+                @callbacks[:progress]&.call(value)  # Call for every value
+              end
             when :message
               @callbacks[:message]&.call(value)
             when :error
@@ -137,10 +167,35 @@ module TkBackgroundThread
           # Queue empty
         end
 
-        Tk.after(DEFAULT_POLL_MS, &poll) unless @done
+        # Track dropped messages (all but the last one we processed)
+        if drop_intermediate && results_this_poll > 1
+          dropped = results_this_poll - 1
+          @dropped_count += dropped
+          warn_choke_start(dropped) unless @choke_warned
+        end
+
+        # Call progress callback once with latest value (only if dropping)
+        @callbacks[:progress]&.call(last_progress) if drop_intermediate && last_progress && !@done
+
+        unless @done || @paused
+          Tk.after(Tk.background_work_poll_ms, &@poll_proc)
+        end
       end
 
-      Tk.after(0, &poll)
+      Tk.after(0, &@poll_proc)
+    end
+
+    def warn_choke_start(dropped)
+      @choke_warned = true
+      warn "[Tk::BackgroundWork] UI choking: worker yielding faster than UI can poll. " \
+           "#{dropped} progress values dropped this cycle. " \
+           "Consider yielding less frequently or increasing Tk.background_work_poll_ms."
+    end
+
+    def warn_if_choked
+      return unless @dropped_count > 0
+      warn "[Tk::BackgroundWork] Total #{@dropped_count} progress values dropped during task. " \
+           "Only latest values were shown to UI."
     end
 
     # Context passed to the work block
@@ -151,9 +206,11 @@ module TkBackgroundThread
         @paused = false
       end
 
-      # Yield a result to the main thread
+      # Yield a result to the main thread.
+      # Calls Thread.pass to give main thread a chance to process events.
       def yield(value)
         @output_queue << [:result, value]
+        Thread.pass
       end
 
       # Non-blocking check for messages from main thread.

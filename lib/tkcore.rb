@@ -330,7 +330,6 @@ module TkCore
   # Re-export constants from TkRactorSupport for backwards compatibility
   RACTOR_PORT_API = TkRactorSupport::RACTOR_PORT_API
   RACTOR_SHAREABLE_PROC = TkRactorSupport::RACTOR_SHAREABLE_PROC
-  DEFAULT_POLL_MS = TkRactorSupport::DEFAULT_POLL_MS
 
   # TkCore.ractor_stream - Version-agnostic Ractor streaming
   #
@@ -349,7 +348,7 @@ module TkCore
     TkRactorSupport::RactorStream.new(data, &block)
   end
 
-  # TkCore.background_work - High-level API for background processing
+  # Tk.background_work - High-level API for background processing
   #
   # Provides a simple interface for running work in the background
   # while keeping the UI responsive. Supports multiple modes:
@@ -358,12 +357,12 @@ module TkCore
   #   :thread - Traditional threading (GVL limitations apply)
   #
   # Set the mode globally:
-  #   TkCore.background_work_mode = :ractor  # default
-  #   TkCore.background_work_mode = :thread
+  #   Tk.background_work_mode = :ractor  # default on Ruby 4.x+
+  #   Tk.background_work_mode = :thread  # default on Ruby 3.x
   #
   # == Basic Example
   #
-  #   task = TkCore.background_work(files) do |t|
+  #   task = Tk.background_work(files) do |t|
   #     files.each { |f| t.yield(process(f)) }
   #   end.on_progress do |result|
   #     progress_bar.value += 1
@@ -378,7 +377,7 @@ module TkCore
   # Option A - Explicit check (better performance):
   #   Call check_pause at strategic points. Best for batch processing.
   #
-  #   task = TkCore.background_work(files) do |t|
+  #   task = Tk.background_work(files) do |t|
   #     files.each_slice(100) do |batch|
   #       t.check_pause  # Only checks once per batch
   #       batch.each { |f| t.yield(process(f)) }
@@ -389,20 +388,9 @@ module TkCore
   # Option B - Auto-check on yield (convenience):
   #   Every yield automatically checks pause state.
   #
-  #   task = TkCore.background_work(files, auto_pause: true) do |t|
+  #   task = Tk.background_work(files, auto_pause: true) do |t|
   #     files.each { |f| t.yield(process(f)) }  # Checks pause each time
   #   end
-
-  @background_work_mode = :ractor
-
-  class << self
-    attr_accessor :background_work_mode
-  end
-
-  def self.background_work(data, mode: nil, worker: nil, &block)
-    mode ||= background_work_mode
-    TkRactorSupport::BackgroundWork.new(data, mode: mode, worker: worker, &block)
-  end
 
   WIDGET_DESTROY_HOOK = '<WIDGET_DESTROY_HOOK>'
   INTERP._invoke_without_enc('event', 'add',
@@ -634,6 +622,27 @@ module TkCore
     tk_call('info', *args)
   end
 
+  # Run the Tk event loop. This is the main entry point for Tk applications.
+  #
+  # You MUST call Tk.mainloop at the end of your script. Without it:
+  # - The window appears briefly then the script exits
+  # - No events are processed (clicks, keyboard, timers)
+  # - Callbacks never fire
+  #
+  # @param check_root [Boolean] If true (default), exit when all windows are closed.
+  #   Set to false to keep running for timers, traces, etc.
+  #
+  # == Thread Yielding
+  #
+  # The mainloop periodically yields to other Ruby threads (every 16ms by default).
+  # This interval can be adjusted via TclTkLib.thread_timer_ms=:
+  #
+  #   TclTkLib.thread_timer_ms = 5   # More responsive threads, slightly more CPU
+  #   TclTkLib.thread_timer_ms = 50  # Less responsive, lower CPU when idle
+  #
+  # Note: This is separate from Tk.background_work_poll_ms which controls how
+  # often background work progress updates are polled (also 16ms by default).
+  #
   def mainloop(check_root = true)
     if Thread.current != Thread.main
       raise RuntimeError, "Tk.mainloop must be called from the main thread"

@@ -630,9 +630,17 @@ namespace :docker do
       ruby_version = ruby_version_from_env
       image_name = docker_image_name(tcl_version, ruby_version)
 
+      require 'fileutils'
+      FileUtils.mkdir_p('coverage')
+
       puts "Running tkimg tests in Docker (Ruby #{ruby_version}, Tcl #{tcl_version})..."
       cmd = "docker run --rm --init"
+      cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      if ENV['COVERAGE'] == '1'
+        cmd += " -e COVERAGE=1"
+        cmd += " -e COVERAGE_NAME=tkimg"
+      end
       cmd += " #{image_name}"
       cmd += " xvfb-run -a bundle exec rake test:tkimg"
 

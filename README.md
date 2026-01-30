@@ -50,13 +50,13 @@ Note: You still `require 'tk'` - the gem name is `tk-ng` but the library interfa
 
 ## Background Work API
 
-Tk applications need to keep the UI responsive while doing CPU-intensive work. The `TkCore.background_work` API provides a simple way to run work in threads or Ractors with automatic UI integration.
+Tk applications need to keep the UI responsive while doing CPU-intensive work. The `Tk.background_work` API provides a simple way to run work in threads or Ractors with automatic UI integration.
 
 ```ruby
 require 'tk'
 
 # Run work in background, stream results to UI
-task = TkCore.background_work(files) do |t, data|
+task = Tk.background_work(files) do |t, data|
   data.each { |file| t.yield(process(file)) }
 end.on_progress do |result|
   @log.insert(:end, "#{result}\n")
@@ -79,12 +79,12 @@ Callbacks (`on_progress`, `on_done`) can be chained in any order. Work starts au
 Set the concurrency mode globally or per-task:
 
 ```ruby
-# Global default (affects all subsequent background_work calls)
-TkCore.background_work_mode = :thread   # Background thread (GVL-bound)
-TkCore.background_work_mode = :ractor   # True parallelism (default)
+# Default is auto-selected: :ractor on Ruby 4.x+, :thread on Ruby 3.x
+Tk.background_work_mode = :thread   # Background thread (GVL-bound)
+Tk.background_work_mode = :ractor   # True parallelism
 
 # Per-task override
-TkCore.background_work(data, mode: :thread) { |t, d| ... }
+Tk.background_work(data, mode: :thread) { |t, d| ... }
 ```
 
 - **`:thread`** - Uses Ruby threads. Work shares the GVL with UI. Pause/resume always works.
@@ -95,7 +95,7 @@ TkCore.background_work(data, mode: :thread) { |t, d| ... }
 For pause/resume to work, your work block must periodically check for pause requests:
 
 ```ruby
-TkCore.background_work(items) do |t, data|
+Tk.background_work(items) do |t, data|
   data.each_slice(100) do |batch|
     t.check_pause  # Block here if paused
     batch.each { |item| t.yield(process(item)) }
@@ -103,7 +103,9 @@ TkCore.background_work(items) do |t, data|
 end
 ```
 
-See [`sample/threading_demo.rb`](sample/threading_demo.rb) for a complete example comparing modes.
+See [`sample/threading_demo.rb`](sample/threading_demo.rb) for a complete file hasher example, and [`sample/background_work_demo.rb`](sample/background_work_demo.rb) for a simple visual demo of UI responsiveness.
+
+For detailed best practices, common pitfalls, and troubleshooting, see [**docs/BACKGROUND_WORK.md**](docs/BACKGROUND_WORK.md).
 
 ## Documentation
 

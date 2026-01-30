@@ -23,15 +23,9 @@ else
 end
 
 module TkRactorSupport
-  # Default poll interval: 16ms ≈ 60fps
-  DEFAULT_POLL_MS = 16
-
   # Re-export feature flags
   RACTOR_PORT_API = ::RACTOR_PORT_API
   RACTOR_SHAREABLE_PROC = ::RACTOR_SHAREABLE_PROC
-
-  # Available modes
-  MODES = [:thread, :ractor].freeze
 
   # Select the appropriate Ractor implementation
   RactorImpl = if RACTOR_SHAREABLE_PROC
@@ -39,6 +33,33 @@ module TkRactorSupport
   else
     TkBackgroundRactor3x
   end
+
+  # Registry for background work modes.
+  # Each mode maps to an implementation class that must respond to:
+  #   .new(data, worker: nil, &block) - constructor
+  #   #on_progress(&block) - register progress callback
+  #   #on_done(&block) - register done callback
+  #   #on_message(&block) - register message callback
+  #   #send_message(msg) - send message to worker
+  #   #pause, #resume, #stop, #close, #start - control methods
+  #   #done? - completion status
+  @background_modes = {}
+
+  def self.register_background_mode(name, klass)
+    @background_modes[name.to_sym] = klass
+  end
+
+  def self.background_modes
+    @background_modes
+  end
+
+  def self.background_mode_class(name)
+    @background_modes[name.to_sym]
+  end
+
+  # Register built-in modes
+  register_background_mode :thread, TkBackgroundThread::BackgroundWork
+  register_background_mode :ractor, RactorImpl::BackgroundWork
 
   # Unified BackgroundWork API
   #
@@ -60,17 +81,30 @@ module TkRactorSupport
   #   task = TkRactorSupport::BackgroundWork.new(data, mode: :ractor, worker: MyWorker)
   #
   class BackgroundWork
+    attr_accessor :name
+
     def initialize(data, mode: :ractor, worker: nil, &block)
-      impl_class = case mode
-      when :ractor
-        RactorImpl::BackgroundWork
-      when :thread
-        TkBackgroundThread::BackgroundWork
-      else
-        raise ArgumentError, "Unknown mode: #{mode}. Use :ractor or :thread"
+      impl_class = TkRactorSupport.background_mode_class(mode)
+      unless impl_class
+        available = TkRactorSupport.background_modes.keys.join(', ')
+        raise ArgumentError, "Unknown mode: #{mode}. Available: #{available}"
       end
 
       @impl = impl_class.new(data, worker: worker, &block)
+      @mode = mode
+      @name = nil
+    end
+
+    def mode
+      @mode
+    end
+
+    def done?
+      @impl.done?
+    end
+
+    def paused?
+      @impl.paused?
     end
 
     def on_progress(&block)

@@ -14,12 +14,12 @@
 #     end
 #   end
 #
-#   TkCore.background_work(data, worker: FileHasher)
+#   Tk.background_work(data, worker: FileHasher)
 #     .on_progress { |hash| puts hash }
 
 module TkBackgroundRactor3x
-  # Default poll interval: 16ms ≈ 60fps
-  DEFAULT_POLL_MS = 16
+  # Poll interval when paused (slower to save CPU)
+  PAUSED_POLL_MS = 500
 
   # Track active Ractors for cleanup at exit
   @active_ractors = []
@@ -58,7 +58,7 @@ module TkBackgroundRactor3x
               end
             end
 
-            TkCore.background_work(data, mode: :ractor, worker: MyWorker)
+            Tk.background_work(data, mode: :ractor, worker: MyWorker)
         MSG
       end
 
@@ -71,6 +71,7 @@ module TkBackgroundRactor3x
       @callbacks = { progress: nil, done: nil, message: nil }
       @started = false
       @done = false
+      @paused = false
 
       # Communication
       @output_queue = Thread::Queue.new
@@ -98,7 +99,11 @@ module TkBackgroundRactor3x
 
     def send_message(msg)
       if @worker_ractor
-        @worker_ractor.send(msg)
+        begin
+          @worker_ractor.send(msg)
+        rescue Ractor::ClosedError
+          # Ractor already closed, task is done - ignore
+        end
       else
         @pending_messages << msg
       end
@@ -106,11 +111,13 @@ module TkBackgroundRactor3x
     end
 
     def pause
+      @paused = true
       send_message(:pause)
       self
     end
 
     def resume
+      @paused = false
       send_message(:resume)
       self
     end
@@ -123,8 +130,14 @@ module TkBackgroundRactor3x
     # Forcibly close the Ractor (for app shutdown)
     def close
       @done = true
-      @worker_ractor&.close_incoming
-      @worker_ractor&.close_outgoing
+      ractor = @worker_ractor
+      @worker_ractor = nil  # Prevent further message sends
+      begin
+        ractor&.close_incoming
+        ractor&.close_outgoing
+      rescue Ractor::ClosedError
+        # Already closed
+      end
       self
     end
 
@@ -135,6 +148,14 @@ module TkBackgroundRactor3x
       start_ractor
       start_polling
       self
+    end
+
+    def done?
+      @done
+    end
+
+    def paused?
+      @paused
     end
 
     private
@@ -220,9 +241,17 @@ module TkBackgroundRactor3x
     end
 
     def start_polling
+      @dropped_count = 0
+      @choke_warned = false
+
       poll = proc do
         next if @done
 
+        drop_intermediate = Tk.background_work_drop_intermediate
+        # Drain queue. If drop_intermediate, only use LATEST progress value.
+        # This prevents UI choking when worker yields faster than UI polls.
+        last_progress = nil
+        results_this_poll = 0
         begin
           while (msg = @output_queue.pop(true))
             type, value = msg
@@ -230,13 +259,28 @@ module TkBackgroundRactor3x
             when :done
               @done = true
               # Close the Ractor to unblock any threads inside
-              @worker_ractor&.close_incoming
-              @worker_ractor&.close_outgoing
-              TkBackgroundRactor3x.unregister_ractor(@worker_ractor)
+              ractor = @worker_ractor
+              @worker_ractor = nil  # Prevent further message sends
+              begin
+                ractor&.close_incoming
+                ractor&.close_outgoing
+              rescue Ractor::ClosedError
+                # Already closed
+              end
+              TkBackgroundRactor3x.unregister_ractor(ractor) if ractor
+              # Call progress with final value before done callback
+              @callbacks[:progress]&.call(last_progress) if last_progress
+              last_progress = nil  # Prevent duplicate call after loop
+              warn_if_choked
               @callbacks[:done]&.call
               break
             when :result
-              @callbacks[:progress]&.call(value)
+              results_this_poll += 1
+              if drop_intermediate
+                last_progress = value  # Keep only latest
+              else
+                @callbacks[:progress]&.call(value)  # Call for every value
+              end
             when :message
               @callbacks[:message]&.call(value)
             when :error
@@ -251,10 +295,37 @@ module TkBackgroundRactor3x
           # Queue empty
         end
 
-        Tk.after(DEFAULT_POLL_MS, &poll) unless @done
+        # Track dropped messages (all but the last one we processed)
+        if drop_intermediate && results_this_poll > 1
+          dropped = results_this_poll - 1
+          @dropped_count += dropped
+          warn_choke_start(dropped) unless @choke_warned
+        end
+
+        # Call progress callback once with latest value (only if dropping)
+        @callbacks[:progress]&.call(last_progress) if drop_intermediate && last_progress && !@done
+
+        unless @done
+          # Use slower polling when paused to save CPU
+          interval = @paused ? PAUSED_POLL_MS : Tk.background_work_poll_ms
+          Tk.after(interval, &poll)
+        end
       end
 
       Tk.after(0, &poll)
+    end
+
+    def warn_choke_start(dropped)
+      @choke_warned = true
+      warn "[Tk::BackgroundWork] UI choking: worker yielding faster than UI can poll. " \
+           "#{dropped} progress values dropped this cycle. " \
+           "Consider yielding less frequently or increasing Tk.background_work_poll_ms."
+    end
+
+    def warn_if_choked
+      return unless @dropped_count > 0
+      warn "[Tk::BackgroundWork] Total #{@dropped_count} progress values dropped during task. " \
+           "Only latest values were shown to UI."
     end
 
     # Task context for Ractor mode (runs inside Ractor)

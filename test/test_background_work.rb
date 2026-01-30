@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Tests for TkCore.ractor_stream and TkCore.background_work
+# Tests for TkCore.ractor_stream and Tk.background_work
 #
 # These test the version-agnostic Ractor streaming API that abstracts
 # Ruby 3.x (Ractor.yield/take) vs Ruby 4.x (Ractor::Port) differences.
@@ -18,6 +18,9 @@ class TestBackgroundWork < Minitest::Test
 
   def app_ractor_stream_basic
     require 'tk'
+
+    # Disable choking prevention for deterministic test
+    Tk.background_work_drop_intermediate = false
 
     results = []
     done = false
@@ -37,6 +40,8 @@ class TestBackgroundWork < Minitest::Test
       sleep 0.01
     end
 
+    Tk.background_work_drop_intermediate = true  # Reset for other tests
+
     raise "Stream did not complete (done=#{done})" unless done
     raise "Expected [10, 20, 30], got #{results.inspect}" unless results == [10, 20, 30]
   end
@@ -48,6 +53,9 @@ class TestBackgroundWork < Minitest::Test
 
   def app_ractor_stream_many_values
     require 'tk'
+
+    # Disable choking prevention for deterministic test
+    Tk.background_work_drop_intermediate = false
 
     count = 0
     done = false
@@ -66,6 +74,8 @@ class TestBackgroundWork < Minitest::Test
       sleep 0.01
     end
 
+    Tk.background_work_drop_intermediate = true  # Reset for other tests
+
     raise "Stream did not complete" unless done
     raise "Expected 100 values, got #{count}" unless count == 100
   end
@@ -78,12 +88,13 @@ class TestBackgroundWork < Minitest::Test
   def app_background_work_thread_basic
     require 'tk'
 
-    TkCore.background_work_mode = :thread
+    Tk.background_work_mode = :thread
+    Tk.background_work_drop_intermediate = false
 
     results = []
     done = false
 
-    TkCore.background_work([1, 2, 3]) do |t, data|
+    Tk.background_work([1, 2, 3]) do |t, data|
       data.each { |n| t.yield(n * 10) }
     end.on_progress do |result|
       results << result
@@ -97,6 +108,8 @@ class TestBackgroundWork < Minitest::Test
       sleep 0.01
     end
 
+    Tk.background_work_drop_intermediate = true  # Reset for other tests
+
     raise "Thread task did not complete" unless done
     raise "Expected [10, 20, 30], got #{results.inspect}" unless results == [10, 20, 30]
   end
@@ -109,12 +122,12 @@ class TestBackgroundWork < Minitest::Test
   def app_background_work_thread_pause
     require 'tk'
 
-    TkCore.background_work_mode = :thread
+    Tk.background_work_mode = :thread
 
     counter = 0
     done = false
 
-    task = TkCore.background_work(50) do |t, count|
+    task = Tk.background_work(50) do |t, count|
       count.times do |i|
         t.check_pause
         t.yield(i)
@@ -175,13 +188,14 @@ class TestBackgroundWork < Minitest::Test
       end
     end
 
-    TkCore.background_work_mode = :ractor
+    Tk.background_work_mode = :ractor
+    Tk.background_work_drop_intermediate = false
 
     results = []
     done = false
 
     # Ruby 3.x requires worker class for Ractor mode (blocks carry bindings)
-    TkCore.background_work([1, 2, 3], worker: worker_class)
+    Tk.background_work([1, 2, 3], worker: worker_class)
       .on_progress do |result|
         results << result
       end.on_done do
@@ -194,8 +208,88 @@ class TestBackgroundWork < Minitest::Test
       sleep 0.01
     end
 
+    Tk.background_work_drop_intermediate = true  # Reset for other tests
+
     raise "Ractor task did not complete" unless done
     raise "Expected [10, 20, 30], got #{results.inspect}" unless results == [10, 20, 30]
+  end
+
+  # Test that final progress value (100%) is received before done callback
+  def test_background_work_thread_final_progress
+    assert_tk_app("background_work :thread should receive final progress", method(:app_background_work_thread_final_progress))
+  end
+
+  def app_background_work_thread_final_progress
+    require 'tk'
+
+    Tk.background_work_mode = :thread
+
+    progress_values = []
+    final_progress_before_done = nil
+    done = false
+
+    Tk.background_work({ total: 5 }) do |t, data|
+      data[:total].times do |i|
+        t.yield((i + 1).to_f / data[:total])
+      end
+    end.on_progress do |progress|
+      progress_values << progress
+    end.on_done do
+      final_progress_before_done = progress_values.last
+      done = true
+    end
+
+    start = Time.now
+    while !done && (Time.now - start) < 5
+      Tk.update
+      sleep 0.01
+    end
+
+    raise "Task did not complete" unless done
+    raise "Expected final progress 1.0 before done, got #{final_progress_before_done.inspect}" unless final_progress_before_done == 1.0
+    raise "Should have received progress value 1.0, got #{progress_values.inspect}" unless progress_values.include?(1.0)
+  end
+
+  # Test that final progress value (100%) is received before done callback in ractor mode
+  def test_background_work_ractor_final_progress
+    assert_tk_app("background_work :ractor should receive final progress", method(:app_background_work_ractor_final_progress), pipe_capture: true)
+  end
+
+  def app_background_work_ractor_final_progress
+    require 'tk'
+
+    # Worker class for Ractor mode
+    worker_class = Class.new do
+      def call(task, data)
+        data[:total].times do |i|
+          task.yield((i + 1).to_f / data[:total])
+        end
+      end
+    end
+
+    Tk.background_work_mode = :ractor
+
+    progress_values = []
+    final_progress_before_done = nil
+    done = false
+
+    Tk.background_work({ total: 5 }, worker: worker_class)
+      .on_progress do |progress|
+        progress_values << progress
+      end.on_done do
+        final_progress_before_done = progress_values.last
+        done = true
+      end
+
+    start = Time.now
+    while !done && (Time.now - start) < 5
+      Tk.update
+      sleep 0.01
+    end
+
+    raise "Task did not complete" unless done
+    raise "Expected final progress 1.0 before done, got #{final_progress_before_done.inspect}" unless final_progress_before_done == 1.0
+    raise "Should have received progress value 1.0, got #{progress_values.inspect}" unless progress_values.include?(1.0)
   end
 
   # Test that errors in ractor work block are caught and reported

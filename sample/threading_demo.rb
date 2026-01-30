@@ -10,9 +10,13 @@
 # - Ractor: True parallelism (separate GVL). Best throughput, enables Stop.
 #
 require 'tk'
+require 'tk/background_none'
 require 'digest'
 require 'tmpdir'
 require_relative 'tkballoonhelp'
+
+# Register :none mode for demo (runs synchronously, shows UI freezing)
+Tk.register_background_mode(:none, TkBackgroundNone::BackgroundWork)
 
 # Worker class for Ractor mode (Ruby 3.x requires class, not block)
 # Must be defined at top level so it's shareable
@@ -65,7 +69,7 @@ class ThreadingDemo
     @running = false
     @paused = false
     @stop_requested = false
-    @background_task = nil  # TkCore.background_work task
+    @background_task = nil  # Tk.background_work task
 
     build_ui
     collect_files
@@ -239,14 +243,8 @@ class ThreadingDemo
       mode: current_mode
     }
 
-    case current_mode
-    when 'None'
-      hash_files_direct
-    when 'Thread'
-      start_background_work(:thread)
-    when 'Ractor'
-      start_background_work(:ractor)
-    end
+    mode_sym = current_mode.downcase.to_sym
+    start_background_work(mode_sym)
   end
 
   def toggle_pause
@@ -335,58 +333,8 @@ class ThreadingDemo
     @running = false
   end
 
-  UI_THROTTLE_MS = 10
-
   # ─────────────────────────────────────────────────────────────
-  # Mode: None (direct execution)
-  # ─────────────────────────────────────────────────────────────
-
-  def hash_files_direct
-    total = @files.size
-    pending_updates = []
-    algo = Digest.const_get(@algorithm.to_s)
-    last_ui_update = 0.0
-
-    @files.each_with_index do |path, index|
-      break if @stop_requested
-
-      begin
-        hash = algo.file(path).hexdigest
-        short_path = path.sub(%r{^/app/}, '').sub(Dir.pwd + '/', '')
-        pending_updates << "#{short_path}: #{hash}\n"
-      rescue StandardError => e
-        short_path = path.sub(%r{^/app/}, '').sub(Dir.pwd + '/', '')
-        pending_updates << "#{short_path}: ERROR - #{e.message}\n"
-      end
-
-      chunk_size = [@chunk_size.to_f.round, 1].max
-      is_last = index == total - 1
-      now = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-      time_ok = (now - last_ui_update) >= UI_THROTTLE_MS
-
-      if (pending_updates.size >= chunk_size && time_ok) || is_last
-        ui_start = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-        @log.insert(:end, pending_updates.join)
-        @log.see(:end)
-        @progress_var.value = ((index + 1).to_f / total * 100).round
-        @status_label.text = "Hashing... #{index + 1}/#{total}"
-        @current_file_label.text = truncate_filename(File.basename(path))
-        Tk.update
-
-        pending_updates.clear
-        last_ui_update = now
-        @metrics[:ui_update_count] += 1
-        @metrics[:ui_update_total_ms] += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - ui_start) * 1000
-        @metrics[:files_done] = index + 1
-      end
-    end
-
-    finish_hashing
-  end
-
-  # ─────────────────────────────────────────────────────────────
-  # Mode: Thread or Ractor (unified via TkCore.background_work)
+  # All modes use unified Tk.background_work API
   # ─────────────────────────────────────────────────────────────
 
   def start_background_work(mode)
@@ -419,9 +367,9 @@ class ThreadingDemo
     # Ractor mode uses worker class (required in Ruby 3.x, optional in 4.x)
     # Thread mode uses block (simpler, works everywhere)
     @background_task = if mode == :ractor
-      TkCore.background_work(work_data, mode: mode, worker: FileHashWorker)
+      Tk.background_work(work_data, mode: mode, worker: FileHashWorker, name: "file-hasher")
     else
-      TkCore.background_work(work_data, mode: mode) do |task, data|
+      Tk.background_work(work_data, mode: mode, name: "file-hasher") do |task, data|
         algo_class = Digest.const_get(data[:algo_name])
         total = data[:files].size
         pending = []
