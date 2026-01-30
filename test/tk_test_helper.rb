@@ -126,7 +126,7 @@ module TkTestHelper
   # Smoke test a sample file - checks it loads without crashing.
   #
   # Spawns the sample with TK_READY_PORT env var pointing to a TCP port.
-  # Sample calls Tk.signal_ready when UI is loaded, which connects to the port.
+  # Sample uses TkDemo.finish (from tk/demo_support) to signal completion.
   # Parent waits for connection, then terminates the process for clean shutdown.
   #
   # Returns [success, stdout, stderr]

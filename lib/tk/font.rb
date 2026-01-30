@@ -142,6 +142,21 @@ class TkFont
     Tk.tk_call('font', 'configure', @tcl_font_name, '-size').to_i
   end
 
+  # Get actual font attributes (after Tk resolves substitutions)
+  # With no args, returns hash of all attributes
+  # With option arg, returns single value
+  def actual(option = nil)
+    if option
+      Tk.tk_call('font', 'actual', @tcl_font_name, "-#{option}")
+    else
+      result = {}
+      TkCore::INTERP._split_tklist(Tk.tk_call('font', 'actual', @tcl_font_name)).each_slice(2) do |k, v|
+        result[k.sub(/^-/, '').to_sym] = v
+      end
+      result
+    end
+  end
+
   # Font modifier methods - return new TkFont with modified attributes
   # Uses Tcl's font system to properly derive fonts from named fonts like TkDefaultFont
   def weight(w)
@@ -177,6 +192,11 @@ class TkFont
   # TkFont.families - list available font families
   def self.families
     TkCore::INTERP._split_tklist(Tk.tk_call('font', 'families'))
+  end
+
+  # TkFont.names - list all named fonts (including system fonts like TkDefaultFont)
+  def self.names
+    TkCore::INTERP._split_tklist(Tk.tk_call('font', 'names'))
   end
 
   # TkFont.measure(font, text) - measure text width in pixels

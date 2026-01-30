@@ -57,6 +57,7 @@ class TestRequireShims < Minitest::Test
           tkconsole
           tkdialog
           tkentry
+          tkfont
           tkmenubar
           tkmngfocus
           tkpalette

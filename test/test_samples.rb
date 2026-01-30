@@ -336,6 +336,15 @@ class TestSamples < Minitest::Test
     assert_includes stdout, '[DEMO] Quick smoke test', "Demo didn't start\nSTDOUT: #{stdout}"
     assert_includes stdout, '[DEMO] All tests completed', "Demo didn't complete\nSTDOUT: #{stdout}"
   end
+
+  def test_fontchooser_demo
+    success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/fontchooser_demo.rb")
+
+    assert success, "Sample failed\nSTDOUT: #{stdout}\nSTDERR: #{stderr}"
+    assert_includes stdout, 'UI loaded', "Missing UI loaded\nSTDOUT: #{stdout}"
+    assert_includes stdout, 'Font chooser opened', "Font chooser didn't open\nSTDOUT: #{stdout}"
+    assert_includes stdout, 'Font chooser closed', "Font chooser didn't close\nSTDOUT: #{stdout}"
+  end
 end
 
 # Separate test class for samples that test deprecated/removed features

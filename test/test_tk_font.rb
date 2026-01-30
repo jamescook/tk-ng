@@ -269,4 +269,53 @@ class TestTkFont < Minitest::Test
 
     raise "derived from widget.font should work" unless derived.actual_size == 18
   end
+
+  # Test TkFont.names class method (backward compatibility)
+  def test_font_names
+    assert_tk_app("TkFont.names returns named fonts", method(:app_font_names))
+  end
+
+  def app_font_names
+    require 'tk'
+
+    # Create a couple of fonts
+    font1 = TkFont.new(family: 'Helvetica', size: 12)
+    font2 = TkFont.new(family: 'Courier', size: 14)
+
+    # TkFont.names should return array including our fonts
+    names = TkFont.names
+    raise "names should return array" unless names.is_a?(Array)
+    raise "names should include font1" unless names.include?(font1.to_s)
+    raise "names should include font2" unless names.include?(font2.to_s)
+
+    # Should also include system fonts like TkDefaultFont
+    raise "names should include TkDefaultFont" unless names.include?('TkDefaultFont')
+  end
+
+  # Test TkFont#actual instance method (backward compatibility)
+  def test_font_actual_instance
+    assert_tk_app("TkFont#actual returns font attributes", method(:app_font_actual_instance))
+  end
+
+  def app_font_actual_instance
+    require 'tk'
+
+    font = TkFont.new(family: 'Courier', size: 14, weight: 'bold')
+
+    # actual() with no args returns hash of all attributes
+    attrs = font.actual
+    raise "actual should return hash, got #{attrs.class}" unless attrs.is_a?(Hash)
+    raise "actual should have :family, got #{attrs.keys.inspect}" unless attrs.key?(:family)
+    raise "actual should have :size, got #{attrs.keys.inspect}" unless attrs.key?(:size)
+    raise "actual should have :weight, got #{attrs.keys.inspect}" unless attrs.key?(:weight)
+    raise "family should not be empty, got #{attrs[:family].inspect}" if attrs[:family].to_s.empty?
+    raise "weight should be bold, got #{attrs[:weight].inspect}" unless attrs[:weight] == 'bold'
+
+    # actual(:option) returns single value
+    family = font.actual(:family)
+    raise "actual(:family) should return non-empty string, got #{family.inspect}" if family.to_s.empty?
+
+    size = font.actual(:size)
+    raise "actual(:size) should be 14, got #{size.inspect}" unless size.to_i == 14
+  end
 end
