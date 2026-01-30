@@ -149,6 +149,22 @@ This fork removes legacy code that was complex, rarely used, or incompatible wit
 
 - **`RUN_EVENTLOOP_ON_MAIN_THREAD`** - Removed. Tk now always runs on the main thread. The background thread machinery (~100 lines) that allowed running Tk in IRB on non-macOS has been removed. Run Tk code in scripts, not REPLs.
 
+### Removed Tcl Extension Wrappers
+
+Ruby wrappers for various Tcl extensions (BLT, itcl/itk/iwidgets, tcllib, tktable, treectrl, etc.) have been removed. These wrappers relied on internal APIs that no longer exist or wrapped extensions that are deprecated/unmaintained upstream.
+
+See [lib/tkextlib/SUPPORT_STATUS](lib/tkextlib/SUPPORT_STATUS) for the full list and each extension's `DEPRECATED.md` for details.
+
+**Using Tcl packages directly:** If you install a Tcl extension, you can still use it via `Tk.tk_call`:
+
+```ruby
+# Load a Tcl package
+Tk.tk_call('package', 'require', 'tablelist')
+
+# Call its commands
+Tk.tk_call('tablelist::tablelist', '.t', '-columns', '3 Name 0 Age 0 City')
+```
+
 ### Changed Behavior
 
 - **`TkCore::INTERP`** - Deprecated. Accessing this constant emits a warning. Use `TkCore.interp` instead, which raises an error if multiple interpreters exist (preventing ambiguous "which interpreter?" bugs).
