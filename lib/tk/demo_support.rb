@@ -3,7 +3,7 @@
 # TkDemo - Helper module for automated sample testing and recording
 #
 # Two independent modes:
-#   - Test mode (TK_READY_FD): Quick verification that sample loads/runs
+#   - Test mode (TK_READY_PORT): Quick verification that sample loads/runs
 #   - Record mode (TK_RECORD): Video capture with longer delays
 #
 # Usage:
@@ -19,6 +19,8 @@
 #     }
 #   end
 #
+require 'socket'
+
 module TkDemo
   # When recording, use Ttk for modern themed look and hide cursor
   if ENV['TK_RECORD']
@@ -30,7 +32,7 @@ module TkDemo
   class << self
     # Check if running in test mode (quick smoke test)
     def testing?
-      !!ENV['TK_READY_FD']
+      !!ENV['TK_READY_PORT']
     end
 
     # Check if running in record mode (video capture)
@@ -74,7 +76,12 @@ module TkDemo
 
     # Run block once when window becomes visible
     # Handles the Visibility binding, "run once" guard, and safety timeout
+    #
+    # PREFERRED: Use this when you can set up the binding BEFORE creating UI.
+    # The Visibility event fires when the window first appears on screen.
+    #
     # @param timeout [Integer] safety timeout in seconds (default: 60)
+    # @see after_idle for cases where UI is created before binding can be set up
     def on_visible(timeout: 60, &block)
       return unless active?
       raise ArgumentError, "block required" unless block
@@ -97,19 +104,58 @@ module TkDemo
       }
     end
 
-    # Signal completion and exit cleanly
-    # Handles both TK_READY_FD (test) and TK_STOP_PIPE (record)
-    def finish
+    # Run block once when event loop is idle
+    # Alternative to on_visible for samples where UI is created before
+    # the demo binding can be set up.
+    #
+    # Use this when:
+    # - The sample creates windows before requiring tk/demo_support
+    # - The Visibility event has already fired by the time binding is set up
+    #
+    # @param timeout [Integer] safety timeout in seconds (default: 60)
+    # @see on_visible (preferred when binding can be set up before UI creation)
+    def after_idle(timeout: 60, &block)
+      return unless active?
+      raise ArgumentError, "block required" unless block
+
+      @demo_started = false
+      Tk.after_idle {
+        next if @demo_started
+        @demo_started = true
+
+        # Capture thumbnail when recording
+        capture_thumbnail if recording?
+
+        # Safety timeout to prevent stuck demos
+        Tk.after(timeout * 1000) {
+          $stderr.puts "TkDemo: timeout after #{timeout}s, forcing exit"
+          finish
+        }
+
+        block.call
+      }
+    end
+
+    # Signal test harness that sample is ready (without exiting)
+    # Use this for samples with custom shutdown logic.
+    # For normal samples, use finish() instead.
+    def signal_ready
       $stdout.flush
 
-      # Signal test harness
-      if (fd = ENV.delete('TK_READY_FD'))
+      # Signal test harness via TCP connection
+      if (port = ENV.delete('TK_READY_PORT'))
         begin
-          IO.for_fd(fd.to_i).tap { |io| io.write("1"); io.close }
+          TCPSocket.new('127.0.0.1', port.to_i).close
         rescue StandardError
-          # Ignore errors (fd may be invalid)
+          # Ignore errors (server may have timed out)
         end
       end
+    end
+
+    # Signal completion and exit cleanly
+    # Handles both TK_READY_PORT (test) and TK_STOP_PIPE (record)
+    def finish
+      signal_ready
 
       # Signal recording harness
       if (pipe = ENV['TK_STOP_PIPE'])

@@ -455,15 +455,12 @@ show_usage.call
 # Smoke test support
 # Note: Interactive drawing (click sequences, modal entry, etc.) is too
 # complex to test programmatically. Just verify UI loads.
-if ENV['TK_READY_FD']
-  Tk.after(100) {
+require 'tk/demo_support'
+if TkDemo.active?
+  TkDemo.on_visible {
     puts "UI loaded"
     puts "canvas class: #{canvas.class}"
-    $stdout.flush
-
-    if (fd = ENV.delete('TK_READY_FD'))
-      IO.for_fd(fd.to_i).tap { |io| io.write("1"); io.close } rescue nil
-    end
+    TkDemo.finish
   }
 end
 

@@ -118,7 +118,7 @@ top_win = show_sample.call(default_locale)
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     puts "locales: #{lbox.size}"
 

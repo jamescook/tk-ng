@@ -125,22 +125,16 @@ b6 = TkButton.new(:text=>'set binding to TkButton class',
                   }).pack(:pady=>7)
 
 # Smoke test support
-if ENV['TK_READY_FD']
-  Tk.root.bind('Visibility') {
-    Tk.after(50) {
-      # Simulate mouse clicks to trigger bindings AND invoke command
-      [b1, b2, b3, b4, b5, b6].each do |btn|
-        btn.event_generate('ButtonPress-1')
-        btn.event_generate('ButtonRelease-1')
-        btn.invoke
-      end
-      $stdout.flush
-
-      if (fd = ENV.delete('TK_READY_FD'))
-        IO.for_fd(fd.to_i).tap { |io| io.write("1"); io.close } rescue nil
-      end
-      Tk.after_idle { Tk.root.destroy }
-    }
+require 'tk/demo_support'
+if TkDemo.active?
+  TkDemo.on_visible {
+    # Simulate mouse clicks to trigger bindings AND invoke command
+    [b1, b2, b3, b4, b5, b6].each do |btn|
+      btn.event_generate('ButtonPress-1')
+      btn.event_generate('ButtonRelease-1')
+      btn.invoke
+    end
+    TkDemo.finish
   }
 end
 

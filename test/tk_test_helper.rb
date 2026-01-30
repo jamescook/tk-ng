@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'method_source'
+require 'socket'
 require_relative 'simplecov_config'
 
 # Helper for running Tk tests in isolated subprocesses.
@@ -124,9 +125,9 @@ module TkTestHelper
 
   # Smoke test a sample file - checks it loads without crashing.
   #
-  # Spawns the sample with TK_READY_FD env var pointing to a pipe.
-  # Sample calls Tk.signal_ready when UI is loaded, which writes to the pipe.
-  # Parent waits for signal, then sends SIGTERM for clean shutdown.
+  # Spawns the sample with TK_READY_PORT env var pointing to a TCP port.
+  # Sample calls Tk.signal_ready when UI is loaded, which connects to the port.
+  # Parent waits for connection, then terminates the process for clean shutdown.
   #
   # Returns [success, stdout, stderr]
   #
@@ -140,22 +141,22 @@ module TkTestHelper
     load_paths = $LOAD_PATH.select { |p| p.include?(File.dirname(__dir__)) }
     load_path_args = load_paths.flat_map { |p| ["-I", p] }
 
-    # Create pipe for ready signal
-    ready_r, ready_w = IO.pipe
+    # Create TCP server for ready signal (cross-platform)
+    server = TCPServer.new('127.0.0.1', 0)
+    port = server.addr[1]
+
     stdout_r, stdout_w = IO.pipe
     stderr_r, stderr_w = IO.pipe
 
     pid = Process.spawn(
-      { 'TK_READY_FD' => '3' },
+      { 'TK_READY_PORT' => port.to_s },
       RbConfig.ruby, *load_path_args, sample_path, *args,
       in: :close,
       out: stdout_w,
-      err: stderr_w,
-      3 => ready_w
+      err: stderr_w
     )
 
     # Parent closes write ends
-    ready_w.close
     stdout_w.close
     stderr_w.close
 
@@ -168,30 +169,19 @@ module TkTestHelper
 
     begin
       Timeout.timeout(hard_timeout) do
-        # Wait for ready signal or timeout
+        # Wait for ready signal (TCP connection) or timeout
         timed_out = false
-        if IO.select([ready_r], nil, nil, timeout)
-          ready_r.read(1)  # Got ready signal - UI is up
+        if IO.select([server], nil, nil, timeout)
+          client = server.accept
+          client.close  # Got ready signal - UI is up
           success = true
         else
           timed_out = true
         end
-        ready_r.close
+        server.close
 
-        # Send SIGTERM and wait for clean shutdown
-        # (tcltk_compat.rb installs a handler that defers to Tk.root.destroy)
-        if process_alive?(pid)
-          Process.kill("TERM", pid)
-          begin
-            Timeout.timeout(2) { Process.wait(pid) }
-          rescue Timeout::Error
-            Process.kill("KILL", pid)
-            Process.wait(pid)
-          end
-        else
-          Process.wait(pid)
-          success = false unless success
-        end
+        # Terminate the process
+        terminate_process(pid)
 
         stdout = stdout_r.read
         stderr = stderr_r.read
@@ -201,17 +191,46 @@ module TkTestHelper
       end
     rescue Timeout::Error
       # Hard timeout hit - force kill and fail
-      Process.kill("KILL", pid) rescue nil
-      Process.wait(pid) rescue nil
+      kill_process(pid)
       stdout = stdout_r.read rescue ""
       stderr = "HARD TIMEOUT: Sample did not respond within #{hard_timeout}s\n#{stderr_r.read rescue ""}"
       success = false
     ensure
+      server.close unless server.closed?
       stdout_r.close unless stdout_r.closed?
       stderr_r.close unless stderr_r.closed?
     end
 
     [success, stdout, stderr]
+  end
+
+  # Platform-aware process termination
+  # Tries graceful shutdown first, then force kill
+  def terminate_process(pid)
+    return unless process_alive?(pid)
+
+    if Gem.win_platform?
+      # Windows: no SIGTERM, just kill
+      Process.kill("KILL", pid)
+      Process.wait(pid)
+    else
+      # Unix: try SIGTERM first for graceful shutdown
+      Process.kill("TERM", pid)
+      begin
+        Timeout.timeout(2) { Process.wait(pid) }
+      rescue Timeout::Error
+        Process.kill("KILL", pid)
+        Process.wait(pid)
+      end
+    end
+  rescue Errno::ESRCH, Errno::ECHILD
+    # Process already gone
+  end
+
+  # Force kill a process
+  def kill_process(pid)
+    Process.kill("KILL", pid) rescue nil
+    Process.wait(pid) rescue nil
   end
 
   def process_alive?(pid)

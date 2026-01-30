@@ -145,15 +145,12 @@ if $0 == __FILE__
   lbox2.insert(:end,     0,1,2,3,4,5,6,7,8,9,0,1,2,3)
 
   # Smoke test support - just verify UI loads
-  if ENV['TK_READY_FD']
-    Tk.after(100) {
+  require 'tk/demo_support'
+  if TkDemo.active?
+    TkDemo.after_idle {
       puts "lbox1 items: #{lbox1.size}"
       puts "lbox2 items: #{lbox2.size}"
-      $stdout.flush
-
-      if (fd = ENV.delete('TK_READY_FD'))
-        IO.for_fd(fd.to_i).tap { |io| io.write("1"); io.close } rescue nil
-      end
+      TkDemo.finish
     }
   end
 

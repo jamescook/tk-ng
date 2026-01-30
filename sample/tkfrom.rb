@@ -59,7 +59,8 @@ class Mail
 end
 
 # In demo mode, use sample mailbox
-if ENV['TK_READY_FD'] || ENV['TK_RECORD']
+require 'tk/demo_support'
+if TkDemo.active?
   sample_mailbox = File.join(File.dirname(__FILE__), 'data', 'sample_mailbox.txt')
   ARGV[0] = sample_mailbox if File.exist?(sample_mailbox)
 elsif ARGV.length == 0

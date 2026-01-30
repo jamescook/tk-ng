@@ -164,14 +164,9 @@ end
 
 if __FILE__ == $0
   # Support smoke test infrastructure
-  if ENV['TK_READY_FD']
-    # Signal ready after UI is set up
-    TkAfter.new(100, 1) {
-      IO.for_fd(ENV['TK_READY_FD'].to_i, 'w').tap { |io| io.write('.'); io.close }
-    }.start
-
-    # Handle SIGTERM gracefully
-    Signal.trap('TERM') { Tk.root.destroy }
+  require 'tk/demo_support'
+  if TkDemo.active?
+    TkDemo.on_visible { TkDemo.finish }
   end
 
   BindingDemo.new.run

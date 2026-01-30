@@ -14,6 +14,7 @@ $stdout.sync = true
 
 require 'tcltklib'
 require 'set'
+require 'socket'
 
 puts "=== Multi-Interpreter Test ==="
 puts
@@ -63,10 +64,10 @@ puts "Each has its own state - clicking one doesn't affect others."
 puts "Close all windows to exit."
 puts
 
-# Smoke test support - save FD for signaling at the very end
-ready_fd = ENV.delete('TK_READY_FD')
+# Smoke test support - save port for signaling at the very end
+ready_port = ENV.delete('TK_READY_PORT')
 
-if ready_fd
+if ready_port
   # Process events briefly to ensure windows are up
   3.times do
     interps.each { |ip| ip.do_one_event(TclTkLib::ALL_EVENTS | TclTkLib::DONT_WAIT) }
@@ -108,6 +109,6 @@ puts "=== Done! ==="
 $stdout.flush
 
 # Signal ready at the very end - process exits immediately after
-if ready_fd
-  IO.for_fd(ready_fd.to_i).tap { |io| io.write("1"); io.close } rescue nil
+if ready_port
+  TCPSocket.new('127.0.0.1', ready_port.to_i).close rescue nil
 end

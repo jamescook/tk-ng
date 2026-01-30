@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # Smoke tests for sample scripts.
-# Each sample that supports TK_READY_FD gets a test method here.
+# Each sample that supports TK_READY_PORT gets a test method here.
 #
 # To add a new sample test:
-#   1. Add TK_READY_FD support to the sample (see existing samples for pattern)
+#   1. Add TkDemo support to the sample (require 'tk/demo_support', use TkDemo.on_visible/finish)
 #   2. Add a test method here
 
 require_relative 'test_helper'

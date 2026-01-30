@@ -12,6 +12,7 @@
 $stdout.sync = true
 
 require "tcltklib"
+require "socket"
 
 def test
   # Create first interpreter
@@ -36,13 +37,13 @@ def test
   puts "Two windows created."
 
   # Smoke test support - auto-click and exit when running under test harness
-  if (fd_str = ENV.delete('TK_READY_FD'))
+  if (port = ENV.delete('TK_READY_PORT'))
     # Schedule button clicks to auto-close windows
     ip1.tcl_eval('after 50 {.lab invoke}')
     ip2.tcl_eval('after 100 {.lab invoke}')
 
     # Signal ready immediately so test harness knows we're up
-    IO.for_fd(fd_str.to_i).tap { |io| io.write("1"); io.close } rescue nil
+    TCPSocket.new('127.0.0.1', port.to_i).close rescue nil
   else
     puts "Click buttons to close."
   end

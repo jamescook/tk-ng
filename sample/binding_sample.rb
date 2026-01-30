@@ -86,19 +86,12 @@ btn_clone = Button_clone.new(:text=>'Label with Button binding',
 }
 
 # Smoke test support
-if ENV['TK_READY_FD']
-  Tk.root.bind('Visibility') {
-    # Click both buttons after UI is visible
-    Tk.after(50) {
-      btn.invoke
-      btn_clone.invoke
-      $stdout.flush
-
-      if (fd = ENV.delete('TK_READY_FD'))
-        IO.for_fd(fd.to_i).tap { |io| io.write("1"); io.close } rescue nil
-      end
-      Tk.after_idle { Tk.root.destroy }
-    }
+require 'tk/demo_support'
+if TkDemo.active?
+  TkDemo.on_visible {
+    btn.invoke
+    btn_clone.invoke
+    TkDemo.finish
   }
 end
 
