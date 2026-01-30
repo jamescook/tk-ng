@@ -605,7 +605,9 @@ class TestEvent < Minitest::Test
 
     # Resize the frame
     frame.configure(width: 200, height: 150)
-    Tk.update
+
+    # Configure events are async - wait for window manager to process
+    wait_until.call(timeout: 1.0) { config_width.is_a?(Integer) && config_height.is_a?(Integer) }
 
     # Configure event should have been triggered
     errors << "Configure width should be set" unless config_width.is_a?(Integer)

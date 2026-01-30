@@ -176,9 +176,9 @@ class TkWorker
         # Helper for display-dependent checks that may need time to settle
         # Retries until expected value is returned or timeout
         wait_for_display = ->(expected, timeout: 1.0, &block) {
-          deadline = Time.now + timeout
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
           result = nil
-          while Time.now < deadline
+          while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
             Tk.update
             result = block.call
             break if result.to_s == expected
@@ -187,6 +187,21 @@ class TkWorker
           result
         }
         b.local_variable_set(:wait_for_display, wait_for_display)
+
+        # Helper that waits until block returns truthy or timeout
+        # Returns the truthy value or nil on timeout
+        wait_until = ->(timeout: 1.0, &block) {
+          deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+          result = nil
+          while Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+            Tk.update
+            result = block.call
+            break if result
+            sleep 0.02
+          end
+          result
+        }
+        b.local_variable_set(:wait_until, wait_until)
 
         # Helper to capture screenshots for debugging test failures
         # Usage: capture_screenshot("my_test") or capture_screenshot("step1", window: some_widget)
