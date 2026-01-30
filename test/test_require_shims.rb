@@ -39,6 +39,42 @@ class TestRequireShims < Minitest::Test
     end
   end
 
+  def test_removed_extension_stubs_raise_load_error
+    assert_tk_subprocess("removed extension stubs raise LoadError") do
+      <<~'RUBY'
+        errors = []
+
+        # These tkextlib extensions were removed and should raise LoadError
+        removed_extensions = %w[
+          tkextlib/blt
+          tkextlib/itcl
+          tkextlib/itk
+          tkextlib/iwidgets
+          tkextlib/tcllib
+          tkextlib/tclx
+          tkextlib/tkHTML
+          tkextlib/tktable
+          tkextlib/tktrans
+          tkextlib/treectrl
+          tkextlib/vu
+          tkextlib/winico
+          tkextlib/ICONS
+        ]
+
+        removed_extensions.each do |file|
+          begin
+            require file
+            errors << "#{file} should raise LoadError but didn't"
+          rescue LoadError => e
+            errors << "#{file} wrong message: #{e.message[0,50]}" unless e.message.include?("removed")
+          end
+        end
+
+        raise errors.join("\n") unless errors.empty?
+      RUBY
+    end
+  end
+
   def test_forwarding_shims_load_correctly
     assert_tk_subprocess("forwarding shims load correctly") do
       <<~'RUBY'
@@ -106,7 +142,6 @@ class TestRequireShims < Minitest::Test
         deprecated_shims = %w[
           tk/itemconfig
           tk/kinput
-          tkextlib/tcllib
         ]
 
         deprecated_shims.each do |file|
@@ -126,11 +161,6 @@ class TestRequireShims < Minitest::Test
           if warnings.empty?
             errors << "#{file} should emit deprecation warning"
           end
-        end
-
-        # Verify tkextlib/tcllib provides empty module
-        unless defined?(Tk::Tcllib)
-          errors << "tkextlib/tcllib should define Tk::Tcllib module"
         end
 
         raise errors.join("\n") unless errors.empty?
