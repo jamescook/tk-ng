@@ -16,7 +16,12 @@
 #include <tcl.h>
 #include <tk.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#else
 #include <dlfcn.h>
+#endif
 
 /* Tcl 8.x/9.x compatibility (Tcl_Size, etc.) */
 #include "tcl9compat.h"
@@ -27,8 +32,30 @@
  * Tcl 9.0 pre-initializes tclStubsPtr, but Tcl 8.6 does not.
  * When tclStubsPtr is NULL, Tcl_CreateInterp() and Tcl_FindExecutable()
  * crash because they're macros that dereference tclStubsPtr.
- * We use dlsym to get the real function pointers and call them directly.
+ * We use dlsym/GetProcAddress to get the real function pointers and call them directly.
  */
+
+#ifdef _WIN32
+/* Windows: Get function from loaded Tcl DLL */
+static void *get_tcl_proc(const char *name)
+{
+    /* Try common Tcl DLL names */
+    static const char *dll_names[] = {"tcl86.dll", "tcl90.dll", "tcl86t.dll", "tcl90t.dll", NULL};
+    HMODULE hmod;
+    void *proc;
+    int i;
+
+    for (i = 0; dll_names[i]; i++) {
+        hmod = GetModuleHandleA(dll_names[i]);
+        if (hmod) {
+            proc = (void *)GetProcAddress(hmod, name);
+            if (proc) return proc;
+        }
+    }
+    return NULL;
+}
+#endif
+
 static void
 find_executable_bootstrap(const char *argv0)
 {
@@ -38,7 +65,11 @@ find_executable_bootstrap(const char *argv0)
     }
 
     void (*real_find_executable)(const char *);
+#ifdef _WIN32
+    real_find_executable = (void (*)(const char *))get_tcl_proc("Tcl_FindExecutable");
+#else
     real_find_executable = dlsym(RTLD_DEFAULT, "Tcl_FindExecutable");
+#endif
     if (real_find_executable) {
         real_find_executable(argv0);
     }
@@ -52,7 +83,11 @@ create_interp_bootstrap(void)
     }
 
     Tcl_Interp *(*real_create_interp)(void);
+#ifdef _WIN32
+    real_create_interp = (Tcl_Interp *(*)(void))get_tcl_proc("Tcl_CreateInterp");
+#else
     real_create_interp = dlsym(RTLD_DEFAULT, "Tcl_CreateInterp");
+#endif
     if (!real_create_interp) {
         return NULL;
     }
@@ -1084,8 +1119,12 @@ lib_mainloop(int argc, VALUE *argv, VALUE self)
             int had_event = Tcl_DoOneEvent(event_flags | TCL_DONT_WAIT);
             if (!had_event) {
                 rb_thread_schedule();
+#ifdef _WIN32
+                Sleep(5);  /* 5ms */
+#else
                 struct timespec ts = {0, 5000000};  /* 5ms */
                 nanosleep(&ts, NULL);
+#endif
             }
         }
 

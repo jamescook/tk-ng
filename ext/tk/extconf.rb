@@ -48,6 +48,12 @@ def find_tcltk
             have_library('tkstub8.6') ||
             have_library('tkstub')
 
+  # MSYS2/MinGW uses names without dots (tclstub86 instead of tclstub8.6)
+  if RbConfig::CONFIG['host_os'] =~ /mingw|mswin/
+    tcl_stub ||= have_library('tclstub90') || have_library('tclstub86')
+    tk_stub ||= have_library('tkstub90') || have_library('tkstub86')
+  end
+
   # If stub libraries not found by simple name, try via pkg-config
   unless tcl_stub
     # pkg-config may have added them already via --libs
