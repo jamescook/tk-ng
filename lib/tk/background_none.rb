@@ -25,6 +25,7 @@ module TkBackgroundNone
       @message_queue = []
       @started = false
       @done = false
+      @paused = false
     end
 
     def on_progress(&block)
@@ -50,11 +51,13 @@ module TkBackgroundNone
     end
 
     def pause
+      @paused = true
       send_message(:pause)
       self
     end
 
     def resume
+      @paused = false
       send_message(:resume)
       self
     end
@@ -73,13 +76,26 @@ module TkBackgroundNone
     end
 
     def paused?
-      false  # Synchronous mode can't be paused mid-execution
+      @paused
     end
 
     def start
-      return self if @started
-      @started = true
+      maybe_start
+      self
+    end
 
+    private
+
+    def maybe_start
+      return if @started
+      @started = true
+      # Defer start to next event loop iteration so @background_task
+      # assignment completes before work begins. Without this, pause/stop
+      # wouldn't work because @background_task would still be nil.
+      Tk.after(0) { do_work }
+    end
+
+    def do_work
       task = TaskContext.new(@callbacks, @message_queue)
       begin
         @work_block.call(task, @data)
@@ -91,13 +107,6 @@ module TkBackgroundNone
 
       @done = true
       @callbacks[:done]&.call
-      self
-    end
-
-    private
-
-    def maybe_start
-      start unless @started
     end
 
     # Synchronous task context - callbacks fire immediately
@@ -129,6 +138,8 @@ module TkBackgroundNone
 
       def check_pause
         while @paused
+          # Must process Tk events so Resume button clicks are received
+          Tk.update
           msg = check_message
           break unless @paused
         end

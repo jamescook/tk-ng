@@ -3,8 +3,8 @@
 # Ractor and background work support for Tk applications.
 #
 # This module provides a unified API across Ruby versions:
-# - Ruby 3.x: Uses Ractor.yield/take, bridge threads for messaging
-# - Ruby 4.x: Uses Ractor::Port, Ractor.shareable_proc
+# - Ruby 4.x: Uses Ractor::Port, Ractor.shareable_proc for true parallelism
+# - Ruby 3.x: Ractor mode NOT supported (falls back to thread mode)
 # - Thread fallback: Always available, works everywhere
 #
 # The implementation is selected automatically based on Ruby version.
@@ -18,8 +18,6 @@ RACTOR_SHAREABLE_PROC = Ractor.respond_to?(:shareable_proc)
 
 if RACTOR_SHAREABLE_PROC
   require_relative 'background_ractor4x'
-else
-  require_relative 'background_ractor3x'
 end
 
 module TkRactorSupport
@@ -27,12 +25,8 @@ module TkRactorSupport
   RACTOR_PORT_API = ::RACTOR_PORT_API
   RACTOR_SHAREABLE_PROC = ::RACTOR_SHAREABLE_PROC
 
-  # Select the appropriate Ractor implementation
-  RactorImpl = if RACTOR_SHAREABLE_PROC
-    TkBackgroundRactor4x
-  else
-    TkBackgroundRactor3x
-  end
+  # Ractor mode requires Ruby 4.x (shareable_proc support)
+  RACTOR_SUPPORTED = RACTOR_SHAREABLE_PROC
 
   # Registry for background work modes.
   # Each mode maps to an implementation class that must respond to:
@@ -59,26 +53,22 @@ module TkRactorSupport
 
   # Register built-in modes
   register_background_mode :thread, TkBackgroundThread::BackgroundWork
-  register_background_mode :ractor, RactorImpl::BackgroundWork
+
+  # Ractor mode only available on Ruby 4.x+
+  if RACTOR_SUPPORTED
+    register_background_mode :ractor, TkBackgroundRactor4x::BackgroundWork
+  end
 
   # Unified BackgroundWork API
   #
   # Creates background work with the specified mode.
-  # Mode :ractor uses true parallel execution (Ruby version appropriate impl).
+  # Mode :ractor uses true parallel execution (Ruby 4.x+ only).
   # Mode :thread uses traditional threading (GVL limited but always works).
   #
-  # Ruby 4.x Example (block syntax):
+  # Example:
   #   task = TkRactorSupport::BackgroundWork.new(data, mode: :ractor) do |t, d|
   #     d.each { |item| t.yield(process(item)) }
   #   end.on_progress { |r| update_ui(r) }
-  #
-  # Ruby 3.x Example (worker class required for :ractor mode):
-  #   class MyWorker
-  #     def call(task, data)
-  #       data.each { |item| task.yield(process(item)) }
-  #     end
-  #   end
-  #   task = TkRactorSupport::BackgroundWork.new(data, mode: :ractor, worker: MyWorker)
   #
   class BackgroundWork
     attr_accessor :name
@@ -163,15 +153,15 @@ module TkRactorSupport
   #
   class RactorStream
     def initialize(data, &block)
-      # Ruby 4.x: use Ractor with shareable_proc
-      # Ruby 3.x: use threads (blocks can't be passed to Ractors)
-      if RACTOR_SHAREABLE_PROC
+      # Ruby 4.x: use Ractor with shareable_proc for true parallelism
+      # Ruby 3.x: use threads (Ractor mode not supported)
+      if RACTOR_SUPPORTED
         shareable_block = Ractor.shareable_proc(&block)
         wrapped_block = Ractor.shareable_proc do |task, d|
           yielder = StreamYielder.new(task)
           shareable_block.call(yielder, d)
         end
-        @impl = RactorImpl::BackgroundWork.new(data, &wrapped_block)
+        @impl = TkBackgroundRactor4x::BackgroundWork.new(data, &wrapped_block)
       else
         wrapped_block = proc do |task, d|
           yielder = StreamYielder.new(task)

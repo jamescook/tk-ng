@@ -4,10 +4,10 @@
 #
 # Concurrency Demo - File Hasher
 #
-# Compares three concurrency modes:
+# Compares concurrency modes:
 # - None: Direct execution, UI updates via Tk.update. Fast but blocks controls.
 # - Thread: Background thread with on_main_thread. Enables Pause but has GVL overhead.
-# - Ractor: True parallelism (separate GVL). Best throughput, enables Stop.
+# - Ractor: True parallelism (separate GVL). Best throughput. (Ruby 4.x+ only)
 #
 require 'tk'
 require 'tk/background_none'
@@ -18,45 +18,18 @@ require_relative 'tkballoonhelp'
 # Register :none mode for demo (runs synchronously, shows UI freezing)
 Tk.register_background_mode(:none, TkBackgroundNone::BackgroundWork)
 
-# Worker class for Ractor mode (Ruby 3.x requires class, not block)
-# Must be defined at top level so it's shareable
-class FileHashWorker
-  def call(task, data)
-    algo_class = Digest.const_get(data[:algo_name])
-    total = data[:files].size
-    pending = []
-
-    data[:files].each_with_index do |path, index|
-      # Check for pause message at batch boundaries
-      if data[:allow_pause] && pending.empty?
-        task.check_pause
-      end
-
-      begin
-        hash = algo_class.file(path).hexdigest
-        short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-        pending << "#{short_path}: #{hash}\n"
-      rescue StandardError => e
-        short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-        pending << "#{short_path}: ERROR - #{e.message}\n"
-      end
-
-      is_last = index == total - 1
-      if pending.size >= data[:chunk_size] || is_last
-        task.yield({
-          index: index,
-          total: total,
-          updates: pending.join
-        })
-        pending = []
-      end
-    end
-  end
-end
+# Check if Ractor mode is available (Ruby 4.x+ only)
+RACTOR_AVAILABLE = TkRactorSupport::RACTOR_SUPPORTED
 
 class ThreadingDemo
   ALGORITHMS = %w[SHA256 SHA512 SHA384 SHA1 MD5].freeze
-  MODES = %w[None Thread Ractor].freeze
+
+  # Ractor mode only available on Ruby 4.x+
+  MODES = if RACTOR_AVAILABLE
+    ['None', 'None+update', 'Thread', 'Ractor'].freeze
+  else
+    ['None', 'None+update', 'Thread'].freeze
+  end
 
   def initialize
     @root = Tk.root
@@ -90,10 +63,11 @@ class ThreadingDemo
   end
 
   def build_ui
+    ractor_note = RACTOR_AVAILABLE ? "Ractor: true parallel." : "(Ractor available on Ruby 4.x+)"
     TkLabel.new(@root,
-      text: "File hasher demo - compares None/Thread/Ractor modes.\n" \
-            "None: fast but controls blocked. Thread: Pause works, GVL overhead. " \
-            "Ractor: true parallel, best throughput (Ruby 4 optimal).",
+      text: "File hasher demo - compares concurrency modes.\n" \
+            "None: UI frozen. None+update: progress visible, pause works. " \
+            "Thread: responsive, GVL shared. #{ractor_note}",
       justify: :left
     ).pack(fill: :x, padx: 10, pady: 10)
 
@@ -206,6 +180,12 @@ class ThreadingDemo
     @files = Dir.glob("#{base}/**/*", File::FNM_DOTMATCH).select { |f| File.file?(f) }
     @files.reject! { |f| f.include?('/.git/') }
     @files.sort!
+
+    # Limit files via --max-files=N or DEMO_MAX_FILES env var
+    max_files = ARGV.find { |a| a.start_with?('--max-files=') }&.split('=')&.last&.to_i
+    max_files ||= ENV['DEMO_MAX_FILES']&.to_i
+    @files = @files.first(max_files) if max_files && max_files > 0
+
     @file_count_label.text = "#{@files.size} files"
   end
 
@@ -225,8 +205,10 @@ class ThreadingDemo
     @status_label.text = "Hashing..."
 
     # Pause available in Thread mode always, Ractor mode only if Allow Pause checked
+    # None+update mode can pause (via Tk.update in check_pause)
     @pause_btn.state = case current_mode
       when 'None' then :disabled
+      when 'None+update' then :normal
       when 'Thread' then :normal
       when 'Ractor' then @allow_pause.to_i == 1 ? :normal : :disabled
     end
@@ -243,7 +225,11 @@ class ThreadingDemo
       mode: current_mode
     }
 
-    mode_sym = current_mode.downcase.to_sym
+    # Map UI mode to background_work mode
+    mode_sym = case current_mode
+      when 'None', 'None+update' then :none
+      else current_mode.downcase.to_sym
+    end
     start_background_work(mode_sym)
   end
 
@@ -338,6 +324,8 @@ class ThreadingDemo
   # ─────────────────────────────────────────────────────────────
 
   def start_background_work(mode)
+    ui_mode = current_mode  # Capture for closure (before work starts)
+
     # Prepare shareable data for the worker
     files = @files.dup
     algo_name = @algorithm.to_s
@@ -364,39 +352,34 @@ class ThreadingDemo
       })
     end
 
-    # Ractor mode uses worker class (required in Ruby 3.x, optional in 4.x)
-    # Thread mode uses block (simpler, works everywhere)
-    @background_task = if mode == :ractor
-      Tk.background_work(work_data, mode: mode, worker: FileHashWorker, name: "file-hasher")
-    else
-      Tk.background_work(work_data, mode: mode, name: "file-hasher") do |task, data|
-        algo_class = Digest.const_get(data[:algo_name])
-        total = data[:files].size
-        pending = []
+    # All modes use block syntax (Ruby 4.x ractor supports blocks via shareable_proc)
+    @background_task = Tk.background_work(work_data, mode: mode, name: "file-hasher") do |task, data|
+      algo_class = Digest.const_get(data[:algo_name])
+      total = data[:files].size
+      pending = []
 
-        data[:files].each_with_index do |path, index|
-          if data[:allow_pause] && pending.empty?
-            task.check_pause
-          end
+      data[:files].each_with_index do |path, index|
+        if data[:allow_pause] && pending.empty?
+          task.check_pause
+        end
 
-          begin
-            hash = algo_class.file(path).hexdigest
-            short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-            pending << "#{short_path}: #{hash}\n"
-          rescue StandardError => e
-            short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
-            pending << "#{short_path}: ERROR - #{e.message}\n"
-          end
+        begin
+          hash = algo_class.file(path).hexdigest
+          short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+          pending << "#{short_path}: #{hash}\n"
+        rescue StandardError => e
+          short_path = path.sub(%r{^/app/}, '').sub(data[:base_dir] + '/', '')
+          pending << "#{short_path}: ERROR - #{e.message}\n"
+        end
 
-          is_last = index == total - 1
-          if pending.size >= data[:chunk_size] || is_last
-            task.yield({
-              index: index,
-              total: total,
-              updates: pending.join
-            })
-            pending = []
-          end
+        is_last = index == total - 1
+        if pending.size >= data[:chunk_size] || is_last
+          task.yield({
+            index: index,
+            total: total,
+            updates: pending.join
+          })
+          pending = []
         end
       end
     end
@@ -413,6 +396,9 @@ class ThreadingDemo
       @metrics[:ui_update_total_ms] ||= 0.0
       @metrics[:ui_update_total_ms] += (Process.clock_gettime(Process::CLOCK_MONOTONIC) - ui_start) * 1000
       @metrics[:files_done] = msg[:index] + 1
+
+      # In None+update mode, force UI update so progress is visible
+      Tk.update if ui_mode == 'None+update'
     end.on_done do
       @background_task = nil
       finish_hashing

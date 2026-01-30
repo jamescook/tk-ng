@@ -328,7 +328,8 @@ class TestSamples < Minitest::Test
 
   def test_threading_demo
     # Use --quick for smoke test (runs Thread mode only instead of all 5 modes)
-    success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/threading_demo.rb", args: ["--quick"], timeout: 15)
+    # Limit to 50 files for faster test completion
+    success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/threading_demo.rb", args: ["--quick", "--max-files=50"], timeout: 15)
 
     assert success, "Sample failed\nSTDOUT: #{stdout}\nSTDERR: #{stderr}"
     assert_includes stdout, 'Window size:', "Missing window size output\nSTDOUT: #{stdout}"

@@ -2,8 +2,9 @@
 
 # Tests for TkCore.ractor_stream and Tk.background_work
 #
-# These test the version-agnostic Ractor streaming API that abstracts
-# Ruby 3.x (Ractor.yield/take) vs Ruby 4.x (Ractor::Port) differences.
+# Note: Ractor mode requires Ruby 4.x+ (Ractor.shareable_proc).
+# On Ruby 3.x, only thread mode is available.
+# Ractor tests are skipped on Ruby 3.x.
 
 require_relative 'test_helper'
 require_relative 'tk_test_helper'
@@ -173,20 +174,14 @@ class TestBackgroundWork < Minitest::Test
     raise "Counter should reach 49, got #{counter}" unless counter == 49
   end
 
-  # Ractor mode basic test
+  # Ractor mode basic test (Ruby 4.x+ only)
   def test_background_work_ractor_basic
+    skip "Ractor mode requires Ruby 4.x+" unless Ractor.respond_to?(:shareable_proc)
     assert_tk_app("background_work :ractor mode should work", method(:app_background_work_ractor_basic), pipe_capture: true)
   end
 
   def app_background_work_ractor_basic
     require 'tk'
-
-    # Worker class for Ractor mode (Ruby 3.x requires class, not block)
-    worker_class = Class.new do
-      def call(task, data)
-        data.each { |n| task.yield(n * 10) }
-      end
-    end
 
     Tk.background_work_mode = :ractor
     Tk.background_work_drop_intermediate = false
@@ -194,13 +189,14 @@ class TestBackgroundWork < Minitest::Test
     results = []
     done = false
 
-    # Ruby 3.x requires worker class for Ractor mode (blocks carry bindings)
-    Tk.background_work([1, 2, 3], worker: worker_class)
-      .on_progress do |result|
-        results << result
-      end.on_done do
-        done = true
-      end
+    # Ruby 4.x supports blocks via shareable_proc
+    Tk.background_work([1, 2, 3]) do |t, data|
+      data.each { |n| t.yield(n * 10) }
+    end.on_progress do |result|
+      results << result
+    end.on_done do
+      done = true
+    end
 
     start = Time.now
     while !done && (Time.now - start) < 5
@@ -250,22 +246,14 @@ class TestBackgroundWork < Minitest::Test
     raise "Should have received progress value 1.0, got #{progress_values.inspect}" unless progress_values.include?(1.0)
   end
 
-  # Test that final progress value (100%) is received before done callback in ractor mode
+  # Test that final progress value (100%) is received before done callback in ractor mode (Ruby 4.x+ only)
   def test_background_work_ractor_final_progress
+    skip "Ractor mode requires Ruby 4.x+" unless Ractor.respond_to?(:shareable_proc)
     assert_tk_app("background_work :ractor should receive final progress", method(:app_background_work_ractor_final_progress), pipe_capture: true)
   end
 
   def app_background_work_ractor_final_progress
     require 'tk'
-
-    # Worker class for Ractor mode
-    worker_class = Class.new do
-      def call(task, data)
-        data[:total].times do |i|
-          task.yield((i + 1).to_f / data[:total])
-        end
-      end
-    end
 
     Tk.background_work_mode = :ractor
 
@@ -273,13 +261,17 @@ class TestBackgroundWork < Minitest::Test
     final_progress_before_done = nil
     done = false
 
-    Tk.background_work({ total: 5 }, worker: worker_class)
-      .on_progress do |progress|
-        progress_values << progress
-      end.on_done do
-        final_progress_before_done = progress_values.last
-        done = true
+    # Ruby 4.x supports blocks via shareable_proc
+    Tk.background_work({ total: 5 }) do |t, data|
+      data[:total].times do |i|
+        t.yield((i + 1).to_f / data[:total])
       end
+    end.on_progress do |progress|
+      progress_values << progress
+    end.on_done do
+      final_progress_before_done = progress_values.last
+      done = true
+    end
 
     start = Time.now
     while !done && (Time.now - start) < 5

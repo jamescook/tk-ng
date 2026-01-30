@@ -4,20 +4,36 @@
 # Uses Ractor::Port for streaming and Ractor.shareable_proc for blocks.
 # Uses thread-inside-ractor pattern for non-blocking message handling.
 #
-# == Ruby 4.x vs 3.x Ractor Differences
+# == Why Ractor Mode Requires Ruby 4.x
 #
-# | Aspect                      | 3.x                          | 4.x                           |
+# Ruby 3.x Ractor support was attempted but abandoned due to fundamental issues:
+#
+# | Aspect                      | 3.x Problem                  | 4.x Solution                  |
 # |-----------------------------|------------------------------|-------------------------------|
-# | Output mechanism            | Ractor.yield (BLOCKS)        | Port.send (non-blocking)      |
-# | Orphaned threads on exit    | Hangs in rb_ractor_terminate | Exits cleanly                 |
-# | Block support               | Must use worker class        | Ractor.shareable_proc works   |
+# | Output mechanism            | Ractor.yield BLOCKS caller   | Port.send is non-blocking     |
+# | Block support               | Cannot pass blocks to Ractor | Ractor.shareable_proc works   |
 # | close_incoming after yield  | Bug: doesn't wake threads    | Works correctly               |
+# | Orphaned threads on exit    | Hangs in rb_ractor_terminate | Exits cleanly                 |
+# | Non-blocking receive        | No API exists                | Ractor::Port with select      |
 #
-# Because of these differences, the 3.x implementation requires workarounds
-# that are NOT needed here:
-# - Yielder thread (to decouple worker from blocking Ractor.yield)
-# - Timeout-based polling for messages (to avoid receiver thread cleanup bug)
-# - at_exit Ractor tracking (to handle cleanup issues)
+# == What We Tried on Ruby 3.x (All Failed)
+#
+# 1. Yielder thread pattern: Separate thread does blocking Ractor.yield while
+#    worker pushes to a Queue. Works but adds complexity and has shutdown bugs.
+#
+# 2. Timeout-based polling for messages: Create thread, call Ractor.receive,
+#    join with timeout, kill thread. Very expensive (~10ms per check) and
+#    causes severe performance degradation.
+#
+# 3. Long-lived receiver thread: One thread continuously receives and pushes
+#    to Queue. UI hangs due to thread interaction issues.
+#
+# 4. IO.pipe for signaling: Considered but IO objects aren't Ractor-shareable.
+#
+# The fundamental problem is Ruby 3.x has no non-blocking Ractor.receive,
+# and all workarounds either kill performance or cause hangs/crashes.
+#
+# On Ruby 3.x, use :thread mode instead - it works reliably with the GVL.
 #
 # This 4.x implementation is simpler because Ruby 4.x Ractors just work.
 

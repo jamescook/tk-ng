@@ -1059,12 +1059,6 @@ lib_mainloop(int argc, VALUE *argv, VALUE self)
         check_root = RTEST(argv[0]);
     }
 
-    /* Start recurring timer to ensure DoOneEvent returns periodically.
-     * This lets us check for Ruby interrupts and window closure. */
-    if (g_thread_timer_ms > 0) {
-        Tcl_CreateTimerHandler(g_thread_timer_ms, global_keepalive_timer_proc, NULL);
-    }
-
     for (;;) {
         /* Exit if check_root enabled and no windows remain */
         if (check_root && Tk_GetNumMainWindows() <= 0) {
@@ -1072,23 +1066,26 @@ lib_mainloop(int argc, VALUE *argv, VALUE self)
         }
 
         if (rb_thread_alone()) {
-            /* No other threads - blocking wait is fine */
+            /* No other threads - simple blocking wait */
             Tcl_DoOneEvent(event_flags);
         } else {
-            /* Other threads exist - use non-blocking poll + yield.
+            /* Other threads exist - use polling with brief sleep.
              *
-             * NOTE: We tried rb_thread_call_without_gvl() here to release the
-             * GVL during Tcl_DoOneEvent, which gave better throughput for
-             * background threads. However, it causes scheduler deadlocks when
-             * background threads use Ruby's sleep() - both threads end up
-             * stuck in thread_sched_to_running waiting on the scheduler mutex.
+             * We tried rb_thread_call_without_gvl() with Tcl_ThreadAlert to
+             * efficiently release GVL during blocking waits, but it proved
+             * unstable - crashes in Digest and other C extensions, UI freezes,
+             * and unreliable notifier wakeup across platforms.
              *
-             * The polling approach has ~3x overhead but is stable. Background
-             * threads still run during rb_thread_schedule() yields and during
-             * any GVL-releasing operations (I/O, Digest, etc). */
+             * This polling approach is simple and stable:
+             * - Process any pending events without blocking
+             * - If no events, brief sleep to avoid spinning (uses ~1-3% CPU idle)
+             * - rb_thread_schedule() lets background threads run during sleep
+             */
             int had_event = Tcl_DoOneEvent(event_flags | TCL_DONT_WAIT);
             if (!had_event) {
                 rb_thread_schedule();
+                struct timespec ts = {0, 5000000};  /* 5ms */
+                nanosleep(&ts, NULL);
             }
         }
 
