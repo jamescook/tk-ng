@@ -43,6 +43,7 @@ module TkDebugSignal
     def install_debug_signal_handler
       return unless debug_signal
       return if @debug_signal_installed
+      return if Gem.win_platform?  # SIGUSR1 not available on Windows
       Signal.trap(debug_signal) { dump_debug_info }
       @debug_signal_installed = true
     rescue ArgumentError => e

@@ -17,6 +17,9 @@ Open an **Administrator PowerShell** and run:
 
 # Install Tcl/Tk for UCRT64 toolchain
 pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-tcl mingw-w64-ucrt-x86_64-tk
+
+# Optional: Install tkimg for additional image format support
+pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-tkimg
 ```
 
 > **Note**: Adjust `Ruby40-x64` to match your Ruby installation path (e.g., `Ruby33-x64`).
@@ -59,8 +62,15 @@ ls /c/Ruby40-x64/msys64/ucrt64/lib/libtclstub86.a
 
 ### Tests fail with tkimg errors
 
-The tkimg extension is optional. Install it with:
+The tkimg extension is optional and provides support for additional image formats (PNG, JPEG, TIFF, etc.). Install it with:
 
-```bash
+```powershell
+# Run in Administrator PowerShell
 pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-tkimg
+```
+
+After installing, verify it works:
+
+```ruby
+ruby -Ilib -e "require 'tk'; require 'tkextlib/tkimg'; puts 'tkimg loaded'"
 ```

@@ -24,9 +24,10 @@ module VisualRegression
     def detect_tcl_version
       # Get Tcl version via subprocess to avoid loading Tk in main process
       load_paths = $LOAD_PATH.select { |p| p.include?(File.dirname(File.dirname(__dir__))) }
-      load_path_args = load_paths.flat_map { |p| ["-I", p] }.join(" ")
+      load_path_args = load_paths.flat_map { |p| ["-I", p] }
       script = "require 'tk'; puts Tk::TCL_VERSION"
-      version = `#{RbConfig.ruby} #{load_path_args} -e "#{script}" 2>/dev/null`.strip
+      version, _status = Open3.capture2(RbConfig.ruby, *load_path_args, "-e", script)
+      version = version.strip
       version.empty? ? "tcl_unknown" : "tcl#{version}"
     end
 

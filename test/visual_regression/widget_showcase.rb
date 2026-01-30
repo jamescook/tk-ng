@@ -2,6 +2,8 @@
 
 require 'tk'
 require 'tkextlib/tile'
+require 'tkextlib/tkimg/window'
+require 'tkextlib/tkimg/png'
 require 'fileutils'
 
 module VisualRegression
@@ -706,6 +708,8 @@ module VisualRegression
     # terminal app (System Settings > Privacy & Security > Screen Recording).
     # First run will prompt for permission - grant it and restart terminal.
     #
+    # Windows: Uses tkimg's window format to capture the Tk window directly.
+    #
     # Linux: Uses ImageMagick's import command. Requires imagemagick package.
     # For headless CI, run under xvfb-run.
     def capture_screen_region(x, y, w, h, file)
@@ -714,6 +718,17 @@ module VisualRegression
 
       if RUBY_PLATFORM =~ /darwin/
         success = system("screencapture", "-R#{x},#{y},#{w},#{h}", file)
+      elsif RUBY_PLATFORM =~ /mingw|mswin/
+        # Use tkimg to capture window directly
+        begin
+          img = TkPhotoImage.new(format: 'window', data: @root.path)
+          img.write(file, format: 'png')
+          success = true
+        rescue => e
+          $stderr.puts "  DEBUG: tkimg capture failed: #{e.message}"
+          $stderr.flush
+          success = false
+        end
       else
         cmd = "import -window root -crop #{w}x#{h}+#{x}+#{y} +repage #{file}"
         $stderr.puts "  DEBUG: running: #{cmd}"

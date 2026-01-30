@@ -428,7 +428,13 @@ class TestToplevel < Minitest::Test
     Tk.update
 
     min = top.minsize
-    errors << "minsize should be [100, 80], got #{min.inspect}" unless min == [100, 80]
+    # On Windows, minsize width can't go below ~120 pixels (title bar controls)
+    if Gem.win_platform?
+      errors << "minsize height should be 80, got #{min[1]}" unless min[1] == 80
+      errors << "minsize width should be >= 100, got #{min[0]}" unless min[0] >= 100
+    else
+      errors << "minsize should be [100, 80], got #{min.inspect}" unless min == [100, 80]
+    end
 
     # Also test via hash
     top.configure(maxsize: [400, 300])

@@ -3,8 +3,8 @@
 require 'open3'
 
 module VisualRegression
-  # Ruby wrapper for the perceptualdiff command-line tool.
-  # Performs perceptual image comparison that accounts for human vision.
+  # Image comparison for visual regression testing.
+  # Uses ImageMagick's compare command to detect pixel differences.
   class Perceptualdiff
     class NotInstalledError < StandardError; end
 
@@ -43,10 +43,20 @@ module VisualRegression
       parse_result(output, status, diff_output)
     end
 
-    # Check if perceptualdiff is installed
+    # Check if ImageMagick compare is installed
     def self.installed?
-      _stdout, _stderr, status = Open3.capture3('which', 'perceptualdiff')
+      _, _, status = Open3.capture3('magick', 'compare', '-version')
+      return true if status.success?
+
+      # Fallback: try standalone compare command
+      _, _, status = Open3.capture3('compare', '-version')
       status.success?
+    end
+
+    # Get the compare command (magick compare or standalone compare)
+    def self.compare_command
+      _, _, status = Open3.capture3('magick', 'compare', '-version')
+      status.success? ? ['magick', 'compare'] : ['compare']
     end
 
     private
@@ -55,9 +65,10 @@ module VisualRegression
       return if self.class.installed?
 
       raise NotInstalledError, <<~MSG
-        perceptualdiff is not installed. Install it with:
-          macOS: brew install perceptualdiff
-          Linux: apt-get install perceptualdiff
+        ImageMagick is not installed. Install it with:
+          macOS: brew install imagemagick
+          Linux: apt-get install imagemagick
+          Windows: pacman -S mingw-w64-ucrt-x86_64-imagemagick
       MSG
     end
 
@@ -68,15 +79,17 @@ module VisualRegression
     end
 
     def build_args(expected, actual, diff_output)
-      args = ['perceptualdiff', '--verbose', '--threshold', threshold.to_s]
-      args += ['--output', diff_output] if diff_output
+      args = self.class.compare_command + ['-metric', 'AE']
       args += [expected, actual]
+      args += [diff_output || 'null:']  # null: discards diff if not needed
       args
     end
 
     def parse_result(output, status, diff_output)
       pixel_diff = extract_pixel_diff(output)
-      passed = status.success? || output.include?('PASS')
+      # compare returns exit code 1 if images differ, 0 if identical
+      # We consider it "passed" if pixel diff is within threshold
+      passed = pixel_diff.nil? ? status.success? : pixel_diff <= threshold
 
       Result.new(
         passed: passed,
@@ -87,10 +100,11 @@ module VisualRegression
     end
 
     def extract_pixel_diff(output)
-      if output =~ /(\d+) pixels are different/
+      # ImageMagick compare outputs just the number to stderr
+      if output =~ /^(\d+)$/m
         $1.to_i
-      elsif output.include?('binary identical')
-        0
+      elsif output =~ /(\d+)/
+        $1.to_i
       else
         nil
       end
@@ -98,8 +112,17 @@ module VisualRegression
 
     # Check if ImageMagick's composite command is installed
     def self.composite_installed?
-      _, _, status = Open3.capture3('which', 'composite')
+      _, _, status = Open3.capture3('magick', 'composite', '-version')
+      return true if status.success?
+
+      _, _, status = Open3.capture3('composite', '-version')
       status.success?
+    end
+
+    # Get the composite command
+    def self.composite_command
+      _, _, status = Open3.capture3('magick', 'composite', '-version')
+      status.success? ? ['magick', 'composite'] : ['composite']
     end
 
     # Create an overlay image showing the diff on top of the blessed image
@@ -117,10 +140,8 @@ module VisualRegression
       return false unless File.exist?(blessed) && File.exist?(diff)
 
       # Use ImageMagick composite to blend diff (50% opacity) over blessed
-      _, _, status = Open3.capture3(
-        'composite', '-dissolve', '50', '-gravity', 'center',
-        diff, blessed, output
-      )
+      cmd = composite_command + ['-dissolve', '50', '-gravity', 'center', diff, blessed, output]
+      _, _, status = Open3.capture3(*cmd)
       status.success?
     end
   end

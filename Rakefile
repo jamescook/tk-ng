@@ -191,7 +191,13 @@ namespace :trofs do
   task :compile do
     Dir.chdir(TROFS_DIR) do
       unless File.exist?('Makefile')
-        sh './configure'
+        if Gem.win_platform?
+          # Find tclConfig.sh in MSYS2 ucrt64
+          tcl_lib = File.join(RbConfig::CONFIG['prefix'], 'msys64', 'ucrt64', 'lib')
+          sh "bash ./configure --with-tcl=#{tcl_lib}"
+        else
+          sh './configure'
+        end
       end
       sh 'make'
     end

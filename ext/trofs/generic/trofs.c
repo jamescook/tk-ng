@@ -5,14 +5,11 @@
  *
  */
 
-#include "trofs.h"
-#include "crew.h"
-#include "tcl9compat.h"
-#if !defined(TCL_MAJOR_VERSION) || TCL_MAJOR_VERSION < 9
-#if (TCL_MINOR_VERSION == 4)
-#include "tclDict.h"
-#endif
-#endif
+/*
+ * On Windows, sys/stat.h must be included BEFORE tcl.h because tcl.h
+ * typedefs Tcl_StatBuf to struct __stat64 which isn't defined until
+ * sys/stat.h is included.
+ */
 #include <sys/types.h>	/* mode_t typedef */
 /*
  * Fill in the mode_t typedef on Windows, where no system header
@@ -23,6 +20,17 @@ typedef unsigned short mode_t;
 #endif
 
 #include <sys/stat.h>	/* S_I* values and macros for mode_t processing */
+
+#include "trofs.h"
+#include "crew.h"
+#include "tcl9compat.h"
+#if !defined(TCL_MAJOR_VERSION) || TCL_MAJOR_VERSION < 9
+#if (TCL_MINOR_VERSION == 4)
+#include "tclDict.h"
+#endif
+#endif
+
+
 /*
  * Fill in some mode_t related macros that we use, in case
  * they're missing from the system header file, sys/stat.h .

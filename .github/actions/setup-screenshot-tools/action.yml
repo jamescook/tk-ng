@@ -1,5 +1,5 @@
 name: 'Setup Screenshot Tools'
-description: 'Install ImageMagick and perceptualdiff for visual regression testing'
+description: 'Install ImageMagick for visual regression testing'
 
 runs:
   using: 'composite'
@@ -10,7 +10,7 @@ runs:
         # imagemagick-6.q16 explicitly listed because the caching action doesn't
         # properly restore this dependency of imagemagick (contains /usr/bin/import)
         # fonts-noto-* for i18n screenshot testing (emoji, CJK characters)
-        packages: xvfb imagemagick imagemagick-6.q16 perceptualdiff fonts-noto-color-emoji fonts-noto-cjk
+        packages: xvfb imagemagick imagemagick-6.q16 fonts-noto-color-emoji fonts-noto-cjk
         execute_install_scripts: true
 
     # The caching action doesn't run post-install scripts that create symlinks
@@ -19,4 +19,5 @@ runs:
       shell: bash
       run: |
         sudo ln -sf /usr/bin/import-im6.q16 /usr/bin/import
+        sudo ln -sf /usr/bin/compare-im6.q16 /usr/bin/compare
         sudo ln -sf /usr/bin/composite-im6.q16 /usr/bin/composite

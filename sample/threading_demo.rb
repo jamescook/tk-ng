@@ -414,10 +414,10 @@ end
 require 'tk/demo_support'
 
 if TkDemo.active?
-  # Set up visibility binding BEFORE creating demo (which makes window visible)
-  demo = nil
-  TkDemo.on_visible {
-    # Small delay to let demo assignment complete (Tk.update in constructor triggers this early)
+  # Create demo first, then set up automation
+  demo = ThreadingDemo.new
+
+  TkDemo.after_idle {
     Tk.after(100) {
       # Quick mode: just run Thread mode once for smoke test
       quick_mode = ARGV.include?('--quick')
@@ -489,8 +489,6 @@ if TkDemo.active?
     }
   }
 
-  # Create demo AFTER binding is set up
-  demo = ThreadingDemo.new
   Tk.mainloop
 else
   ThreadingDemo.new.run

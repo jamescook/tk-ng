@@ -4,7 +4,12 @@ require_relative "../../test_helper"
 require_relative "../../tk_test_helper"
 
 # Tests for Tk::Img::PS - PostScript image format support
-# Requires: Ghostscript (gs) must be installed
+# Requires: Ghostscript (gs/gswin64c) must be installed
+#   Linux/macOS: apt install ghostscript / brew install ghostscript
+#   Windows: pacman -S --needed --noconfirm mingw-w64-ucrt-x86_64-ghostscript
+#            Note: MSYS2 installs as 'gs' but Tcl expects 'gswin64c.exe'.
+#            Create symlink (run in admin shell):
+#              ln -s /c/Ruby40-x64/msys64/ucrt64/bin/gs.exe /c/Ruby40-x64/msys64/ucrt64/bin/gswin64c.exe
 # Generate with: magick sample.png sample.ps
 class TestTkImgPs < Minitest::Test
   include TkTestHelper

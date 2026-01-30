@@ -117,15 +117,22 @@ module TkWinfo
     TkWinfo.id self
   end
 
+  # Returns list of Tcl interpreters registered on the display.
+  # These are interpreters that can receive 'send' commands.
+  #
+  # NOTE: Raises NotImplementedError on Windows because 'send'
+  # relies on X11 inter-process communication which is not available.
+  # Use DDE or comm for inter-process communication on Windows.
+  # See: https://wiki.tcl-lang.org/page/winfo+interps
   def TkWinfo.interps(win=nil)
+    if Gem.win_platform?
+      raise NotImplementedError, "winfo interps requires X11 (use DDE or comm on Windows)"
+    end
     if win
-      #tk_split_simplelist(tk_call_without_enc('winfo', 'interps',
-      #                                        '-displayof', win))
       tk_split_simplelist(tk_call_without_enc('winfo', 'interps',
                                               '-displayof', win),
                           false, true)
     else
-      #tk_split_simplelist(tk_call_without_enc('winfo', 'interps'))
       tk_split_simplelist(tk_call_without_enc('winfo', 'interps'),
                           false, true)
     end

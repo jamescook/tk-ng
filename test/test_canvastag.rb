@@ -408,8 +408,10 @@ class TestTkcTag < Minitest::Test
 
     coords = rect.coords
     # moveto positions bbox corner at specified location
-    errors << "x1 should be 200, got #{coords[0]}" unless coords[0] == 200.0
-    errors << "y1 should be 200, got #{coords[1]}" unless coords[1] == 200.0
+    # Windows may have 1px offset due to DPI/rendering quirks
+    tolerance = Gem.win_platform? ? 1.0 : 0.0
+    errors << "x1 should be 200, got #{coords[0]}" unless (coords[0] - 200.0).abs <= tolerance
+    errors << "y1 should be 200, got #{coords[1]}" unless (coords[1] - 200.0).abs <= tolerance
 
     raise errors.join("\n") unless errors.empty?
   end

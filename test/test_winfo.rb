@@ -461,8 +461,14 @@ class TestTkWinfo < Minitest::Test
 
   # --- Interps query ---
 
+  # winfo interps relies on X11 'send' mechanism - not available on Windows
+  # See: https://wiki.tcl-lang.org/page/winfo+interps
   def test_winfo_interps
-    assert_tk_app("winfo interps returns interpreter list", method(:app_interps))
+    if Gem.win_platform?
+      assert_tk_app("winfo interps raises on Windows", method(:app_interps_windows))
+    else
+      assert_tk_app("winfo interps returns interpreter list", method(:app_interps))
+    end
   end
 
   def app_interps
@@ -472,6 +478,16 @@ class TestTkWinfo < Minitest::Test
     raise "interps should be Array, got #{interps.class}" unless interps.is_a?(Array)
     # Should have at least our own interpreter
     raise "interps should not be empty" if interps.empty?
+  end
+
+  def app_interps_windows
+    require 'tk'
+    begin
+      root.winfo_interps
+      raise "expected NotImplementedError to be raised"
+    rescue NotImplementedError => e
+      raise "wrong message" unless e.message.include?("X11")
+    end
   end
 
   # --- Containing query ---

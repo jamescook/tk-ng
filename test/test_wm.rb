@@ -38,6 +38,10 @@ class TestWm < Minitest::Test
     root.minsize(1, 1)
     root.maxsize(10000, 10000)
 
+    # On Windows, geometry only applies correctly when window is visible
+    root.deiconify
+    Tk.update
+
     root.geometry("200x150+100+50")
     Tk.update
     geom = root.geometry
@@ -55,7 +59,15 @@ class TestWm < Minitest::Test
     errors = []
 
     root.minsize(100, 80)
-    errors << "minsize wrong: #{root.minsize.inspect}" unless root.minsize == [100, 80]
+    min_w, min_h = root.minsize
+
+    # On Windows, minsize width can't go below ~120 pixels (title bar controls)
+    if Gem.win_platform?
+      errors << "minsize height wrong: #{min_h}" unless min_h == 80
+      errors << "minsize width should be >= 100: #{min_w}" unless min_w >= 100
+    else
+      errors << "minsize wrong: #{root.minsize.inspect}" unless root.minsize == [100, 80]
+    end
 
     root.maxsize(800, 600)
     errors << "maxsize wrong: #{root.maxsize.inspect}" unless root.maxsize == [800, 600]

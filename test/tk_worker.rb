@@ -319,6 +319,11 @@ class TkWorker
       end
       @root.withdraw
 
+      # Reset WM properties (these persist between tests)
+      @root.minsize(1, 1)
+      @root.maxsize(0, 0)  # 0,0 means no maximum
+      @root.geometry("")   # Reset to default
+
       # Reset grid column/row configurations on root
       # (these persist even after widgets are removed)
       reset_grid_config!(@root)
