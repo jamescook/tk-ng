@@ -4,11 +4,9 @@
 
 ## Reason
 
-From the [Tcl Wiki](https://wiki.tcl-lang.org/page/BLT):
+BLT provided plotting widgets (graph, barchart, stripchart), vectors, drag-and-drop, busy command, and other utilities.
 
-> "As of 2016, BLT the official version is 2.4z, which is not compatible with Tk 8.5 or 8.6."
-
-The original BLT project has been unmaintained since 2016 and is incompatible with modern Tcl/Tk versions (8.5+). While community forks exist ([apnadkarni/blt](https://github.com/apnadkarni/blt), [TkBLT](https://github.com/wjoye/tkblt)), they have different APIs and levels of completeness.
+The project has some ongoing development at [SourceForge](https://sourceforge.net/p/blt/src/ci/master/tree/), but the official website still lists Tcl/Tk 8.4 as the supported version. Community forks exist ([apnadkarni/blt](https://github.com/apnadkarni/blt), [TkBLT](https://github.com/wjoye/tkblt)) with varying levels of 8.6 support.
 
 ## Alternatives
 
