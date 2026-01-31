@@ -8,8 +8,13 @@
 # - Separate color palette window
 # - 16 classic colors
 # - Click and drag to draw
+# - Real flood fill using photo image layer
+# - Spray paint tool
+# - Multiple layers with sparse pixel storage
 
 require 'tk'
+require 'set'
+require_relative 'paint/layer_manager'
 
 class PaintDemo
   # Classic 16-color palette (Windows/VGA style)
@@ -22,9 +27,12 @@ class PaintDemo
 
   MAX_UNDO = 10
 
+  PHOTO_WIDTH = 800
+  PHOTO_HEIGHT = 600
+
   def initialize
     @brush_color = '#000000'
-    @bg_color = 'white'
+    @bg_color_hex = '#FFFFFF'         # Hex for canvas items (eraser)
     @brush_size = 1
     @last_x = nil
     @last_y = nil
@@ -34,6 +42,10 @@ class PaintDemo
     @redo_stack = []
     @current_stroke_items = []  # Items in current stroke being drawn
     @edit_menus = []  # Track edit menus for state updates
+    @layer_menus = [] # Track layer menus for state updates
+
+    # Layer manager (created after canvas in setup_main_window)
+    @layers = nil
 
     setup_main_window
     setup_tools_window
@@ -50,10 +62,15 @@ class PaintDemo
 
     # Canvas fills the window
     @canvas = TkCanvas.new(@root,
-      background: 'white',
+      background: 'gray',
       cursor: 'crosshair'
     )
     @canvas.pack(fill: 'both', expand: true)
+
+    # Layer manager handles photo images and pixel buffers
+    @layers = LayerManager.new(@canvas, PHOTO_WIDTH, PHOTO_HEIGHT)
+    @layers.active_layer.ensure_photo!
+    @layers.active_layer.refresh_display
 
     # Drawing bindings
     @canvas.bind('ButtonPress-1') { |e| start_stroke(e.x, e.y) }
@@ -61,11 +78,21 @@ class PaintDemo
     @canvas.bind('ButtonRelease-1') { end_stroke }
 
     # Keyboard shortcuts
-    @root.bind('c') { clear_canvas }
+    @root.bind('c') { clear_active_layer }
     @root.bind('Escape') { @root.destroy }
     @root.bind('Control-z') { undo }
     @root.bind('Control-Z') { redo_action }  # Shift+Ctrl+Z
     @root.bind('Control-y') { redo_action }
+
+    # Layer shortcuts
+    @root.bind('Control-N') { add_layer }           # Ctrl+Shift+N
+    @root.bind('Control-bracketright') { move_layer_up }
+    @root.bind('Control-bracketleft') { move_layer_down }
+    @root.bind('Control-period') { toggle_layer_visibility }
+    # Number keys to select layer (must use Key- prefix to avoid conflict with Button-1)
+    (1..9).each do |n|
+      @root.bind("Key-#{n}") { select_layer_by_number(n - 1) }
+    end
 
     # Status bar
     status_frame = Tk::Tile::Frame.new(@root)
@@ -75,7 +102,8 @@ class PaintDemo
     @color_indicator.pack(side: 'left', padx: 5, pady: 3)
     update_color_indicator
 
-    Tk::Tile::Label.new(status_frame, text: 'Press C to clear').pack(side: 'left', padx: 10)
+    @layer_var = TkVariable.new('[0] Background')
+    Tk::Tile::Label.new(status_frame, textvariable: @layer_var, width: 20).pack(side: 'left', padx: 5)
 
     # Brush size control
     Tk::Tile::Label.new(status_frame, text: 'Size:').pack(side: 'left', padx: 5)
@@ -104,11 +132,12 @@ class PaintDemo
     end
 
     @root.protocol('WM_DELETE_WINDOW') { on_close }
+    update_title
   end
 
   def setup_tools_window
     @tools = TkToplevel.new(@root) { title 'Tools' }
-    @tools.geometry('50x235+50+100')
+    @tools.geometry('50x280+50+100')
     @tools.resizable(false, false)
 
     @current_tool = :brush
@@ -153,6 +182,20 @@ class PaintDemo
     TkcLine.new(bucket_btn, 24, 26, 30, 32, width: 3, fill: @brush_color)
     bucket_btn.bind('ButtonPress-1') { select_tool(:bucket, bucket_btn) }
     @tool_buttons[:bucket] = bucket_btn
+
+    # Spray paint tool
+    spray_btn = TkCanvas.new(@tools, width: 36, height: 36,
+      background: 'white', highlightthickness: 2, highlightbackground: 'gray')
+    spray_btn.pack(padx: 4, pady: 4)
+    # Draw spray can icon (dots pattern)
+    [12, 18, 24].each do |x|
+      [10, 14, 18].each do |y|
+        TkcOval.new(spray_btn, x - 1, y - 1, x + 1, y + 1, fill: 'gray40', outline: '')
+      end
+    end
+    TkcRectangle.new(spray_btn, 14, 22, 22, 32, fill: 'gray60', outline: 'black')
+    spray_btn.bind('ButtonPress-1') { select_tool(:spray, spray_btn) }
+    @tool_buttons[:spray] = spray_btn
 
     # Shapes tool with flyout
     @current_shape = :rectangle
@@ -202,6 +245,8 @@ class PaintDemo
     when :eraser
       @canvas.configure(cursor: 'dotbox')
     when :bucket
+      @canvas.configure(cursor: 'target')
+    when :spray
       @canvas.configure(cursor: 'spraycan')
     when :shapes
       @canvas.configure(cursor: 'crosshair')
@@ -288,16 +333,41 @@ class PaintDemo
     edit_menu.add_command(label: 'Undo', accelerator: 'Ctrl+Z', command: proc { undo })
     edit_menu.add_command(label: 'Redo', accelerator: 'Ctrl+Shift+Z', command: proc { redo_action })
     edit_menu.add_separator
-    edit_menu.add_command(label: 'Clear Canvas', command: proc { clear_canvas })
+    edit_menu.add_command(label: 'Clear Layer', command: proc { clear_active_layer })
+    edit_menu.add_command(label: 'Clear All Layers', command: proc { clear_canvas })
 
     @edit_menus << edit_menu
     update_menu_states
+
+    # Layer menu
+    layer_menu = TkMenu.new(menubar, tearoff: false)
+    menubar.add_cascade(label: 'Layer', menu: layer_menu)
+    layer_menu.add_command(label: 'Add Layer', accelerator: 'Ctrl+Shift+N', command: proc { add_layer })
+    layer_menu.add_command(label: 'Delete Layer', command: proc { delete_layer })
+    layer_menu.add_separator
+    layer_menu.add_command(label: 'Move Up', accelerator: 'Ctrl+]', command: proc { move_layer_up })
+    layer_menu.add_command(label: 'Move Down', accelerator: 'Ctrl+[', command: proc { move_layer_down })
+    layer_menu.add_separator
+    layer_menu.add_command(label: 'Toggle Visibility', accelerator: 'Ctrl+.', command: proc { toggle_layer_visibility })
+    layer_menu.add_separator
+    layer_menu.add_command(label: 'Flatten All', command: proc { flatten_layers })
+
+    @layer_menus << layer_menu
 
     # Window menu
     window_menu = TkMenu.new(menubar, tearoff: false)
     menubar.add_cascade(label: 'Window', menu: window_menu)
     window_menu.add_command(label: 'Show Tools', command: proc { @tools.deiconify })
     window_menu.add_command(label: 'Show Colors', command: proc { @palette.deiconify })
+    window_menu.add_separator
+    window_menu.add_command(label: 'Show Layers', command: proc { show_layers_window })
+
+    # Debug menu (memory, etc.)
+    debug_menu = TkMenu.new(menubar, tearoff: false)
+    menubar.add_cascade(label: 'Debug', menu: debug_menu)
+    debug_menu.add_command(label: 'Memory Usage', command: proc { show_memory_usage })
+    debug_menu.add_command(label: 'Layer Info', command: proc { show_layer_info })
+
     menubar
   end
 
@@ -314,6 +384,13 @@ class PaintDemo
   def start_stroke(x, y)
     if @current_tool == :bucket
       flood_fill(x, y)
+      return
+    end
+
+    if @current_tool == :spray
+      layer = @layers.active_layer
+      @spray_old_pixels = layer.snapshot_pixels
+      spray_paint(x, y)
       return
     end
 
@@ -338,10 +415,15 @@ class PaintDemo
       return
     end
 
+    if @current_tool == :spray
+      spray_paint(x, y)
+      return
+    end
+
     return unless @current_tool == :brush || @current_tool == :eraser
     return unless @last_x && @last_y
 
-    color = @current_tool == :eraser ? @bg_color : @brush_color
+    color = @current_tool == :eraser ? @bg_color_hex : @brush_color
     size = @current_tool == :eraser ? @brush_size * 3 : @brush_size
 
     item = TkcLine.new(@canvas, @last_x, @last_y, x, y,
@@ -359,6 +441,16 @@ class PaintDemo
   def end_stroke
     if @current_tool == :shapes
       finalize_shape
+      return
+    end
+
+    if @current_tool == :spray
+      # Push undo for spray stroke if pixels changed
+      layer = @layers.active_layer
+      if @spray_old_pixels
+        push_undo(LayerPixelsCommand.new(layer, @spray_old_pixels, layer.snapshot_pixels))
+      end
+      @spray_old_pixels = nil
       return
     end
 
@@ -407,7 +499,7 @@ class PaintDemo
   end
 
   def draw_point(x, y)
-    color = @current_tool == :eraser ? @bg_color : @brush_color
+    color = @current_tool == :eraser ? @bg_color_hex : @brush_color
     size = @current_tool == :eraser ? @brush_size * 3 : @brush_size
     r = size / 2.0
     item = TkcOval.new(@canvas, x - r, y - r, x + r, y + r,
@@ -418,51 +510,218 @@ class PaintDemo
   end
 
   def clear_canvas
-    @canvas.delete('all')
+    @layers.clear_all
+    @layers.refresh_all
   end
+
+  def clear_active_layer
+    layer = @layers.active_layer
+    return unless layer
+    layer.clear
+    layer.refresh_display
+  end
+
+  # ---------------------------------------------------------------
+  # Layer menu actions
+  # ---------------------------------------------------------------
+
+  def add_layer
+    @layers.add_layer
+    update_title
+  end
+
+  def delete_layer
+    return if @layers.layers.size <= 1
+    @layers.remove_layer(@layers.active_index)
+    @layers.refresh_all
+    update_title
+  end
+
+  def move_layer_up
+    @layers.move_up(@layers.active_index)
+    update_title
+  end
+
+  def move_layer_down
+    @layers.move_down(@layers.active_index)
+    update_title
+  end
+
+  def toggle_layer_visibility
+    layer = @layers.active_layer
+    return unless layer
+    layer.toggle_visibility
+  end
+
+  def flatten_layers
+    @layers.flatten
+    update_title
+  end
+
+  def show_layers_window
+    # TODO: Create a proper layers panel
+    puts @layers.to_s
+  end
+
+  def show_memory_usage
+    total = @layers.memory_usage
+    msg = "Total: #{total} bytes\n\n"
+    @layers.layers.each_with_index do |layer, idx|
+      mem = layer.memory_usage
+      msg += "[#{idx}] #{layer.name}: #{mem[:total]} bytes\n"
+      msg += "     Pixels: #{layer.pixels.pixel_count}, Density: #{(layer.pixels.density * 100).round(1)}%\n"
+    end
+    Tk.messageBox(title: 'Memory Usage', message: msg, type: 'ok')
+  end
+
+  def show_layer_info
+    puts @layers.to_s
+    Tk.messageBox(title: 'Layer Info', message: @layers.to_s, type: 'ok')
+  end
+
+  def update_title
+    layer = @layers.active_layer
+    layer_info = layer ? "[#{@layers.active_index}] #{layer.name}" : ""
+    @root.title("Paint - #{layer_info}")
+    @layer_var.value = layer_info if @layer_var
+  end
+
+  def select_layer_by_number(index)
+    return unless index >= 0 && index < @layers.layers.size
+    @layers.active_index = index
+    update_title
+  end
+
+  # ---------------------------------------------------------------
+  # Pixel operations (delegate to active layer)
+  # ---------------------------------------------------------------
+
+  def get_pixel(x, y)
+    @layers.active_layer&.get_rgba(x, y)
+  end
+
+  def set_pixel(x, y, rgba)
+    layer = @layers.active_layer
+    return unless layer
+    layer.set_rgba(x, y, *rgba)
+  end
+
+  def parse_hex_color(hex)
+    hex = hex.delete('#')
+    r = hex[0, 2].to_i(16)
+    g = hex[2, 2].to_i(16)
+    b = hex[4, 2].to_i(16)
+    [r, g, b, 255]
+  end
+
+  def colors_match?(c1, c2, tolerance = 0)
+    return false unless c1 && c2
+    (c1[0] - c2[0]).abs <= tolerance &&
+      (c1[1] - c2[1]).abs <= tolerance &&
+      (c1[2] - c2[2]).abs <= tolerance
+  end
+
+  # ---------------------------------------------------------------
+  # Flood fill - scanline algorithm for performance
+  # ---------------------------------------------------------------
 
   def flood_fill(x, y)
-    old_bg = @bg_color
-    new_bg = @brush_color
+    x = x.to_i
+    y = y.to_i
+    layer = @layers.active_layer
+    return unless layer
+    return if x < 0 || x >= PHOTO_WIDTH || y < 0 || y >= PHOTO_HEIGHT
 
-    # Save all existing canvas items before deleting
-    saved_items = save_canvas_items
+    target_color = get_pixel(x, y)
+    fill_color = parse_hex_color(@brush_color)
 
-    @bg_color = new_bg
-    @canvas.delete('all')
-    @canvas.configure(background: new_bg)
-    push_undo(FillCommand.new(@canvas, old_bg, new_bg, saved_items, self))
+    return if colors_match?(target_color, fill_color)
+
+    # Save state for undo
+    old_pixels = layer.snapshot_pixels
+
+    # Scanline flood fill
+    scanline_fill(x, y, target_color, fill_color)
+
+    # Update display
+    layer.refresh_display
+
+    # Push undo command
+    push_undo(LayerPixelsCommand.new(layer, old_pixels, layer.snapshot_pixels))
   end
 
-  def save_canvas_items
-    # Save configuration of all canvas items for later restoration
-    @canvas.find_all.map do |item|
-      type = item.class
-      coords = item.coords
-      opts = {}
-      opts[:fill] = item.cget('fill') rescue nil
-      opts[:outline] = item.cget('outline') rescue nil
-      opts[:width] = item.cget('width') rescue nil
-      opts[:capstyle] = item.cget('capstyle') rescue nil
-      opts[:joinstyle] = item.cget('joinstyle') rescue nil
-      opts.compact!
-      { type: type, coords: coords, opts: opts }
+  def scanline_fill(start_x, start_y, target_color, fill_color)
+    stack = [[start_x, start_y]]
+
+    while !stack.empty?
+      x, y = stack.pop
+      next if y < 0 || y >= PHOTO_HEIGHT
+
+      # Find left edge
+      lx = x
+      while lx > 0 && colors_match?(get_pixel(lx - 1, y), target_color)
+        lx -= 1
+      end
+
+      # Find right edge and fill
+      span_above = false
+      span_below = false
+
+      while lx < PHOTO_WIDTH && colors_match?(get_pixel(lx, y), target_color)
+        set_pixel(lx, y, fill_color)
+
+        # Check pixel above
+        if y > 0
+          above_matches = colors_match?(get_pixel(lx, y - 1), target_color)
+          if !span_above && above_matches
+            stack.push([lx, y - 1])
+            span_above = true
+          elsif span_above && !above_matches
+            span_above = false
+          end
+        end
+
+        # Check pixel below
+        if y < PHOTO_HEIGHT - 1
+          below_matches = colors_match?(get_pixel(lx, y + 1), target_color)
+          if !span_below && below_matches
+            stack.push([lx, y + 1])
+            span_below = true
+          elsif span_below && !below_matches
+            span_below = false
+          end
+        end
+
+        lx += 1
+      end
     end
   end
 
-  def restore_canvas_items(saved_items)
-    saved_items.map do |cfg|
-      case cfg[:type].to_s
-      when /TkcLine/
-        TkcLine.new(@canvas, *cfg[:coords], **cfg[:opts])
-      when /TkcOval/
-        TkcOval.new(@canvas, *cfg[:coords], **cfg[:opts])
-      when /TkcRectangle/
-        TkcRectangle.new(@canvas, *cfg[:coords], **cfg[:opts])
-      else
-        nil
-      end
-    end.compact
+  # ---------------------------------------------------------------
+  # Spray paint - random dots in radius
+  # ---------------------------------------------------------------
+
+  def spray_paint(x, y)
+    x = x.to_i
+    y = y.to_i
+    layer = @layers.active_layer
+    return unless layer
+
+    fill_color = parse_hex_color(@brush_color)
+    radius = @brush_size * 5
+    density = @brush_size * 3
+
+    density.times do
+      # Random point within circle
+      angle = rand * 2 * Math::PI
+      r = rand * radius
+      px = x + (r * Math.cos(angle)).to_i
+      py = y + (r * Math.sin(angle)).to_i
+      set_pixel(px, py, fill_color)
+    end
+
+    # Update display
+    layer.refresh_display
   end
 
   # Undo/Redo system
@@ -533,28 +792,20 @@ class PaintDemo
     end
   end
 
-  class FillCommand
-    def initialize(canvas, old_bg, new_bg, saved_items, paint_demo)
-      @canvas = canvas
-      @old_bg = old_bg
-      @new_bg = new_bg
-      @saved_items = saved_items
-      @paint_demo = paint_demo
+  # Command for layer pixel changes (flood fill, spray paint)
+  class LayerPixelsCommand
+    def initialize(layer, old_pixels, new_pixels)
+      @layer = layer
+      @old_pixels = old_pixels
+      @new_pixels = new_pixels
     end
 
     def undo
-      @paint_demo.instance_variable_set(:@bg_color, @old_bg)
-      @canvas.configure(background: @old_bg)
-      # Restore all the items that were deleted by the fill
-      @paint_demo.restore_canvas_items(@saved_items)
+      @layer.restore_pixels(@old_pixels)
     end
 
     def redo
-      # Save current items before deleting (in case user drew after undo)
-      @saved_items = @paint_demo.save_canvas_items
-      @paint_demo.instance_variable_set(:@bg_color, @new_bg)
-      @canvas.delete('all')
-      @canvas.configure(background: @new_bg)
+      @layer.restore_pixels(@new_pixels)
     end
   end
 

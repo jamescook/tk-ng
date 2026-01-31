@@ -132,4 +132,161 @@ class TestPhotoPutBlock < Minitest::Test
 
     img.delete
   end
+
+  def test_get_image_basic
+    assert_tk_app("TkPhotoImage#get_image basic", method(:get_image_basic_app))
+  end
+
+  def get_image_basic_app
+    require 'tk'
+
+    # Create a 10x10 photo image and fill with red
+    img = TkPhotoImage.new(width: 10, height: 10)
+    red_pixel = [255, 0, 0, 255].pack('CCCC')
+    rgba_data = red_pixel * 100
+    img.put_block(rgba_data, 10, 10)
+
+    # Read pixels back
+    result = img.get_image
+    raise "Expected hash result" unless result.is_a?(Hash)
+    raise "Expected width 10, got #{result[:width]}" unless result[:width] == 10
+    raise "Expected height 10, got #{result[:height]}" unless result[:height] == 10
+    raise "Expected #{100 * 4} bytes, got #{result[:data].bytesize}" unless result[:data].bytesize == 400
+
+    # Verify first pixel is red
+    r, g, b, a = result[:data][0, 4].unpack('CCCC')
+    raise "Expected red pixel, got [#{r},#{g},#{b},#{a}]" unless r == 255 && g == 0 && b == 0 && a == 255
+
+    img.delete
+  end
+
+  def test_get_image_unpack
+    assert_tk_app("TkPhotoImage#get_image unpack", method(:get_image_unpack_app))
+  end
+
+  def get_image_unpack_app
+    require 'tk'
+
+    # Create a 3x2 photo image with known colors
+    img = TkPhotoImage.new(width: 3, height: 2)
+
+    # Row 1: red, green, blue
+    # Row 2: white, black, transparent
+    pixels = [
+      255, 0, 0, 255,     # red
+      0, 255, 0, 255,     # green
+      0, 0, 255, 255,     # blue
+      255, 255, 255, 255, # white
+      0, 0, 0, 255,       # black
+      128, 128, 128, 128  # gray semi-transparent
+    ]
+    rgba_data = pixels.pack('C*')
+    img.put_block(rgba_data, 3, 2)
+
+    # Read back with unpack: true
+    result = img.get_image(unpack: true)
+    raise "Expected :pixels key" unless result.key?(:pixels)
+    raise "Should not have :data key" if result.key?(:data)
+    raise "Expected array" unless result[:pixels].is_a?(Array)
+    raise "Expected #{24} values, got #{result[:pixels].size}" unless result[:pixels].size == 24
+
+    # Verify first pixel is red
+    r, g, b, a = result[:pixels][0, 4]
+    raise "Expected red [255,0,0,255], got [#{r},#{g},#{b},#{a}]" unless [r, g, b, a] == [255, 0, 0, 255]
+
+    # Verify second pixel is green
+    r, g, b, a = result[:pixels][4, 4]
+    raise "Expected green [0,255,0,255], got [#{r},#{g},#{b},#{a}]" unless [r, g, b, a] == [0, 255, 0, 255]
+
+    # Test each_slice usage
+    pixel_tuples = result[:pixels].each_slice(4).to_a
+    raise "Expected 6 pixel tuples" unless pixel_tuples.size == 6
+    raise "Third pixel should be blue" unless pixel_tuples[2] == [0, 0, 255, 255]
+
+    img.delete
+  end
+
+  def test_get_image_region
+    assert_tk_app("TkPhotoImage#get_image region", method(:get_image_region_app))
+  end
+
+  def get_image_region_app
+    require 'tk'
+
+    # Create 20x20 image with different colors in quadrants
+    img = TkPhotoImage.new(width: 20, height: 20)
+
+    # Fill with black first
+    black_data = ([0, 0, 0, 255].pack('CCCC')) * 400
+    img.put_block(black_data, 20, 20)
+
+    # Put green in bottom-right 10x10 quadrant
+    green_pixel = [0, 255, 0, 255].pack('CCCC')
+    green_data = green_pixel * 100
+    img.put_block(green_data, 10, 10, x: 10, y: 10)
+
+    # Read just the green quadrant
+    result = img.get_image(x: 10, y: 10, width: 10, height: 10)
+    raise "Expected width 10" unless result[:width] == 10
+    raise "Expected height 10" unless result[:height] == 10
+
+    # All pixels should be green
+    r, g, b, a = result[:data][0, 4].unpack('CCCC')
+    raise "Expected green pixel, got [#{r},#{g},#{b},#{a}]" unless r == 0 && g == 255 && b == 0 && a == 255
+
+    # Read just the black quadrant (top-left)
+    result = img.get_image(x: 0, y: 0, width: 10, height: 10)
+    r, g, b, a = result[:data][0, 4].unpack('CCCC')
+    raise "Expected black pixel, got [#{r},#{g},#{b},#{a}]" unless r == 0 && g == 0 && b == 0 && a == 255
+
+    img.delete
+  end
+
+  def test_get_size
+    assert_tk_app("TkPhotoImage#get_size", method(:get_size_app))
+  end
+
+  def get_size_app
+    require 'tk'
+
+    # Create images of various sizes
+    [[10, 10], [100, 50], [1, 200]].each do |w, h|
+      img = TkPhotoImage.new(width: w, height: h)
+      size = img.get_size
+      raise "Expected [#{w}, #{h}], got #{size.inspect}" unless size == [w, h]
+      img.delete
+    end
+  end
+
+  def test_blank
+    assert_tk_app("TkPhotoImage#blank", method(:blank_app))
+  end
+
+  def blank_app
+    require 'tk'
+
+    # Create a 10x10 image and fill with red
+    img = TkPhotoImage.new(width: 10, height: 10)
+    red_pixel = [255, 0, 0, 255].pack('CCCC')
+    rgba_data = red_pixel * 100
+    img.put_block(rgba_data, 10, 10)
+
+    # Verify pixel is red
+    pixel = img.get(5, 5)
+    raise "Expected red before blank, got #{pixel.inspect}" unless pixel == [255, 0, 0]
+
+    # Blank the image
+    result = img.blank
+    raise "Expected self returned" unless result == img
+
+    # After blank, pixel should be transparent (get returns empty or default)
+    # The get method returns [0,0,0] for transparent/blank pixels
+    pixel_after = img.get(5, 5)
+    raise "Expected black/transparent after blank, got #{pixel_after.inspect}" unless pixel_after == [0, 0, 0]
+
+    # Also verify transparency
+    raise "Expected pixel to be transparent after blank" unless img.get_transparency(5, 5)
+
+    img.delete
+  end
 end

@@ -469,4 +469,80 @@ class TkPhotoImage<TkImage
     Tk::INTERP.photo_put_zoomed_block(@path, rgba_data, width, height, opts.empty? ? nil : opts)
     self
   end
+
+  # Read RGBA pixel data from the photo image using Tk_PhotoGetImage.
+  #
+  # Returns a hash with pixel data, width, and height.
+  # Can optionally read a sub-region of the image.
+  #
+  # @param x [Integer] X offset to start reading (default 0)
+  # @param y [Integer] Y offset to start reading (default 0)
+  # @param width [Integer, nil] Width to read (default: full width)
+  # @param height [Integer, nil] Height to read (default: full height)
+  # @param unpack [Boolean] If true, return flat array of integers instead
+  #   of binary string (default: false)
+  #
+  # @return [Hash] With keys:
+  #   - :width [Integer] - Width of returned data
+  #   - :height [Integer] - Height of returned data
+  #   - :data [String] - Binary RGBA string (when unpack: false)
+  #   - :pixels [Array<Integer>] - Flat array [r,g,b,a,r,g,b,a,...] (when unpack: true)
+  #
+  # @example Read all pixels as binary string
+  #   result = img.get_image
+  #   rgba_data = result[:data]  # "\xFF\x00\x00\xFF..."
+  #
+  # @example Read as unpacked integers
+  #   result = img.get_image(unpack: true)
+  #   pixels = result[:pixels]  # [255, 0, 0, 255, 255, 0, 0, 255, ...]
+  #
+  #   # Get individual RGBA tuples:
+  #   pixels.each_slice(4) do |r, g, b, a|
+  #     puts "R=#{r} G=#{g} B=#{b} A=#{a}"
+  #   end
+  #
+  #   # Get rows of pixels:
+  #   pixels.each_slice(result[:width] * 4) do |row|
+  #     row.each_slice(4) do |r, g, b, a|
+  #       # process pixel
+  #     end
+  #   end
+  #
+  # @example Read a 100x100 region at offset (50, 50)
+  #   result = img.get_image(x: 50, y: 50, width: 100, height: 100)
+  #
+  def get_image(x: 0, y: 0, width: nil, height: nil, unpack: false)
+    opts = {}
+    opts[:x] = x if x != 0
+    opts[:y] = y if y != 0
+    opts[:width] = width if width
+    opts[:height] = height if height
+    opts[:unpack] = true if unpack
+    Tk::INTERP.photo_get_image(@path, opts.empty? ? nil : opts)
+  end
+
+  # Get dimensions of the photo image using Tk_PhotoGetSize.
+  # Faster than querying width/height separately via Tcl.
+  #
+  # @return [Array<Integer>] [width, height]
+  #
+  # @example
+  #   width, height = img.get_size
+  #
+  def get_size
+    Tk::INTERP.photo_get_size(@path)
+  end
+
+  # Clear the photo image to fully transparent using Tk_PhotoBlank.
+  # Faster than manually setting all pixels.
+  #
+  # @return [self]
+  #
+  # @example
+  #   img.blank
+  #
+  def blank
+    Tk::INTERP.photo_blank(@path)
+    self
+  end
 end

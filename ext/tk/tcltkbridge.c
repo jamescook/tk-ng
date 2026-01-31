@@ -26,6 +26,9 @@
 /* Tcl 8.x/9.x compatibility (Tcl_Size, etc.) */
 #include "tcl9compat.h"
 
+/* Shared types and function declarations */
+#include "tcltkbridge.h"
+
 /*
  * Bootstrap helpers: call Tcl functions before stubs are initialized.
  *
@@ -104,7 +107,7 @@ create_interp_bootstrap(void)
 /* Module and class handles */
 static VALUE mTclTkLib;
 static VALUE cTclTkIp;
-static VALUE eTclError;
+VALUE eTclError;  /* Non-static: shared with tkphoto.c */
 
 /* Track if stubs have been initialized (once per process) */
 static int tcl_stubs_initialized = 0;
@@ -124,16 +127,7 @@ static void interp_deleted_callback(ClientData, Tcl_Interp *);
 /* Global timer interval for TclTkLib.mainloop (mutable) */
 static int g_thread_timer_ms = DEFAULT_TIMER_INTERVAL_MS;
 
-/* Interp struct stored in Ruby object */
-struct tcltk_interp {
-    Tcl_Interp *interp;
-    int deleted;
-    VALUE callbacks;      /* Hash: id_string => proc (GC-marked) */
-    VALUE thread_queue;   /* Array: pending procs from other threads (GC-marked) */
-    unsigned long next_id; /* Next callback ID */
-    int timer_interval_ms; /* Mainloop timer interval for thread yielding */
-    Tcl_ThreadId main_thread_id; /* Thread that created the interp */
-};
+/* struct tcltk_interp is defined in tcltkbridge.h */
 
 /* ---------------------------------------------------------
  * Thread-safe event for cross-thread execution
@@ -206,7 +200,8 @@ interp_memsize(const void *ptr)
     return sizeof(struct tcltk_interp);
 }
 
-static const rb_data_type_t interp_type = {
+/* Non-static: shared with tkphoto.c */
+const rb_data_type_t interp_type = {
     .wrap_struct_name = "TclTkBridge::Interp",
     .function = {
         .dmark = interp_mark,
@@ -231,7 +226,8 @@ interp_alloc(VALUE klass)
     return obj;
 }
 
-static struct tcltk_interp *
+/* Non-static: shared with tkphoto.c */
+struct tcltk_interp *
 get_interp(VALUE self)
 {
     struct tcltk_interp *tip;
@@ -1198,56 +1194,6 @@ interp_set_thread_timer_ms(VALUE self, VALUE val)
 }
 
 /* ---------------------------------------------------------
- * Interp#tcl_split_list(str) - Parse Tcl list into Ruby array
- *
- * Single C call instead of N+1 eval round-trips.
- * Returns array of strings (does not recursively parse nested lists).
- * --------------------------------------------------------- */
-
-static VALUE
-interp_tcl_split_list(VALUE self, VALUE list_str)
-{
-    struct tcltk_interp *tip = get_interp(self);
-    Tcl_Obj *listobj;
-    Tcl_Size objc;
-    Tcl_Obj **objv;
-    VALUE ary;
-    Tcl_Size i;
-    int result;
-
-    if (NIL_P(list_str)) {
-        return rb_ary_new();
-    }
-
-    StringValue(list_str);
-    if (RSTRING_LEN(list_str) == 0) {
-        return rb_ary_new();
-    }
-
-    /* Create Tcl object from Ruby string */
-    listobj = Tcl_NewStringObj(RSTRING_PTR(list_str), RSTRING_LEN(list_str));
-    Tcl_IncrRefCount(listobj);
-
-    /* Split into array of Tcl objects */
-    result = Tcl_ListObjGetElements(tip->interp, listobj, &objc, &objv);
-    if (result != TCL_OK) {
-        Tcl_DecrRefCount(listobj);
-        rb_raise(eTclError, "invalid Tcl list: %s", Tcl_GetStringResult(tip->interp));
-    }
-
-    /* Convert to Ruby array of strings */
-    ary = rb_ary_new2(objc);
-    for (i = 0; i < objc; i++) {
-        Tcl_Size len;
-        const char *str = Tcl_GetStringFromObj(objv[i], &len);
-        rb_ary_push(ary, rb_utf8_str_new(str, len));
-    }
-
-    Tcl_DecrRefCount(listobj);
-    return ary;
-}
-
-/* ---------------------------------------------------------
  * TclTkLib._merge_tklist(*args) - Merge strings into Tcl list
  *
  * Uses Tcl's quoting rules for proper escaping.
@@ -1397,208 +1343,7 @@ lib_get_version(VALUE self)
         INT2NUM(TCL_RELEASE_SERIAL));
 }
 
-/* ---------------------------------------------------------
- * Interp#photo_put_block(photo_path, rgba_data, width, height, opts={})
- *
- * Fast RGBA pixel writes to a photo image using Tk_PhotoPutBlock.
- * Much faster than Tcl's 'photo put' which requires parsing hex strings.
- *
- * Arguments:
- *   photo_path - Tcl path of the photo image (e.g., "i00001")
- *   rgba_data  - Binary string of RGBA pixels (4 bytes per pixel)
- *   width      - Image width in pixels
- *   height     - Image height in pixels
- *   opts       - Optional hash with :x, :y offsets (default 0,0)
- *
- * The rgba_data must be exactly width * height * 4 bytes.
- *
- * See: https://www.tcl-lang.org/man/tcl8.6/TkLib/FindPhoto.htm
- * --------------------------------------------------------- */
-
-static VALUE
-interp_photo_put_block(int argc, VALUE *argv, VALUE self)
-{
-    struct tcltk_interp *tip = get_interp(self);
-    VALUE photo_path, rgba_data, width_val, height_val, opts;
-    Tk_PhotoHandle photo;
-    Tk_PhotoImageBlock block;
-    int width, height, x_off, y_off;
-    long expected_size;
-
-    rb_scan_args(argc, argv, "41", &photo_path, &rgba_data, &width_val, &height_val, &opts);
-
-    StringValue(photo_path);
-    StringValue(rgba_data);
-    width = NUM2INT(width_val);
-    height = NUM2INT(height_val);
-
-    /* Validate dimensions */
-    if (width <= 0 || height <= 0) {
-        rb_raise(rb_eArgError, "width and height must be positive");
-    }
-
-    /* Validate data size */
-    expected_size = (long)width * height * 4;
-    if (RSTRING_LEN(rgba_data) != expected_size) {
-        rb_raise(rb_eArgError, "rgba_data size mismatch: expected %ld bytes, got %ld",
-                 expected_size, RSTRING_LEN(rgba_data));
-    }
-
-    /* Parse optional x/y offsets */
-    x_off = 0;
-    y_off = 0;
-    if (!NIL_P(opts) && TYPE(opts) == T_HASH) {
-        VALUE x_val = rb_hash_aref(opts, ID2SYM(rb_intern("x")));
-        VALUE y_val = rb_hash_aref(opts, ID2SYM(rb_intern("y")));
-        if (!NIL_P(x_val)) x_off = NUM2INT(x_val);
-        if (!NIL_P(y_val)) y_off = NUM2INT(y_val);
-    }
-
-    /* Find the photo image by Tcl path */
-    photo = Tk_FindPhoto(tip->interp, StringValueCStr(photo_path));
-    if (!photo) {
-        rb_raise(eTclError, "photo image not found: %s", StringValueCStr(photo_path));
-    }
-
-    /* Set up the pixel block structure */
-    block.pixelPtr = (unsigned char *)RSTRING_PTR(rgba_data);
-    block.width = width;
-    block.height = height;
-    block.pitch = width * 4;      /* bytes per row */
-    block.pixelSize = 4;          /* RGBA = 4 bytes per pixel */
-    block.offset[0] = 0;          /* Red offset */
-    block.offset[1] = 1;          /* Green offset */
-    block.offset[2] = 2;          /* Blue offset */
-    block.offset[3] = 3;          /* Alpha offset */
-
-    /* Write pixels to the photo image */
-    if (Tk_PhotoPutBlock(tip->interp, photo, &block, x_off, y_off,
-                         width, height, TK_PHOTO_COMPOSITE_SET) != TCL_OK) {
-        rb_raise(eTclError, "Tk_PhotoPutBlock failed: %s",
-                 Tcl_GetStringResult(tip->interp));
-    }
-
-    return Qnil;
-}
-
-/* ---------------------------------------------------------
- * Interp#photo_put_zoomed_block(photo_path, rgba_data, width, height, opts={})
- *
- * Fast RGBA pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
- * Writes pixels and scales in a single operation - faster than put_block + copy.
- *
- * Arguments:
- *   photo_path - Tcl path of the photo image (e.g., "i00001")
- *   rgba_data  - Binary string of RGBA pixels (4 bytes per pixel)
- *   width      - Source image width in pixels
- *   height     - Source image height in pixels
- *   opts       - Optional hash:
- *                :x, :y        - destination offsets (default 0,0)
- *                :zoom_x, :zoom_y       - zoom factors (default 1,1)
- *                :subsample_x, :subsample_y - subsample factors (default 1,1)
- *
- * The rgba_data must be exactly width * height * 4 bytes.
- * Zoom replicates pixels (zoom=3 makes each pixel 3x3).
- * Subsample skips pixels (subsample=2 takes every other pixel).
- *
- * See: https://www.tcl-lang.org/man/tcl8.6/TkLib/FindPhoto.htm
- * --------------------------------------------------------- */
-
-static VALUE
-interp_photo_put_zoomed_block(int argc, VALUE *argv, VALUE self)
-{
-    struct tcltk_interp *tip = get_interp(self);
-    VALUE photo_path, rgba_data, width_val, height_val, opts;
-    Tk_PhotoHandle photo;
-    Tk_PhotoImageBlock block;
-    int width, height, x_off, y_off;
-    int zoom_x, zoom_y, subsample_x, subsample_y;
-    int dest_width, dest_height;
-    long expected_size;
-
-    rb_scan_args(argc, argv, "41", &photo_path, &rgba_data, &width_val, &height_val, &opts);
-
-    StringValue(photo_path);
-    StringValue(rgba_data);
-    width = NUM2INT(width_val);
-    height = NUM2INT(height_val);
-
-    /* Validate dimensions */
-    if (width <= 0 || height <= 0) {
-        rb_raise(rb_eArgError, "width and height must be positive");
-    }
-
-    /* Validate data size */
-    expected_size = (long)width * height * 4;
-    if (RSTRING_LEN(rgba_data) != expected_size) {
-        rb_raise(rb_eArgError, "rgba_data size mismatch: expected %ld bytes, got %ld",
-                 expected_size, RSTRING_LEN(rgba_data));
-    }
-
-    /* Parse options with defaults */
-    x_off = 0;
-    y_off = 0;
-    zoom_x = 1;
-    zoom_y = 1;
-    subsample_x = 1;
-    subsample_y = 1;
-
-    if (!NIL_P(opts) && TYPE(opts) == T_HASH) {
-        VALUE val;
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("x")));
-        if (!NIL_P(val)) x_off = NUM2INT(val);
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("y")));
-        if (!NIL_P(val)) y_off = NUM2INT(val);
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("zoom_x")));
-        if (!NIL_P(val)) zoom_x = NUM2INT(val);
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("zoom_y")));
-        if (!NIL_P(val)) zoom_y = NUM2INT(val);
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("subsample_x")));
-        if (!NIL_P(val)) subsample_x = NUM2INT(val);
-        val = rb_hash_aref(opts, ID2SYM(rb_intern("subsample_y")));
-        if (!NIL_P(val)) subsample_y = NUM2INT(val);
-    }
-
-    /* Validate zoom/subsample */
-    if (zoom_x <= 0 || zoom_y <= 0) {
-        rb_raise(rb_eArgError, "zoom factors must be positive");
-    }
-    if (subsample_x <= 0 || subsample_y <= 0) {
-        rb_raise(rb_eArgError, "subsample factors must be positive");
-    }
-
-    /* Find the photo image by Tcl path */
-    photo = Tk_FindPhoto(tip->interp, StringValueCStr(photo_path));
-    if (!photo) {
-        rb_raise(eTclError, "photo image not found: %s", StringValueCStr(photo_path));
-    }
-
-    /* Set up the pixel block structure */
-    block.pixelPtr = (unsigned char *)RSTRING_PTR(rgba_data);
-    block.width = width;
-    block.height = height;
-    block.pitch = width * 4;
-    block.pixelSize = 4;
-    block.offset[0] = 0;
-    block.offset[1] = 1;
-    block.offset[2] = 2;
-    block.offset[3] = 3;
-
-    /* Calculate destination dimensions */
-    dest_width = (width / subsample_x) * zoom_x;
-    dest_height = (height / subsample_y) * zoom_y;
-
-    /* Write pixels with zoom/subsample */
-    if (Tk_PhotoPutZoomedBlock(tip->interp, photo, &block, x_off, y_off,
-                               dest_width, dest_height,
-                               zoom_x, zoom_y, subsample_x, subsample_y,
-                               TK_PHOTO_COMPOSITE_SET) != TCL_OK) {
-        rb_raise(eTclError, "Tk_PhotoPutZoomedBlock failed: %s",
-                 Tcl_GetStringResult(tip->interp));
-    }
-
-    return Qnil;
-}
+/* Photo image functions moved to tkphoto.c */
 
 /* ---------------------------------------------------------
  * Interp#create_console - Create Tk console window
@@ -1715,7 +1460,6 @@ Init_tcltklib(void)
     rb_define_method(cTclTkIp, "delete", interp_delete, 0);
     rb_define_method(cTclTkIp, "tcl_version", interp_tcl_version, 0);
     rb_define_method(cTclTkIp, "tk_version", interp_tk_version, 0);
-    rb_define_method(cTclTkIp, "tcl_split_list", interp_tcl_split_list, 1);
     rb_define_method(cTclTkIp, "mainloop", interp_mainloop, 0);
     rb_define_method(cTclTkIp, "register_callback", interp_register_callback, 1);
     rb_define_method(cTclTkIp, "unregister_callback", interp_unregister_callback, 1);
@@ -1725,8 +1469,15 @@ Init_tcltklib(void)
     rb_define_method(cTclTkIp, "queue_for_main", interp_queue_for_main, 1);
     rb_define_method(cTclTkIp, "on_main_thread?", interp_on_main_thread_p, 0);
     rb_define_method(cTclTkIp, "create_console", interp_create_console, 0);
-    rb_define_method(cTclTkIp, "photo_put_block", interp_photo_put_block, -1);
-    rb_define_method(cTclTkIp, "photo_put_zoomed_block", interp_photo_put_zoomed_block, -1);
+
+    /* Photo image functions (tkphoto.c) */
+    Init_tkphoto(cTclTkIp);
+
+    /* Font functions (tkfont.c) */
+    Init_tkfont(cTclTkIp);
+
+    /* Utility functions (tkutil.c) */
+    Init_tkutil(cTclTkIp);
 
     /* Aliases for legacy API compatibility */
     rb_define_alias(cTclTkIp, "_eval", "tcl_eval");

@@ -73,7 +73,7 @@ end
 
 find_tcltk
 
-# Only compile the new bridge, not the old tcltklib.c
-$srcs = ['tcltkbridge.c']
+# Source files for the extension
+$srcs = ['tcltkbridge.c', 'tkphoto.c', 'tkfont.c', 'tkutil.c']
 
 create_makefile('tcltklib')
