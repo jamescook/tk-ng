@@ -40,7 +40,7 @@ end
 
 The default mode is selected automatically based on Ruby version:
 - **Ruby 4.x+**: defaults to `:ractor` (stable Ractor API, true parallelism)
-- **Ruby 3.x**: defaults to `:thread` (Ractor works but implementation is more complex)
+- **Ruby 3.x**: defaults to `:thread` (Ractor is technically available, but has limitations that make difficult to use)
 
 ### Thread Mode
 ```ruby
@@ -55,7 +55,7 @@ Tk.background_work_mode = :thread  # default on Ruby 3.x
 ```ruby
 Tk.background_work_mode = :ractor  # default on Ruby 4.x+
 ```
-- Requires Ruby 3.1+ (full support in Ruby 4.0+)
+- Only works on Ruby 4+ - if you try to run on 3.x your app with either crash or freeze.
 - True parallelism - separate GVL, not blocked by main thread
 - Data must be shareable (no proc closures in Ruby 3.x)
 - Best for CPU-intensive tasks (image processing, calculations)
