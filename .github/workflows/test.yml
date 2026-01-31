@@ -7,11 +7,13 @@ on:
       - '**.md'
       - 'docs/**'
       - '.github/workflows/windows-test.yml'
+      - 'screenshots/blessed/windows/**'
   pull_request:
     paths-ignore:
       - '**.md'
       - 'docs/**'
       - '.github/workflows/windows-test.yml'
+      - 'screenshots/blessed/windows/**'
   schedule:
     # Run weekly to keep Docker cache fresh (expires after 7 days of no access)
     - cron: '0 4 * * 0'  # Sundays at 4am UTC
