@@ -88,7 +88,7 @@ btn_clone = Button_clone.new(:text=>'Label with Button binding',
 # Smoke test support
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     btn.invoke
     btn_clone.invoke
     TkDemo.finish

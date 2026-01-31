@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=640x480
+# tk-record: title=Align Box Demo
 #
 #  tkalignbox.rb : align widgets with same width/height
 #
@@ -190,6 +190,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Align Box Demo')
   Tk.root.geometry('640x480')
 
   f = Tk::RbWidget::HBox.new(:borderwidth=>3, :relief=>'ridge').pack
@@ -239,7 +240,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       Tk.after(TkDemo.delay) { TkDemo.finish }
     }

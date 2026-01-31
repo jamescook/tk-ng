@@ -127,7 +127,7 @@ b6 = TkButton.new(:text=>'set binding to TkButton class',
 # Smoke test support
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     # Simulate mouse clicks to trigger bindings AND invoke command
     [b1, b2, b3, b4, b5, b6].each do |btn|
       btn.event_generate('ButtonPress-1')

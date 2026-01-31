@@ -166,7 +166,7 @@ if __FILE__ == $0
   # Support smoke test infrastructure
   require 'tk/demo_support'
   if TkDemo.active?
-    TkDemo.on_visible { TkDemo.finish }
+    TkDemo.after_idle { TkDemo.finish }
   end
 
   BindingDemo.new.run

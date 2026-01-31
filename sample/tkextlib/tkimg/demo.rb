@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=900x600, name=tkimg_demo
+# tk-record: title=Tests for available image formats
 #
 #  Tk::Img demo
 #
@@ -244,6 +244,8 @@ require 'tk/demo_support'
 if TkDemo.active?
   puts 'tkimg demo loaded'
   $stdout.flush
+
+  TkDemo.signal_recording_ready if TkDemo.recording?
 
   # Images are already loaded; wait for window to render then finish
   Tk.after(TkDemo.delay(test: 50, record: 1500)) {

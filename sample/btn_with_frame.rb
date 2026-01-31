@@ -24,7 +24,7 @@ btn = Button_with_Frame.new(:text=>'QUIT', :command=>proc{
 # Smoke test support
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     # Don't invoke QUIT - it calls exit which is unsafe from callback
     puts 'UI loaded'
     TkDemo.finish

@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=400x250
+# tk-record: title=Multi Listbox
 #
 # tkmultilistbox.rb : multiple listbox widget
 #                       by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
@@ -626,6 +626,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Multi Listbox')
   f = TkFrame.new(nil, 'width'=>300,
                   'height'=>200).pack('fill'=>'both', 'expand'=>'true')
   #f = TkFrame.new.pack('fill'=>'both', 'expand'=>'true')
@@ -657,7 +658,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       puts "rows inserted"
 

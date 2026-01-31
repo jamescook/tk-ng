@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=320x480
+# tk-record: title=Balloon Help Demo
 #
 # tkballoonhelp.rb : simple balloon help widget
 #                       by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
@@ -143,6 +143,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Balloon Help Demo')
   Tk.root.geometry('320x480')
 
   TkButton.new('text'=>'This button has a balloon help') {|b|
@@ -224,7 +225,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       Tk.after(TkDemo.delay) { TkDemo.finish }
     }

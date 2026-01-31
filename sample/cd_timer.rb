@@ -81,7 +81,7 @@ b.command(proc{
 # Smoke test support
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts 'start clicked'
     b.invoke  # click start
     TkDemo.finish

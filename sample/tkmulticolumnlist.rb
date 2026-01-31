@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=400x300
+# tk-record: title=Multi Column List
 #
 # tkmulticolumnlist.rb : multiple column list widget on scrollable frame
 #                        by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
@@ -707,6 +707,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Multi Column List')
   l = TkMultiColumnList.new(nil, 200,
                             [ ['L1', 200, proc{p 'click L1'}],
                               ['L2', 100],
@@ -753,7 +754,7 @@ if __FILE__ == $0
   }
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       puts "rows inserted"
 

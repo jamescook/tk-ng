@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=320x240
+# tk-record: title=Tk Dialog Demo
 require "tk"
 
+Tk.root.title('Tk Dialog Demo')
 Tk.root.geometry('320x240')
 
 # This sample uses legacy string commands (e.g., command "quit 'save'")
@@ -70,7 +71,7 @@ end
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     # Don't click any buttons - they all call exit
     puts "UI loaded"
     Tk.after(TkDemo.delay) { TkDemo.finish }

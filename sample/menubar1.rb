@@ -1,11 +1,12 @@
 # frozen_string_literal: false
-# tk-record: screen_size=640x480
+# tk-record: title=Menubar Sample 1
 #
 # menubar sample 1 : use frame and menubuttons
 #
 
 require 'tk'
 
+Tk.root.title('Menubar Sample 1')
 Tk.root.geometry('640x480')
 
 radio_var = TkVariable.new('y')
@@ -56,21 +57,31 @@ TkText.new(:wrap=>'word').pack.insert('1.0', 'Please read the sample source, and
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
 
-    # Get the File menu and invoke some entries
-    file_menu = menubar[0][1]  # [menubutton, menu] pair
-    file_menu.invoke(0)  # Open
-    puts "radio_var: #{radio_var.value}"
+    begin
+      # Get the File menu and invoke some entries
+      file_menu = menubar[0][1]  # [menubutton, menu] pair
+      file_menu.invoke(0)  # Open
+      puts "radio_var: #{radio_var.value}"
 
-    Tk.after(TkDemo.delay) {
-      # Get Edit menu and invoke
-      edit_menu = menubar[1][1]
-      edit_menu.invoke(0)  # Cut
-      edit_menu.invoke(1)  # Copy
+      Tk.after(TkDemo.delay) {
+        begin
+          # Get Edit menu and invoke
+          edit_menu = menubar[1][1]
+          edit_menu.invoke(0)  # Cut
+          edit_menu.invoke(1)  # Copy
+        rescue => e
+          puts "Demo error: #{e.message}"
+        ensure
+          TkDemo.finish
+        end
+      }
+    rescue => e
+      puts "Demo error: #{e.message}"
       TkDemo.finish
-    }
+    end
   }
 end
 

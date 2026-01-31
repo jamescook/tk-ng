@@ -457,7 +457,7 @@ show_usage.call
 # complex to test programmatically. Just verify UI loads.
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     puts "canvas class: #{canvas.class}"
     TkDemo.finish

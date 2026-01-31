@@ -1,11 +1,12 @@
 # frozen_string_literal: false
-# tk-record: screen_size=640x480
+# tk-record: title=Menubar Sample 2
 #
 # menubar sample 2 : use 'menu' option of root/toplevel widget
 #
 
 require 'tk'
 
+Tk.root.title('Menubar Sample 2')
 Tk.root.geometry('640x480')
 
 radio_var = TkVariable.new('y')
@@ -61,21 +62,36 @@ TkText.new(:wrap=>'word').pack.insert('1.0', 'Please read the sample source, and
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
 
-    file_menu = mbar.entrycget(0, :menu)
-    file_menu.invoke(0)  # Open
-
-    Tk.after(TkDemo.delay) {
-      edit_menu = mbar.entrycget(1, :menu)
-      edit_menu.invoke(0)  # Cut
+    begin
+      file_menu = mbar.entrycget(0, :menu)
+      file_menu.invoke(0)  # Open
 
       Tk.after(TkDemo.delay) {
-        edit_menu.invoke(1)  # Copy
-        TkDemo.finish
+        begin
+          edit_menu = mbar.entrycget(1, :menu)
+          edit_menu.invoke(0)  # Cut
+
+          Tk.after(TkDemo.delay) {
+            begin
+              edit_menu.invoke(1)  # Copy
+            rescue => e
+              puts "Demo error: #{e.message}"
+            ensure
+              TkDemo.finish
+            end
+          }
+        rescue => e
+          puts "Demo error: #{e.message}"
+          TkDemo.finish
+        end
       }
-    }
+    rescue => e
+      puts "Demo error: #{e.message}"
+      TkDemo.finish
+    end
   }
 end
 

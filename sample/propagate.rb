@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=320x240
+# tk-record: title=Pack Propagate Demo
 require 'tk'
 
+Tk.root.title('Pack Propagate Demo')
 Tk.root.geometry('320x240')
 
 TkLabel.new(:text=>"Please click the bottom frame").pack
@@ -35,7 +36,7 @@ f.bind('1', proc{
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     f.event_generate('1', x: 50, y: 50)
     Tk.update

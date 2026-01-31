@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
-# tk-record: screen_size=975x405
+# tk-record: title=Concurrency Demo - File Hasher
 #
 # Concurrency Demo - File Hasher
 #

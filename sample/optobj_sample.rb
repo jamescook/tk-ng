@@ -1,11 +1,12 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=640x480
+# tk-record: title=OptionObj Sample
 #
 #  sample script of Tk::OptionObj
 #
 require "tk"
 
+Tk.root.title('OptionObj Sample')
 Tk.root.geometry('640x480')
 
 optobj = Tk::OptionObj.new('foreground'=>'red', 'background'=>'black')
@@ -72,7 +73,7 @@ TkFrame.new{|f|
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     toggle_btn.invoke
     puts "toggled once"
@@ -80,7 +81,11 @@ if TkDemo.active?
     Tk.after(TkDemo.delay) {
       toggle_btn.invoke
       puts "toggled twice"
+      puts "calling finish..."
+      $stdout.flush
       TkDemo.finish
+      puts "finish returned"
+      $stdout.flush
     }
   }
 end

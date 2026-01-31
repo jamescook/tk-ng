@@ -1,21 +1,23 @@
 #!/bin/bash
 #
-# Record a Tk sample to video
-# Requires: xvfb-run (or DISPLAY set), ffmpeg
+# Record a Tk sample to video (Linux/macOS, also used inside Docker)
+# Requires: xvfb-run (or DISPLAY set), ffmpeg, xrandr, gtf
 #
 # The sample must handle TK_RECORD=1 for auto-start and auto-exit.
+# Window geometry is queried dynamically from the demo via TkDemo.signal_recording_ready.
+# The Xvfb display is resized to match using xrandr (RandR extension).
 #
 # Usage:
 #   ./scripts/record-sample.sh sample/demos-en/goldberg.rb [output.webm]
 #
 #   Custom settings:
-#     SCREEN_SIZE=1024x768 ./scripts/record-sample.sh sample/foo.rb
 #     CODEC=x264 ./scripts/record-sample.sh sample/foo.rb  # h264, larger files
+#
+# For Windows recording, use `rake record` which uses gdigrab directly.
 #
 set -e
 
 SAMPLE="${1:?Usage: $0 <sample.rb> [output]}"
-SCREEN_SIZE="${SCREEN_SIZE:-900x750}"
 FRAMERATE="${FRAMERATE:-30}"
 CODEC="${CODEC:-x264}"  # x264 (default), vp9 (alternative)
 
@@ -55,49 +57,95 @@ else
     RUBY_CMD="ruby -Ilib"
 fi
 
-# If no DISPLAY, re-exec under xvfb-run
+# If no DISPLAY, re-exec under xvfb-run with RandR extension enabled
+# Start with large default screen; we'll resize dynamically after getting window geometry
 if [ -z "$DISPLAY" ]; then
     command -v xvfb-run >/dev/null 2>&1 || { echo "Error: xvfb-run not installed and DISPLAY not set"; exit 1; }
-    exec xvfb-run -a -s "-screen 0 ${SCREEN_SIZE}x24" "$0" "$@"
+    exec xvfb-run -a -s "-screen 0 1920x1080x24 +extension RANDR" "$0" "$@"
 fi
 
 # Only print if not called from docker-record.sh
-[ -z "$DOCKER_RECORD" ] && echo "Recording ${SAMPLE} to ${OUTPUT} (${SCREEN_SIZE}, ${CODEC})..."
+[ -z "$DOCKER_RECORD" ] && echo "Recording ${SAMPLE} to ${OUTPUT} (${CODEC})..."
 
-# Create pipe for early stop signal
-STOP_PIPE=$(mktemp -u)
-mkfifo "$STOP_PIPE"
-trap 'rm -f "$STOP_PIPE"' EXIT
+# Find a free port for stop signal
+find_free_port() {
+    python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()' 2>/dev/null || \
+    ruby -e 'require "socket"; s=TCPServer.new("127.0.0.1",0); puts s.addr[1]; s.close' 2>/dev/null || \
+    echo "9999"
+}
+STOP_PORT=$(find_free_port)
 
 # Thumbnail path (same name as output, .png extension)
 THUMBNAIL="${OUTPUT%.*}.png"
 
-# Start app with stop pipe FD and thumbnail path
-TK_RECORD=1 TK_STOP_PIPE="$STOP_PIPE" TK_THUMBNAIL_PATH="$THUMBNAIL" $RUBY_CMD -rtk "$SAMPLE" &
+# Start app with stop port
+TK_RECORD=1 TK_STOP_PORT="$STOP_PORT" TK_THUMBNAIL_PATH="$THUMBNAIL" $RUBY_CMD -rtk "$SAMPLE" &
 APP_PID=$!
 
-# Wait for window to appear (--sync blocks until found)
-echo "Waiting for window..."
-WINDOW_ID=$(xdotool search --sync --onlyvisible --name "" | head -1)
-echo "Window detected (id: $WINDOW_ID), moving to 0,0..."
-xdotool windowmove "$WINDOW_ID" 0 0
-sleep 0.3  # Brief settle time
+# Wait for "ready" signal with geometry (e.g., "R:320x240")
+echo "Waiting for ready signal..."
+READY_DATA=$({ nc -l -p "$STOP_PORT" 2>/dev/null || nc -l "$STOP_PORT" 2>/dev/null; } | head -c20)
+if [[ "$READY_DATA" =~ R:([0-9]+)x([0-9]+) ]]; then
+    WIN_WIDTH="${BASH_REMATCH[1]}"
+    WIN_HEIGHT="${BASH_REMATCH[2]}"
+    echo "Window geometry: ${WIN_WIDTH}x${WIN_HEIGHT}"
+else
+    echo "Error: Demo did not send geometry. Update demo to use TkDemo.signal_recording_ready"
+    exit 1
+fi
 
-ffmpeg -y -f x11grab -video_size ${SCREEN_SIZE} \
-    -framerate ${FRAMERATE} -i ${DISPLAY} \
+# Resize Xvfb display to match window geometry using RandR
+# This ensures pixel-perfect capture without needing per-sample screen_size config
+if command -v xrandr >/dev/null 2>&1 && command -v gtf >/dev/null 2>&1; then
+    MODE_NAME="${WIN_WIDTH}x${WIN_HEIGHT}_60"
+    # Generate CVT timing values using gtf
+    MODELINE=$(gtf "$WIN_WIDTH" "$WIN_HEIGHT" 60 | grep Modeline | sed 's/.*Modeline //' | sed 's/"//g')
+    if [ -n "$MODELINE" ]; then
+        echo "Resizing display to ${WIN_WIDTH}x${WIN_HEIGHT}..."
+        # Add new mode and switch to it (ignore errors if mode exists)
+        xrandr --newmode $MODELINE 2>/dev/null || true
+        xrandr --addmode screen "$MODE_NAME" 2>/dev/null || true
+        xrandr -s "$MODE_NAME" 2>/dev/null || true
+        sleep 0.1  # Brief settle time after resize
+    fi
+fi
+
+# Position window at 0,0 for consistent capture
+WINDOW_ID=$(xdotool search --onlyvisible --name "" 2>/dev/null | head -1)
+if [ -n "$WINDOW_ID" ]; then
+    echo "Window detected (id: $WINDOW_ID), moving to 0,0..."
+    xdotool windowmove "$WINDOW_ID" 0 0
+fi
+sleep 0.1  # Brief settle time
+
+# Capture using window geometry (x11grab captures screen region at 0,0)
+ffmpeg -y -f x11grab -video_size "${WIN_WIDTH}x${WIN_HEIGHT}" \
+    -framerate ${FRAMERATE} -i "${DISPLAY}+0,0" \
     ${CODEC_OPTS} \
     "${OUTPUT}" 2>/dev/null &
 FFMPEG_PID=$!
 
-# Wait for stop signal OR app exit
-read -t 60 <"$STOP_PIPE" &
+# Wait for "done" signal (demo connects and waits for ack)
+# Use a simple Ruby one-liner for reliable socket handling
+echo "Recording..."
+ruby -rsocket -e '
+  server = TCPServer.new("127.0.0.1", ARGV[0].to_i)
+  client = server.accept  # Connection itself is the "done" signal
+  STDERR.puts "Got done signal"
+  Process.kill("INT", ARGV[1].to_i) rescue nil
+  sleep 0.5
+  client.write("x")  # Send ack so demo can exit
+  client.close
+  server.close
+' "$STOP_PORT" "$FFMPEG_PID" 2>&1 &
 WAIT_PID=$!
 
-# Whichever comes first
-wait -n $APP_PID $WAIT_PID 2>/dev/null || true
-echo "Stopping recording..."
+# Wait for either: done signal handled, app exit, or timeout
+timeout 120 tail --pid=$WAIT_PID -f /dev/null 2>/dev/null || true
+
 kill $FFMPEG_PID 2>/dev/null || true
 wait $FFMPEG_PID 2>/dev/null || true
+kill $WAIT_PID 2>/dev/null || true
 wait $APP_PID 2>/dev/null || true
 
 echo "Done: ${OUTPUT}"

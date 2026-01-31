@@ -1,8 +1,9 @@
 # frozen_string_literal: false
-# tk-record: screen_size=320x240
+# tk-record: title=Tk Line Demo
 
 require "tkclass"
 
+Tk.root.title('Tk Line Demo')
 Tk.root.geometry('320x240')
 
 $tkline_init = false
@@ -53,7 +54,7 @@ $c.bind("ButtonRelease-1", proc{|x, y| do_release x, y}, "%x %y")
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     # Draw a line
     $c.event_generate('1', :x => 50, :y => 50)

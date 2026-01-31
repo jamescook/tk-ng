@@ -1,8 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=420x450
+# tk-record: title=24 Hour Clock
 
 require 'tk'
+
+Tk.root.title('24 Hour Clock')
 
 class Clock
   def initialize(clock24 = true)
@@ -285,24 +287,14 @@ sched.create_pie(0,0, 60)            #  60 minutes from 00:00
 sched.create_pie(6,30, 280, 'green') # 280 minutes from 06:30
 sched.create_pie(15,20, 90, 'blue')  #  90 minutes from 15:20
 
-# Signal ready to smoke test harness when window becomes visible
+# Automated demo support
 require 'tk/demo_support'
-if TkDemo.active?
-  TkDemo.on_visible { TkDemo.finish }
-end
-
-# Auto-record mode (TK_RECORD=1 ruby ... 24hr_clock.rb)
-if ENV['TK_RECORD']
-  # SCREEN_SIZE=420x450 ./scripts/docker-record.sh sample/24hr_clock.rb
+if TkDemo.recording?
   Tk.root.geometry('+0+0')  # Position at top-left for screen capture
-  Tk.after(10000) do
-    # Signal recording to stop before window closes
-    if (pipe = ENV['TK_STOP_PIPE'])
-      File.write(pipe, "1") rescue nil
-    end
-    sleep 1
-    Tk.exit
-  end
+  TkDemo.signal_recording_ready
+  Tk.after(10000) { TkDemo.finish }
+elsif TkDemo.testing?
+  TkDemo.after_idle { TkDemo.finish }
 end
 
 Tk.mainloop

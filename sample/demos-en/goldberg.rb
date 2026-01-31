@@ -1,5 +1,6 @@
 # frozen_string_literal: false
-# tk-record
+# tk-record: title=Tk Goldberg (demonstration)
+require 'tk'
 #
 # Ruby/Tk Goldverg demo (called by 'widget')
 #
@@ -394,6 +395,7 @@ class TkGoldberg_Demo
       if (n & 4).nonzero?          # End of puzzle flag
         @S['mode'].value = :MDONE  # Done mode
         @S['active'] = []          # No more animation
+        TkDemo.finish if defined?(TkDemo) && TkDemo.recording?
         return true
       end
     }
@@ -2027,6 +2029,12 @@ if TkDemo.recording?
   Tk.root.withdraw  # Hide root window, we use a Toplevel
   $goldberg_demo.geometry('+0+0')  # Position at top-left for screen capture
   $goldberg_demo.configure(:cursor => 'none')  # Hide cursor for recording
-  Tk.after(1000) { $goldberg_instance.start }
+  TkDemo.signal_recording_ready
+  Tk.after(500) { $goldberg_instance.start }
+end
+
+# Run mainloop when executed standalone (not when loaded by widget demo launcher)
+if __FILE__ == $0
+  Tk.root.withdraw  # Hide root window, we use a Toplevel
   Tk.mainloop
 end

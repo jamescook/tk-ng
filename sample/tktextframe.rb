@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=500x450
+# tk-record: title=Text Frame Demo
 #
 #  tktextframe.rb : a sample of TkComposite
 #
@@ -219,6 +219,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Text Frame Demo')
   TkLabel.new(:text=>'TkTextFrame is an example of Tk::ScrollbarComposite module.').pack
   f = TkFrame.new.pack('fill'=>'x')
   #t = TkTextFrame.new.pack
@@ -289,7 +290,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       puts "TkComposite scrollbar demo"
 

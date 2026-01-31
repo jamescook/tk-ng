@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=480x400
+# tk-record: title=Message Catalog Demo
 
 require 'tk'
 
+Tk.root.title('Message Catalog Demo')
 Tk.root.geometry('480x400')
 
 demo_dir = File.dirname($0)

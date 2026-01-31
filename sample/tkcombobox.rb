@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=320x480
+# tk-record: title=Combobox Demo
 #
 #  tkcombobox.rb : auto scrollbox & combobox
 #
@@ -479,6 +479,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Combobox Demo')
   Tk.root.geometry('320x480')
 
 # e0 = Tk::RbWidget::Combobox.new.pack
@@ -519,7 +520,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       Tk.after(TkDemo.delay) { TkDemo.finish }
     }

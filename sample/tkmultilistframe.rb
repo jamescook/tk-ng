@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=400x300
+# tk-record: title=Multi List Frame
 #
 # tkmultilistframe.rb : multiple listbox widget on scrollable frame
 #                       by Hidetoshi NAGAI (nagai@ai.kyutech.ac.jp)
@@ -907,6 +907,7 @@ end
 # test
 ################################################
 if __FILE__ == $0
+  Tk.root.title('Multi List Frame')
   l = TkMultiListFrame.new(nil, 200,
                            [ ['L1', 200, proc{p 'click L1'}],
                              ['L2', 100],
@@ -943,7 +944,7 @@ if __FILE__ == $0
   require 'tk/demo_support'
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       puts "rows inserted"
 

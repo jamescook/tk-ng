@@ -807,16 +807,15 @@ namespace :docker do
   end
 
   # Scan sample files for # tk-record magic comment
-  # Format: # tk-record: screen_size=420x450, codec=vp9
+  # Format: # tk-record: title=My Demo, codec=vp9
+  # Window geometry is queried dynamically from the demo via TkDemo.signal_recording_ready
   def find_recordable_samples
-    defaults = { 'screen_size' => '850x700' }
-
     Dir['sample/**/*.rb'].filter_map do |path|
       first_lines = File.read(path, 500) # Read enough to find the comment
       match = first_lines.match(/^#\s*tk-record(?::\s*(.+))?$/)
       next unless match
 
-      options = defaults.dup
+      options = {}
       if match[1]
         match[1].split(',').each do |pair|
           key, value = pair.strip.split('=', 2)
@@ -851,18 +850,172 @@ namespace :docker do
 
     demos.each do |demo|
       sample = demo['sample']
-      screen_size = demo['screen_size']
       codec = ENV['CODEC'] || demo['codec'] || 'x264'
       name = demo['name']  # Optional custom output name
 
       puts
-      puts "Recording #{sample} (#{screen_size}, #{codec})..."
-      env = "SCREEN_SIZE=#{screen_size} CODEC=#{codec}"
+      puts "Recording #{sample} (#{codec})..."
+      env = "CODEC=#{codec}"
       env += " NAME=#{name}" if name
       sh "#{env} ./scripts/docker-record.sh #{sample}"
     end
 
     puts "Done! Recordings in: recordings/"
+  end
+end
+
+namespace :windows do
+  desc "Record demos on Windows using gdigrab. DEMO=sample/foo.rb, CODEC=x264|vp9"
+  task :record do
+    unless Gem.win_platform?
+      puts "This task is Windows-only. For Linux/Docker, use:"
+      puts "  ./scripts/record-sample.sh sample/foo.rb"
+      puts "  rake docker:record_demos"
+      exit 1
+    end
+
+    require 'fileutils'
+    require 'socket'
+    require 'timeout'
+    require 'open3'
+    FileUtils.mkdir_p('recordings')
+
+    demos = if ENV['DEMO']
+              find_recordable_samples.select { |d| d['sample'] == ENV['DEMO'] }
+            else
+              find_recordable_samples
+            end
+
+    if demos.empty?
+      puts "No recordable samples found. Add '# tk-record: title=...' comment to samples."
+      next
+    end
+
+    demos.each do |demo|
+      sample = demo['sample']
+      codec = ENV['CODEC'] || demo['codec'] || 'x264'
+      name = demo['name']
+      window_title = demo['title']
+
+      unless window_title
+        puts "SKIP #{sample}: No title= in tk-record comment (required for gdigrab)"
+        next
+      end
+
+      puts
+      puts "Recording #{sample} (#{codec})..."
+
+      # Build output filename
+      basename = name || File.basename(sample, '.rb')
+      ext = (codec == 'vp9') ? 'webm' : 'mp4'
+      output = "recordings/#{basename}.#{ext}"
+      thumbnail = "recordings/#{basename}.png"
+
+      # Codec options
+      codec_opts = case codec
+                   when 'vp9' then '-c:v libvpx-vp9 -crf 30 -b:v 0'
+                   when 'x264', 'h264' then '-c:v libx264 -preset fast -crf 23'
+                   else raise "Unknown codec: #{codec}"
+                   end
+
+      # Create socket server to receive signals from demo
+      stop_server = TCPServer.new('127.0.0.1', 0)
+      stop_port = stop_server.addr[1]
+
+      # Start sample in background with stop port
+      sample_pid = spawn(
+        { 'TK_RECORD' => '1', 'TK_STOP_PORT' => stop_port.to_s, 'TK_THUMBNAIL_PATH' => thumbnail },
+        RbConfig.ruby, '-Ilib', '-rtk', sample
+      )
+
+      # Wait for "ready" signal with geometry (e.g., "R:640x480")
+      ready_socket = stop_server.accept rescue nil
+      ready_data = ready_socket&.read(20)
+      ready_socket&.close
+
+      width, height = nil, nil
+      if ready_data =~ /R:(\d+)x(\d+)/
+        width, height = $1.to_i, $2.to_i
+        puts "  Window geometry: #{width}x#{height}"
+      end
+
+      # gdigrab captures at screen DPI, but Tk renders at logical size
+      # Use crop filter to extract just the window content from the top-left
+      crop_filter = (width && height && width > 0) ? ['-vf', "crop=#{width}:#{height}:0:0"] : []
+
+      ffmpeg_cmd = [
+        'ffmpeg', '-y',
+        '-f', 'gdigrab',
+        '-framerate', '30',
+        '-i', "title=#{window_title}",
+        *crop_filter,
+        *codec_opts.split,
+        output
+      ]
+
+      ffmpeg_stdin, ffmpeg_stdout, ffmpeg_stderr, ffmpeg_thread = Open3.popen3(*ffmpeg_cmd)
+
+      # Wait for stop signal (with timeout) or sample exit
+      demo_socket = nil
+      stop_thread = Thread.new { demo_socket = stop_server.accept rescue nil }
+      begin
+        Timeout.timeout(120) do
+          loop do
+            break if stop_thread.join(0.5)  # Stop signal received
+            break unless Process.waitpid(sample_pid, Process::WNOHANG).nil?  # Process exited
+          end
+        end
+      rescue Timeout::Error
+        puts "  Recording timeout (120s)"
+      ensure
+        stop_server.close rescue nil
+      end
+
+      # Gracefully stop ffmpeg by sending 'q' to stdin
+      sleep 0.5
+      begin
+        ffmpeg_stdin.puts 'q'
+      rescue Errno::EPIPE
+        # ffmpeg already exited (window closed)
+      end
+      ffmpeg_stdin.close rescue nil
+      ffmpeg_thread.join(10)  # Wait up to 10s for ffmpeg to finalize
+      Process.kill('KILL', ffmpeg_thread.pid) rescue nil if ffmpeg_thread.alive?
+
+      # Signal demo it can exit now (send byte and close)
+      if demo_socket
+        demo_socket.write('x') rescue nil
+        demo_socket.close rescue nil
+      end
+
+      # Wait for sample to exit
+      Process.waitpid(sample_pid, 0) rescue nil
+
+      puts "Done: #{output}"
+    end
+
+    puts
+    puts "Recordings saved to: recordings/"
+  end
+end
+
+# Helper to find recordable samples (also used by docker:record_demos)
+# Window geometry is queried dynamically from demo via TkDemo.signal_recording_ready
+def find_recordable_samples
+  Dir['sample/**/*.rb'].filter_map do |path|
+    first_lines = File.read(path, 500)
+    match = first_lines.match(/^#\s*tk-record(?::\s*(.+))?$/)
+    next unless match
+
+    options = {}
+    if match[1]
+      match[1].split(',').each do |pair|
+        key, value = pair.strip.split('=', 2)
+        options[key.strip] = value&.strip if key
+      end
+    end
+    options['sample'] = path
+    options
   end
 end
 

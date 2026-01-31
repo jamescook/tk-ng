@@ -1,5 +1,5 @@
 # frozen_string_literal: false
-# tk-record: screen_size=640x480
+# tk-record: title=Scroll Frame Demo
 #
 #  Tk::RbWidget::ScrollFrame class
 #
@@ -171,14 +171,9 @@ class Tk::RbWidget::ScrollFrame < TkFrame
     @frame.bindinfo(*args)
   end
 
-  # set width of scrollbar
+  # set width of scrollbar (no-op for ttk scrollbars)
   def scrollbarwidth(width = nil)
-    if width
-      @h_scroll.width(width)
-      @v_scroll.width(width)
-    else
-      @h_scroll.width
-    end
+    # ttk scrollbars don't support width option
   end
 
   # vertical scrollbar : ON/OFF
@@ -213,6 +208,7 @@ end
 
 # test
 if __FILE__ == $0
+  Tk.root.title('Scroll Frame Demo')
   Tk.root.geometry('640x480')
 
   require 'tk/demo_support'
@@ -254,7 +250,7 @@ if __FILE__ == $0
   Tk.after(base_delay * 5){ puts "hscroll on"; f.hscroll(true) }
 
   if TkDemo.active?
-    TkDemo.on_visible {
+    TkDemo.after_idle {
       puts "UI loaded"
       # Wait for demo sequence to complete, then finish
       Tk.after(base_delay * 6) { TkDemo.finish }

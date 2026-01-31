@@ -91,8 +91,8 @@ module TkDemo
         next if @demo_started
         @demo_started = true
 
-        # Capture thumbnail when recording
-        capture_thumbnail if recording?
+        # Signal recording harness that window is ready (also captures thumbnail)
+        signal_recording_ready if recording?
 
         # Safety timeout to prevent stuck demos
         Tk.after(timeout * 1000) {
@@ -123,8 +123,8 @@ module TkDemo
         next if @demo_started
         @demo_started = true
 
-        # Capture thumbnail when recording
-        capture_thumbnail if recording?
+        # Signal recording harness that window is ready (also captures thumbnail)
+        signal_recording_ready if recording?
 
         # Safety timeout to prevent stuck demos
         Tk.after(timeout * 1000) {
@@ -134,6 +134,41 @@ module TkDemo
 
         block.call
       }
+    end
+
+    # Signal recording harness that window is visible and ready to record
+    # Polls until geometry is valid, then captures thumbnail and signals
+    # Called automatically by on_visible/after_idle when recording
+    def signal_recording_ready(window: Tk.root)
+      return unless (port = ENV['TK_STOP_PORT'])
+      return if @_recording_ready_sent
+
+      try_signal = proc do
+        Tk.update_idletasks
+        width = window.winfo_width
+        height = window.winfo_height
+
+        if width >= 10 && height >= 10
+          @_recording_ready_sent = true
+          @_initial_geometry = [width, height]
+
+          # Capture thumbnail now that geometry is valid
+          capture_thumbnail
+
+          begin
+            sock = TCPSocket.new('127.0.0.1', port.to_i)
+            sock.write("R:#{width}x#{height}")
+            sock.close
+          rescue StandardError
+            # Ignore errors
+          end
+        else
+          # Geometry not ready, try again in 10ms
+          Tk.after(10) { try_signal.call }
+        end
+      end
+
+      try_signal.call
     end
 
     # Signal test harness that sample is ready (without exiting)
@@ -153,21 +188,36 @@ module TkDemo
     end
 
     # Signal completion and exit cleanly
-    # Handles both TK_READY_PORT (test) and TK_STOP_PIPE (record)
+    # Handles TK_READY_PORT (test) and TK_STOP_PORT (record)
     def finish
       signal_ready
 
-      # Signal recording harness
-      if (pipe = ENV['TK_STOP_PIPE'])
-        begin
-          File.write(pipe, "1")
-        rescue StandardError
-          # Ignore errors (pipe may not exist)
+      # Check if geometry changed during demo
+      if recording? && @_initial_geometry
+        Tk.update_idletasks
+        width = Tk.root.winfo_width
+        height = Tk.root.winfo_height
+        if [width, height] != @_initial_geometry
+          $stderr.puts "TkDemo: geometry changed from #{@_initial_geometry.join('x')} to #{width}x#{height}"
         end
       end
 
-      # Exit cleanly outside of event processing
-      Tk.after_idle { Tk.root.destroy }
+      # Signal recording harness via socket and wait for "ok to exit"
+      if (port = ENV['TK_STOP_PORT'])
+        Thread.new do
+          begin
+            sock = TCPSocket.new('127.0.0.1', port.to_i)
+            sock.read(1)  # Block until harness sends byte or closes
+            sock.close
+          rescue StandardError
+            # Ignore errors
+          end
+          Tk.after_idle { Tk.root.destroy }
+        end
+      else
+        # Exit cleanly outside of event processing
+        Tk.after_idle { Tk.root.destroy }
+      end
     end
   end
 end

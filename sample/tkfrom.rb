@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=640x200
+# tk-record: title=Tk From Demo
 
 require 'date'
 
@@ -147,8 +147,9 @@ end
 require 'tk/demo_support'
 
 if TkDemo.active?
+  Tk.root.title('Tk From Demo')
   Tk.root.geometry('640x200')
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     puts "mail count: #{$outcount}"
     Tk.after(TkDemo.delay) { TkDemo.finish }

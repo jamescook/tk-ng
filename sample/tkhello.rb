@@ -1,7 +1,8 @@
 # frozen_string_literal: false
-# tk-record: screen_size=320x240
+# tk-record: title=Tk Hello
 require "tk"
 
+Tk.root.title('Tk Hello')
 Tk.root.geometry('320x240')
 
 hello_btn = TkButton.new(nil,
@@ -15,7 +16,7 @@ TkButton.new(nil,
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     hello_btn.invoke
     Tk.after(TkDemo.delay(test: 200, record: 500)) {
       hello_btn.invoke

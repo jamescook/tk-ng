@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=320x240
+# tk-record: title=timer sample
 # This script is a re-implementation of tktimer.rb with TkTimer(TkAfter) class.
 
 require "tk"
@@ -65,7 +65,7 @@ Tk.root.bind(ev_quit, proc{Tk.exit}).focus
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "timer running"
     # Timer already started, let it run
     Tk.after(TkDemo.delay(test: 300, record: 2000)) {

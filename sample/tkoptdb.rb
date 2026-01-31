@@ -69,7 +69,7 @@ TkFrame.new(:class=>'BtnFrame2'){|f|
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     puts "TkOptionDB demo - button styling from resource file"
     Tk.after(TkDemo.delay) { TkDemo.finish }

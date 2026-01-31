@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: false
-# tk-record: screen_size=320x480
+# tk-record: title=Tk Browse
 #
 # This script generates a directory browser, which lists the working
 # directory and allows you to open files or subdirectories by
@@ -78,6 +78,7 @@ else
   dir="."
 end
 
+Tk.root.title('Tk Browse')
 Tk.root.geometry('320x480')
 browsedir(dir)
 
@@ -85,7 +86,7 @@ browsedir(dir)
 require 'tk/demo_support'
 
 if TkDemo.active?
-  TkDemo.on_visible {
+  TkDemo.after_idle {
     puts "UI loaded"
     Tk.after(TkDemo.delay) { TkDemo.finish }
   }
