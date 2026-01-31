@@ -83,15 +83,18 @@ module TkDemo
     # @param timeout [Integer] safety timeout in seconds (default: 60)
     # @see after_idle for cases where UI is created before binding can be set up
     def on_visible(timeout: 60, &block)
+      $stderr.puts "DEBUG on_visible: called, active?=#{active?}, recording?=#{recording?}"
       return unless active?
       raise ArgumentError, "block required" unless block
 
       @demo_started = false
       Tk.root.bind('Visibility') {
+        $stderr.puts "DEBUG on_visible: Visibility event fired, @demo_started=#{@demo_started}"
         next if @demo_started
         @demo_started = true
 
         # Signal recording harness that window is ready (also captures thumbnail)
+        $stderr.puts "DEBUG on_visible: calling signal_recording_ready"
         signal_recording_ready if recording?
 
         # Safety timeout to prevent stuck demos
@@ -115,15 +118,18 @@ module TkDemo
     # @param timeout [Integer] safety timeout in seconds (default: 60)
     # @see on_visible (preferred when binding can be set up before UI creation)
     def after_idle(timeout: 60, &block)
+      $stderr.puts "DEBUG after_idle: called, active?=#{active?}, recording?=#{recording?}"
       return unless active?
       raise ArgumentError, "block required" unless block
 
       @demo_started = false
       Tk.after_idle {
+        $stderr.puts "DEBUG after_idle: callback fired, @demo_started=#{@demo_started}"
         next if @demo_started
         @demo_started = true
 
         # Signal recording harness that window is ready (also captures thumbnail)
+        $stderr.puts "DEBUG after_idle: calling signal_recording_ready"
         signal_recording_ready if recording?
 
         # Safety timeout to prevent stuck demos
@@ -140,8 +146,10 @@ module TkDemo
     # Polls until geometry is valid, then captures thumbnail and signals
     # Called automatically by on_visible/after_idle when recording
     def signal_recording_ready(window: Tk.root)
+      $stderr.puts "DEBUG signal_recording_ready: TK_STOP_PORT=#{ENV['TK_STOP_PORT'].inspect}"
       return unless (port = ENV['TK_STOP_PORT'])
       return if @_recording_ready_sent
+      $stderr.puts "DEBUG signal_recording_ready: will signal on port #{port}"
 
       try_signal = proc do
         Tk.update_idletasks
@@ -151,16 +159,21 @@ module TkDemo
         if width >= 10 && height >= 10
           @_recording_ready_sent = true
           @_initial_geometry = [width, height]
+          $stderr.puts "DEBUG signal_recording_ready: geometry valid #{width}x#{height}, sending signal"
 
           # Capture thumbnail now that geometry is valid
           capture_thumbnail
 
           begin
+            $stderr.puts "DEBUG signal_recording_ready: connecting to 127.0.0.1:#{port}"
             sock = TCPSocket.new('127.0.0.1', port.to_i)
-            sock.write("R:#{width}x#{height}")
+            msg = "R:#{width}x#{height}"
+            $stderr.puts "DEBUG signal_recording_ready: writing '#{msg}'"
+            sock.write(msg)
             sock.close
-          rescue StandardError
-            # Ignore errors
+            $stderr.puts "DEBUG signal_recording_ready: sent successfully"
+          rescue StandardError => e
+            $stderr.puts "DEBUG signal_recording_ready: ERROR #{e.class}: #{e.message}"
           end
         else
           # Geometry not ready, try again in 10ms

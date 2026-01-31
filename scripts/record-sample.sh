@@ -78,13 +78,24 @@ STOP_PORT=$(find_free_port)
 # Thumbnail path (same name as output, .png extension)
 THUMBNAIL="${OUTPUT%.*}.png"
 
-# Start app with stop port
+# Start nc listener, capture output to temp file
+echo "Waiting for ready signal on port $STOP_PORT..."
+READY_FILE=$(mktemp)
+nc -l -p "$STOP_PORT" > "$READY_FILE" &
+NC_PID=$!
+
+# Poll until nc is actually listening
+while ! ss -tln | grep -q ":$STOP_PORT "; do sleep 0.01; done
+
+# Now start the app
 TK_RECORD=1 TK_STOP_PORT="$STOP_PORT" TK_THUMBNAIL_PATH="$THUMBNAIL" $RUBY_CMD -rtk "$SAMPLE" &
 APP_PID=$!
 
-# Wait for "ready" signal with geometry (e.g., "R:320x240")
-echo "Waiting for ready signal..."
-READY_DATA=$({ nc -l -p "$STOP_PORT" 2>/dev/null || nc -l "$STOP_PORT" 2>/dev/null; } | head -c20)
+# Wait for nc to finish (client connected and disconnected)
+wait $NC_PID 2>/dev/null
+READY_DATA=$(head -c20 "$READY_FILE")
+rm -f "$READY_FILE"
+echo "DEBUG: READY_DATA='$READY_DATA'"
 if [[ "$READY_DATA" =~ R:([0-9]+)x([0-9]+) ]]; then
     WIN_WIDTH="${BASH_REMATCH[1]}"
     WIN_HEIGHT="${BASH_REMATCH[2]}"

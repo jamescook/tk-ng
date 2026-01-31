@@ -181,9 +181,10 @@ class ThreadingDemo
     @files.reject! { |f| f.include?('/.git/') }
     @files.sort!
 
-    # Limit files via --max-files=N or DEMO_MAX_FILES env var
+    # Limit files via --max-files=N, DEMO_MAX_FILES env var, or auto-limit in demo mode
     max_files = ARGV.find { |a| a.start_with?('--max-files=') }&.split('=')&.last&.to_i
     max_files ||= ENV['DEMO_MAX_FILES']&.to_i
+    max_files ||= 50 if ENV['TK_RECORD'] || ENV['TK_READY_PORT']  # Demo/test mode
     @files = @files.first(max_files) if max_files && max_files > 0
 
     @file_count_label.text = "#{@files.size} files"
@@ -422,6 +423,7 @@ if TkDemo.active?
       # Quick mode: just run Thread mode once for smoke test
       quick_mode = ARGV.include?('--quick')
 
+      puts "[DEMO] Threading demo starting (Ruby #{RUBY_VERSION}, Ractor: #{RACTOR_AVAILABLE})"
       if quick_mode
         puts "[DEMO] Quick smoke test (Thread mode only)"
       else
@@ -439,15 +441,21 @@ if TkDemo.active?
       chunk_var.value = 100
 
       # Test matrix: [mode, pause_enabled]
+      # Skip 'None' mode - it freezes UI, not useful for demo
+      # Skip Ractor on Ruby < 4 - not fully supported
       tests = if quick_mode
         [['Thread', false]]  # Just one quick test
-      else
+      elsif RUBY_VERSION.to_f >= 4.0
         [
-          ['None', false],
           ['Thread', false],
           ['Thread', true],
           ['Ractor', false],
           ['Ractor', true]
+        ]
+      else
+        [
+          ['Thread', false],
+          ['Thread', true]
         ]
       end
       test_index = 0
@@ -455,7 +463,7 @@ if TkDemo.active?
       run_next_test = proc do
         if test_index < tests.size
           mode, pause = tests[test_index]
-          puts "[DEMO] #{mode}#{pause ? ' +pause' : ''}"
+          puts "[DEMO] ====== Running mode: #{mode}#{pause ? ' +pause' : ''} (#{test_index + 1}/#{tests.size}) ======"
 
           # Configure mode and pause
           mode_combo.set(mode)
@@ -469,6 +477,7 @@ if TkDemo.active?
             if demo.instance_variable_get(:@running)
               Tk.after(200, &check_done)
             else
+              puts "[DEMO] #{mode} complete"
               test_index += 1
               if test_index < tests.size
                 Tk.after(200) {

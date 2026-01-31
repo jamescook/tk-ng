@@ -2029,7 +2029,7 @@ if TkDemo.recording?
   Tk.root.withdraw  # Hide root window, we use a Toplevel
   $goldberg_demo.geometry('+0+0')  # Position at top-left for screen capture
   $goldberg_demo.configure(:cursor => 'none')  # Hide cursor for recording
-  TkDemo.signal_recording_ready
+  TkDemo.signal_recording_ready(window: $goldberg_demo)
   Tk.after(500) { $goldberg_instance.start }
 end
 

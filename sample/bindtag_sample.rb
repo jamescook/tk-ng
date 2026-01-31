@@ -127,7 +127,10 @@ b6 = TkButton.new(:text=>'set binding to TkButton class',
 # Smoke test support
 require 'tk/demo_support'
 if TkDemo.active?
-  TkDemo.after_idle {
+  demo_ran = false
+  run_demo = proc {
+    next if demo_ran
+    demo_ran = true
     # Simulate mouse clicks to trigger bindings AND invoke command
     [b1, b2, b3, b4, b5, b6].each do |btn|
       btn.event_generate('ButtonPress-1')
@@ -136,6 +139,11 @@ if TkDemo.active?
     end
     TkDemo.finish
   }
+
+  # on_visible works on Linux, after_idle works on Windows
+  # Both schedule with delay to ensure widgets are ready
+  TkDemo.on_visible { Tk.after(50, &run_demo) }
+  TkDemo.after_idle { Tk.after(50, &run_demo) }
 end
 
 # start event-loop
