@@ -10,6 +10,7 @@
 #include <ruby.h>
 #include <tcl.h>
 #include <tk.h>
+#include "tcl9compat.h"
 
 /* Interp struct stored in Ruby object */
 struct tcltk_interp {
