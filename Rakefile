@@ -199,7 +199,7 @@ namespace :trofs do
           sh './configure'
         end
       end
-      sh 'make'
+      sh 'make binaries'
     end
   end
 
