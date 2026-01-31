@@ -12,6 +12,14 @@ Fork of [ruby/tk](https://github.com/ruby/tk) with Tcl/Tk 8.6 and 9.x support. M
 - Background work API for responsive UIs (Thread/Ractor modes)
 - Visual regression testing for both Tcl versions
 
+## Supported Platforms
+
+- **macOS** - Tested on macOS with Homebrew Tcl/Tk
+- **Linux** - Tested on Ubuntu/Debian with system Tcl/Tk
+- **Windows** - Tested on Windows with MSYS2/RubyInstaller (see [Windows Setup](docs/WINDOWS_SETUP.md))
+
+Requires Ruby 3.2+ and Tcl/Tk 8.6 or 9.x.
+
 ## Installation
 
 Add this line to your application's Gemfile:
