@@ -1,0 +1,96 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # Run weekly on Mondays at 5am UTC
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+    # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Sync from upstream ruby/tk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: upstream
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add ruby-tk https://github.com/ruby/tk.git || true
+          git remote -v
+
+      - name: Fetch upstream
+        run: |
+          echo "Fetching from ruby/tk..."
+          git fetch ruby-tk master
+          echo ""
+          echo "Our 'upstream' branch:"
+          git log --oneline -1 HEAD
+          echo ""
+          echo "ruby/tk master:"
+          git log --oneline -1 ruby-tk/master
+
+      - name: Check for changes
+        id: check
+        run: |
+          LOCAL=$(git rev-parse HEAD)
+          REMOTE=$(git rev-parse ruby-tk/master)
+          echo "local=$LOCAL" >> $GITHUB_OUTPUT
+          echo "remote=$REMOTE" >> $GITHUB_OUTPUT
+
+          if [ "$LOCAL" = "$REMOTE" ]; then
+            echo "status=up-to-date" >> $GITHUB_OUTPUT
+            echo "Already up to date with ruby/tk"
+          else
+            BEHIND=$(git rev-list --count HEAD..ruby-tk/master)
+            echo "status=behind" >> $GITHUB_OUTPUT
+            echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+            echo "Our 'upstream' branch is $BEHIND commits behind ruby/tk"
+            echo ""
+            echo "New commits from ruby/tk:"
+            git log --oneline HEAD..ruby-tk/master
+          fi
+
+      - name: Fast-forward upstream branch
+        if: steps.check.outputs.status == 'behind'
+        run: |
+          echo "Fast-forwarding to ruby-tk/master..."
+          git merge --ff-only ruby-tk/master
+          echo ""
+          echo "Now at:"
+          git log --oneline -1
+
+      - name: Push to origin
+        if: steps.check.outputs.status == 'behind'
+        run: |
+          echo "Pushing updated 'upstream' branch to origin..."
+          git push origin upstream
+          echo "Done!"
+
+      - name: Summary
+        run: |
+          echo "## Upstream Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check.outputs.status }}" = "up-to-date" ]; then
+            echo "Already up to date with ruby/tk" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Synced ${{ steps.check.outputs.behind }} commits from ruby/tk" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### New commits" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            git log --oneline ${{ steps.check.outputs.local }}..${{ steps.check.outputs.remote }} >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
