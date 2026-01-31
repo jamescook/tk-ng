@@ -314,6 +314,11 @@ TCL_VERSION=8.6 rake docker:test
 
 To install this gem onto your local machine, run `bundle exec rake install`.
 
+## Known Limitations
+
+- **fork()** - Calling `fork()` after `require 'tk'` is unsupported. Crashes on macOS; may work on Linux if you fork *before* requiring Tk.
+- **Ractors on Ruby 3.x** - Ractor mode for `Tk.background_work` requires Ruby 4+ (no non-blocking `Ractor.receive` in 3.x). Use thread mode on Ruby 3.x (the default).
+
 ## Contributing
 
 Contributions are welcome on GitHub at https://github.com/jamescook/tk-ng.

@@ -338,6 +338,8 @@ class TestSamples < Minitest::Test
   end
 
   def test_fontchooser_demo
+    # Native font dialog blocks on Windows CI
+    skip "Native font dialog blocks on Windows CI" if Gem.win_platform? && ENV['CI']
     success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/fontchooser_demo.rb")
 
     assert success, "Sample failed\nSTDOUT: #{stdout}\nSTDERR: #{stderr}"
