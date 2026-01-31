@@ -1,0 +1,62 @@
+name: Windows CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      ruby_version:
+        description: 'Ruby version to test'
+        required: true
+        default: '3.4'
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-windows:
+    name: test (ruby ${{ github.event.inputs.ruby_version }}, Windows)
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ github.event.inputs.ruby_version }}
+        bundler-cache: true
+
+    - name: Install Tcl/Tk via MSYS2
+      shell: bash
+      run: |
+        # Find the MSYS2 root from Ruby's ridk
+        MSYS2_ROOT=$(ruby -e "puts RbConfig::CONFIG['prefix']")/msys64
+        echo "MSYS2_ROOT=$MSYS2_ROOT"
+
+        # Install Tcl/Tk and image processing packages
+        $MSYS2_ROOT/usr/bin/pacman -S --needed --noconfirm \
+          mingw-w64-ucrt-x86_64-tcl \
+          mingw-w64-ucrt-x86_64-tk \
+          mingw-w64-ucrt-x86_64-tkimg \
+          mingw-w64-ucrt-x86_64-ghostscript \
+          mingw-w64-ucrt-x86_64-imagemagick
+
+        # Tcl expects gswin64c.exe but MSYS2 installs as gs.exe
+        ln -s $MSYS2_ROOT/ucrt64/bin/gs.exe $MSYS2_ROOT/ucrt64/bin/gswin64c.exe
+
+    - name: Compile native extension
+      run: bundle exec rake compile
+
+    - name: Run tests
+      run: bundle exec rake test
+      continue-on-error: true  # Some tests may fail on Windows
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-windows-ruby${{ github.event.inputs.ruby_version }}
+        path: |
+          coverage/
+          screenshots/
+        retention-days: 7

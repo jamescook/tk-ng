@@ -6,8 +6,7 @@ Fork of [ruby/tk](https://github.com/ruby/tk) with Tcl/Tk 8.6 and 9.x support. M
 
 ## Features
 
-- Full Tcl/Tk 9.x compatibility
-- Backward compatible with Tcl/Tk 8.6
+- Full Tcl/Tk 8.6 and 9.x compatibility
 - New Tcl 9 widget options (e.g., `placeholder` for Entry/Combobox)
 - Background work API for responsive UIs (Thread/Ractor modes)
 - Visual regression testing for both Tcl versions
