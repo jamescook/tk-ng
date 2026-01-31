@@ -53,9 +53,15 @@ jobs:
     - name: Compile native extension
       run: bundle exec rake compile
 
+    - name: Compile trofs extension
+      run: bundle exec rake compile:trofs
+
     - name: Run tests
       run: bundle exec rake test TESTOPTS="-v"
       continue-on-error: true  # Some tests may fail on Windows
+      env:
+        TCLLIBPATH: ${{ github.workspace }}/ext/trofs
+        TROFS_LIBRARY: ${{ github.workspace }}/ext/trofs/library
 
     - name: Upload test results
       if: always()

@@ -73,6 +73,9 @@ class TestTkFontchooser < Minitest::Test
   end
 
   def test_fontchooser_show_hide
+    # NOTE: Native font dialog _maybe_ blocks waiting for user input on Windows CI.
+    # On local VM this works but not in Github Windows runner
+    skip "Native font dialog blocks on Windows CI" if Gem.win_platform? && ENV['CI']
     assert_tk_app("TkFont::Chooser show and hide", method(:app_show_hide))
   end
 
