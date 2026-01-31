@@ -63,9 +63,13 @@ class TkWorker
       cleanup_stale_files
     end
 
-    def run_test(code, pipe_capture: false)
+    # Default timeout for test execution (can be overridden via TK_TEST_TIMEOUT env var)
+    DEFAULT_TIMEOUT = 60
+
+    def run_test(code, pipe_capture: false, timeout: nil)
       start unless running?
-      send_command('run', { code: code, pipe_capture: pipe_capture })
+      timeout ||= Integer(ENV['TK_TEST_TIMEOUT'] || DEFAULT_TIMEOUT)
+      send_command('run', { code: code, pipe_capture: pipe_capture }, timeout: timeout)
     end
 
     def running?
@@ -74,10 +78,20 @@ class TkWorker
 
     private
 
-    def send_command(cmd, data = nil)
+    def send_command(cmd, data = nil, timeout: nil)
       msg = JSON.generate({ cmd: cmd, data: data })
       @stdin_w.puts(msg)
       @stdin_w.flush
+
+      # Wait for response with timeout
+      if timeout
+        ready = IO.select([@stdout_r], nil, nil, timeout)
+        unless ready
+          # Kill the worker on timeout
+          Process.kill('KILL', @wait_thread.pid) rescue nil
+          raise "Test timed out after #{timeout}s"
+        end
+      end
 
       response = @stdout_r.gets
       unless response

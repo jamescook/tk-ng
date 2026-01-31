@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+# Force unbuffered output on Windows (otherwise test progress doesn't stream)
+if Gem.win_platform?
+  $stdout.sync = true
+  $stderr.sync = true
+end
+
 # Common test helper - loads SimpleCov for coverage, then minitest.
 # All test files should require this FIRST.
 #

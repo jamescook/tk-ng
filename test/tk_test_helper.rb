@@ -46,7 +46,12 @@ module TkTestHelper
   #     root.destroy
   #   RUBY
   #
-  def tk_subprocess(code, coverage: true)
+  # Default timeout for subprocess tests (can be overridden via TK_TEST_TIMEOUT env var)
+  DEFAULT_SUBPROCESS_TIMEOUT = 60
+
+  def tk_subprocess(code, coverage: true, timeout: nil)
+    timeout ||= Integer(ENV['TK_TEST_TIMEOUT'] || DEFAULT_SUBPROCESS_TIMEOUT)
+
     # Build load path from current process
     load_paths = $LOAD_PATH.select { |p| p.include?(File.dirname(__dir__)) }
     load_path_args = load_paths.flat_map { |p| ["-I", p] }
@@ -59,11 +64,38 @@ module TkTestHelper
     env['VISUAL'] = '1' if ENV['VISUAL']
     env['COVERAGE'] = '1' if ENV['COVERAGE']
 
-    stdout, stderr, status = Open3.capture3(
+    stdin, stdout, stderr, wait_thr = Open3.popen3(
       env, RbConfig.ruby, *load_path_args, "-e", full_code
     )
+    stdin.close
 
-    [status.success?, stdout, stderr, status]
+    pid = wait_thr.pid
+    deadline = Time.now + timeout
+    status = nil
+
+    # Poll for completion with timeout
+    while Time.now < deadline
+      if wait_thr.join(0.1)
+        status = wait_thr.value
+        break
+      end
+    end
+
+    unless status
+      # Timed out - kill the process
+      Process.kill('KILL', pid) rescue nil
+      wait_thr.join
+      stdout.close
+      stderr.close
+      return [false, "", "Test timed out after #{timeout}s", nil]
+    end
+
+    out = stdout.read
+    err = stderr.read
+    stdout.close
+    stderr.close
+
+    [status.success?, out, err, status]
   end
 
   # Assertion wrapper for tk_subprocess.
@@ -256,14 +288,14 @@ module TkTestHelper
   #     raise "wrong" unless label.cget(:text) == "Hello"
   #   end
   #
-  def assert_tk_app(message, app_method, pipe_capture: false)
+  def assert_tk_app(message, app_method, pipe_capture: false, timeout: nil)
     require_relative 'tk_worker'
 
     # Extract method body (skip def line and closing end)
     source_lines = app_method.source.lines
     body = source_lines[1..-2].join
 
-    result = TkWorker.run_test(body, pipe_capture: pipe_capture)
+    result = TkWorker.run_test(body, pipe_capture: pipe_capture, timeout: timeout)
 
     # Show warnings (interpreter cleanup, etc.) even on success
     if result[:warnings]&.any?
