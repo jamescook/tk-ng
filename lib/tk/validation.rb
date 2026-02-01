@@ -1,7 +1,8 @@
 # frozen_string_literal: false
 
 module Tk
-  # Validation support module for entry, spinbox, and so on.
+  # @!visibility private
+  # Mixin for widgets supporting validation commands.
   module ValidateConfigure
     def self.__def_validcmd(scope, klass, keys=nil)
       keys = klass._config_keys unless keys
@@ -203,10 +204,42 @@ module Tk
   end
 end
 
+# Wraps a validation callback for use with Entry/Spinbox widgets.
+#
+# Normally you don't need to use this class directly - just pass a
+# proc to the `:validatecommand` option. But for advanced cases,
+# you can create a TkValidateCommand explicitly.
+#
+# @example Direct usage (rarely needed)
+#   vcmd = TkValidateCommand.new(proc { |args| args.value.length <= 10 })
+#   entry.configure(validatecommand: vcmd)
+#
+# @see TkValidation Module included by Entry/Spinbox
 class TkValidateCommand
   include TkComm
   extend  TkComm
 
+  # Arguments passed to validation callbacks.
+  #
+  # When your callback receives a ValidateArgs object, you can access
+  # all the validation context:
+  #
+  # @!attribute [r] action
+  #   @return [Integer] 1=insert, 0=delete, -1=focus/forced/textvariable
+  # @!attribute [r] index
+  #   @return [Integer, nil] Character index of edit (nil if N/A)
+  # @!attribute [r] current
+  #   @return [String] Current value before the edit
+  # @!attribute [r] value
+  #   @return [String] Value if edit is accepted
+  # @!attribute [r] string
+  #   @return [String] Text being inserted/deleted
+  # @!attribute [r] type
+  #   @return [String] Validation mode (none/focus/focusin/focusout/key/all)
+  # @!attribute [r] triggered
+  #   @return [String] What triggered: key/focusin/focusout/forced
+  # @!attribute [r] widget
+  #   @return [TkEntry] The entry widget
   class ValidateArgs < TkUtil::CallbackSubst
     KEY_TBL = [
       [ ?d, ?n, :action ],
@@ -330,17 +363,127 @@ class TkValidateCommand
   end
 end
 
+# Input validation support for Entry, Spinbox, and Combobox widgets.
+#
+# This module is automatically included by TkEntry and TkSpinbox.
+# It adds the `:validatecommand` and `:invalidcommand` options.
+#
+# Tk validation lets you control what users can type into entry widgets.
+# A validation callback is called before changes are applied, and can
+# accept or reject the input.
+#
+# ## Validation Modes
+#
+# Set the `:validate` option to control when validation runs:
+#
+# | Mode | When Validated |
+# |------|----------------|
+# | `:none` | Never (default) |
+# | `:focus` | On focus in and focus out |
+# | `:focusin` | On focus in only |
+# | `:focusout` | On focus out only |
+# | `:key` | On every keystroke |
+# | `:all` | On focus changes and keystrokes |
+#
+# ## Validation Callback
+#
+# The `:validatecommand` (or `:vcmd`) callback receives information about
+# the pending change and must return true to accept or false to reject:
+#
+#     entry = TkEntry.new(root,
+#       validate: :key,
+#       validatecommand: [proc { |p| p.match?(/^\d*$/) }, '%P']
+#     )
+#
+# ## Substitution Codes
+#
+# Pass these as extra arguments to receive validation context:
+#
+# | Code | Ruby Symbol | Description |
+# |------|-------------|-------------|
+# | `%d` | `:action` | 1=insert, 0=delete, -1=other |
+# | `%i` | `:index` | Character index of change |
+# | `%P` | `:value` | Value if change is accepted |
+# | `%s` | `:current` | Current value before change |
+# | `%S` | `:string` | Text being inserted/deleted |
+# | `%v` | `:type` | Validation mode setting |
+# | `%V` | `:triggered` | What triggered: key/focusin/focusout/forced |
+# | `%W` | `:widget` | The widget |
+#
+# ## Invalid Command
+#
+# The `:invalidcommand` (or `:invcmd`) callback runs when validation fails:
+#
+#     entry = TkEntry.new(root,
+#       validate: :key,
+#       validatecommand: [proc { |p| p.length <= 10 }, '%P'],
+#       invalidcommand: proc { Tk.bell }
+#     )
+#
+# @example Numeric-only entry
+#   entry = TkEntry.new(root,
+#     validate: :key,
+#     vcmd: [proc { |new_val| new_val.match?(/^\d*$/) }, '%P']
+#   )
+#
+# @example Maximum length
+#   entry = TkEntry.new(root,
+#     validate: :key,
+#     vcmd: [proc { |p| p.length <= 20 }, '%P'],
+#     invcmd: proc { Tk.bell }
+#   )
+#
+# @example Using ValidateArgs object
+#   entry = TkEntry.new(root,
+#     validate: :all,
+#     vcmd: proc { |args|
+#       puts "Action: #{args.action}, New value: #{args.value}"
+#       true
+#     }
+#   )
+#
+# @note Validation is automatically disabled if the callback raises an
+#   error or returns a non-boolean value. Check your callback carefully.
+#
+# @note Combining `:textvariable` with `:validatecommand` can cause issues.
+#   Changes via the variable trigger validation with action=-1.
+#
+# @see TkEntry Entry widget with validation
+# @see TkSpinbox Spinbox widget with validation
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/entry.htm Entry validation docs
 module TkValidation
   include Tk::ValidateConfigure
 
+  # Validation command wrapper for Entry/Spinbox.
   class ValidateCmd < TkValidateCommand
+    # Constants for the `action` field in validation callbacks.
+    #
+    # @example Checking action type
+    #   vcmd = proc { |args|
+    #     case args.action
+    #     when TkValidation::ValidateCmd::Action::Insert
+    #       # User is inserting text
+    #     when TkValidation::ValidateCmd::Action::Delete
+    #       # User is deleting text
+    #     when TkValidation::ValidateCmd::Action::Focus
+    #       # Focus change or forced validation
+    #     end
+    #     true
+    #   }
     module Action
+      # User is inserting text
       Insert = 1
+      # User is deleting text
       Delete = 0
+      # Focus change, forced validation, or textvariable change
       Others = -1
+      # @!visibility private
       Focus  = -1
+      # @!visibility private
       Forced = -1
+      # @!visibility private
       Textvariable = -1
+      # @!visibility private
       TextVariable = -1
     end
   end

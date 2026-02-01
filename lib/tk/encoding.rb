@@ -4,7 +4,8 @@ Tk::Warnings.warn_once(:encoding_require,
   "require 'tk/encoding' is deprecated. Encoding methods are now part of 'tk'. " \
   "Simply use `require 'tk'` instead.")
 
-module Tk # :nocov:
+module Tk
+  # :nocov:
   # @deprecated No longer needed. Modern Tcl (8.1+) and Ruby use UTF-8 natively.
   #   Simply use `require 'tk'` instead of `require 'tk/encoding'`.
   # @!visibility private

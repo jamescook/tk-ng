@@ -17,6 +17,57 @@ require 'tkextlib/bwidget/setup.rb'
 TkPackage.require('BWidget')
 
 module Tk
+  # BWidget toolkit - enhanced widgets for Tk.
+  #
+  # BWidget provides additional widgets beyond standard Tk, including
+  # ComboBox, Tree, NoteBook, and various dialog helpers. Requires the
+  # BWidget Tcl package to be installed.
+  #
+  # ## Installation
+  #
+  # BWidget is available via most Tcl package managers:
+  # - ActiveTcl: included
+  # - Homebrew: `brew install bwidget`
+  # - Linux: `apt install bwidget` or `dnf install bwidget`
+  #
+  # ## Available Widgets
+  #
+  # **Basic Widgets:**
+  # - {Tk::BWidget::Button} - Enhanced button with dynamic help
+  # - {Tk::BWidget::Label} - Label with dynamic help
+  # - {Tk::BWidget::Entry} - Entry with validation
+  # - {Tk::BWidget::ArrowButton} - Directional arrow button
+  #
+  # **Composite Widgets:**
+  # - {Tk::BWidget::ComboBox} - Dropdown selection
+  # - {Tk::BWidget::SpinBox} - Numeric input with arrows
+  # - {Tk::BWidget::Tree} - Hierarchical tree view
+  # - {Tk::BWidget::ListBox} - Enhanced list widget
+  # - {Tk::BWidget::NoteBook} - Tabbed container
+  #
+  # **Layout Widgets:**
+  # - {Tk::BWidget::MainFrame} - Application frame with menu/toolbar
+  # - {Tk::BWidget::LabelFrame} - Labeled container
+  # - {Tk::BWidget::PanedWindow} - Resizable paned container
+  # - {Tk::BWidget::ScrolledWindow} - Scrollable container
+  #
+  # **Dialogs:**
+  # - {Tk::BWidget::MessageDlg} - Message dialog
+  # - {Tk::BWidget::SelectFont} - Font selection dialog
+  # - {Tk::BWidget::SelectColor} - Color selection dialog
+  # - {Tk::BWidget::ProgressDlg} - Progress dialog
+  #
+  # @example Basic usage
+  #   require 'tkextlib/bwidget'
+  #
+  #   root = TkRoot.new(title: 'BWidget Demo')
+  #   combo = Tk::BWidget::ComboBox.new(root,
+  #     values: ['Option 1', 'Option 2', 'Option 3']
+  #   )
+  #   combo.pack(padx: 10, pady: 10)
+  #   Tk.mainloop
+  #
+  # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/contents.html BWidget manual
   module BWidget
     TkComm::TkExtlibAutoloadModule.unshift(self)
     # Require autoload-symbols which is a same name as widget classname.

@@ -1,9 +1,4 @@
 # frozen_string_literal: false
-#
-# tk/wm.rb : methods for wm command
-#
-# Note: This file is autoloaded from tk.rb - do not require 'tk' here
-# to avoid circular require. TkCore, TkComm etc. are available.
 
 module Tk
   # Window Manager interface for toplevel windows.

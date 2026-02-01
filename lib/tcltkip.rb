@@ -20,12 +20,17 @@ class TclTkIp
     ''
   end
 
-  # Encoding methods - always UTF-8 in modern Tcl/Ruby
+  # @deprecated Modern Tcl/Ruby always use UTF-8. These are no-op stubs.
   def force_default_encoding=(mode); end
+  # @deprecated Modern Tcl/Ruby always use UTF-8.
   def force_default_encoding? = true
+  # @deprecated Modern Tcl/Ruby always use UTF-8. This is a no-op stub.
   def default_encoding=(name); end
+  # @deprecated Modern Tcl/Ruby always use UTF-8. This is a no-op stub.
   def encoding=(name); end
+  # @return [String] Always 'utf-8'
   def encoding_name = 'utf-8'
+  # @return [Encoding] Always UTF-8
   def encoding_obj = ::Encoding::UTF_8
   alias encoding encoding_name
   alias default_encoding encoding_name

@@ -17,6 +17,42 @@ require 'tkextlib/tkimg/setup.rb'
 TkPackage.require('Img')
 
 module Tk
+  # Additional image format support for Tk.
+  #
+  # The Img package adds support for many image formats beyond Tk's
+  # built-in GIF and PPM support. After requiring this package,
+  # TkPhotoImage can load these formats automatically.
+  #
+  # ## Supported Formats
+  #
+  # - BMP, ICO (Windows formats)
+  # - JPEG, PNG, TIFF
+  # - XBM, XPM (X11 formats)
+  # - TGA, PCX, PPM
+  # - PostScript/PDF (read-only)
+  # - Sun raster, SGI native
+  #
+  # ## Installation
+  #
+  # - ActiveTcl: included
+  # - Homebrew: `brew install tcl-tk` (includes Img)
+  # - Debian/Ubuntu: `apt install libtk-img`
+  #
+  # @example Loading a JPEG image
+  #   require 'tkextlib/tkimg'
+  #
+  #   image = TkPhotoImage.new(file: 'photo.jpg')
+  #   label = TkLabel.new(image: image)
+  #   label.pack
+  #
+  # @example Converting formats
+  #   image = TkPhotoImage.new(file: 'input.bmp')
+  #   image.write('output.png', format: 'PNG')
+  #
+  # @note Modern Tk 8.6+ includes native PNG support. You only need
+  #   this package for JPEG, TIFF, BMP, and other formats.
+  #
+  # @see https://wiki.tcl-lang.org/page/Img Tcl Wiki: Img package
   module Img
     PACKAGE_NAME = 'Img'.freeze
     def self.package_name

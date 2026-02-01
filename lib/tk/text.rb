@@ -702,6 +702,7 @@ class Tk::Text<TkTextWin
     self
   end
 
+  # @deprecated Use {#see} instead. xview never had -pickplace in Tcl.
   def xview_pickplace(index)
     # Note: xview never had -pickplace in any Tcl version (only yview did).
     # This method exists for API compatibility - it uses 'see' which handles
@@ -712,6 +713,7 @@ class Tk::Text<TkTextWin
     self
   end
 
+  # @deprecated Use {#see} instead. Removed in Tcl 9.0.
   def yview_pickplace(index)
     if Tk::TCL_MAJOR_VERSION >= 9
       Tk::Warnings.warn_once(:pickplace,

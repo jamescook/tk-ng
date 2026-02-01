@@ -3,6 +3,69 @@
 # tk/composite.rb :
 #
 
+# Mixin for building compound widgets from multiple Tk widgets.
+#
+# TkComposite lets you create complex widgets by combining simpler ones.
+# The compound widget appears as a single widget to users, but internally
+# consists of a frame containing child widgets. Options can be delegated
+# to child widgets so configuring the compound widget affects its parts.
+#
+# ## How It Works
+#
+# 1. Include TkComposite in a class that inherits from TkFrame
+# 2. Override `initialize_composite` to create child widgets
+# 3. Use `delegate` to forward options to child widgets
+# 4. Use `option_methods` for custom option handling
+#
+# ## Example: Labeled Entry
+#
+#     class LabeledEntry < TkFrame
+#       include TkComposite
+#
+#       def initialize_composite(keys={})
+#         @label = TkLabel.new(@frame)
+#         @entry = TkEntry.new(@frame)
+#         @label.pack(side: :left)
+#         @entry.pack(side: :left, fill: :x, expand: true)
+#
+#         # Forward 'text' to label, entry options to entry
+#         delegate('text', @label)
+#         delegate('DEFAULT', @entry)
+#
+#         # Apply any options passed to constructor
+#         configure(keys) unless keys.empty?
+#       end
+#
+#       def value
+#         @entry.get
+#       end
+#
+#       def value=(v)
+#         @entry.delete(0, :end)
+#         @entry.insert(0, v)
+#       end
+#     end
+#
+#     # Usage
+#     le = LabeledEntry.new(root, text: 'Name:', width: 30)
+#     le.pack
+#
+# ## The DEFAULT Delegate
+#
+# Use `delegate('DEFAULT', widget)` to forward all unrecognized options
+# to a specific child widget. This is useful when one child widget is
+# the "main" widget and should receive most configuration options.
+#
+# ## Option Priority
+#
+# When `cget` or `configure` is called, options are resolved in this order:
+# 1. Options registered via `option_methods`
+# 2. Explicitly delegated options
+# 3. DEFAULT delegate (if set)
+# 4. The frame itself (via super)
+#
+# @see TkFrame Base class typically used with TkComposite
+# @see https://wiki.tcl-lang.org/page/megawidget Tcl megawidget pattern
 module TkComposite
   include Tk
   extend Tk
@@ -27,6 +90,8 @@ module TkComposite
   end
 =end
 
+  # @!visibility private
+  # Determine the Tk class name for the base frame.
   def _choice_classname_of_baseframe
     base_class_name = nil
 
@@ -89,7 +154,19 @@ module TkComposite
   end
   private :_choice_classname_of_baseframe
 
-  # def initialize(parent=nil, *args)
+  # Create a new composite widget.
+  #
+  # Creates a TkFrame as the container, then calls {#initialize_composite}
+  # for subclass setup. The frame becomes the widget's path.
+  #
+  # @param parent [TkWindow, nil] Parent widget
+  # @param args [Array] Additional arguments passed to {#initialize_composite}
+  # @option args [String] :class Tk class name for the base frame
+  # @option args [String] :classname Alias for :class
+  # @option args [TkWindow] :parent Alternative way to specify parent
+  #
+  # @example
+  #   widget = MyComposite.new(root, text: 'Hello', width: 100)
   def initialize(*args)
     @delegates = {}
     @option_methods = {}
@@ -125,26 +202,52 @@ module TkComposite
     initialize_composite(*args)
   end
 
+  # Tk database class name for the base frame.
+  # @return [String]
   def database_classname
     @frame.database_classname
   end
 
+  # Tk database class for the base frame.
+  # @return [String]
   def database_class
     @frame.database_class
   end
 
+  # The widget's evaluation path (same as widget path for composites).
+  # @return [String]
   def epath
     @epath
   end
 
+  # Hook for subclasses to set up child widgets.
+  #
+  # Override this method to create child widgets inside `@frame`,
+  # set up delegations, and configure the composite widget.
+  # Called automatically by {#initialize} after the frame is created.
+  #
+  # @param args [Array] Arguments passed from {#initialize}
+  #   (typically a Hash of options after processing)
+  # @return [void]
+  #
+  # @example
+  #   def initialize_composite(keys={})
+  #     @button = TkButton.new(@frame, text: 'Click')
+  #     @button.pack
+  #     delegate('command', @button)
+  #     configure(keys) unless keys.empty?
+  #   end
   def initialize_composite(*args) end
   private :initialize_composite
 
+  # String representation including the evaluation path.
+  # @return [String]
   def inspect
     str = super
     str.chop << ' @epath=' << @epath.inspect << '>'
   end
 
+  # @!visibility private
   def _get_opt_method_list(arg)
     m_set, m_cget, m_info = arg
     m_set  = m_set.to_s
@@ -155,6 +258,31 @@ module TkComposite
   end
   private :_get_opt_method_list
 
+  # Register custom methods to handle configuration options.
+  #
+  # Use this when you need custom logic for getting/setting an option,
+  # rather than simply forwarding to a child widget.
+  #
+  # @param opts [Array<Symbol, Array>] Option method specifications.
+  #   Each can be:
+  #   - A Symbol: method name used for both set and get (must accept optional arg)
+  #   - An Array: `[setter]`, `[setter, getter]`, or `[setter, getter, info]`
+  # @return [void]
+  #
+  # @example Single method for get/set
+  #   # Method must handle both: foo() for get, foo(val) for set
+  #   def foo(val=nil)
+  #     val ? @foo = val : @foo
+  #   end
+  #   option_methods(:foo)
+  #
+  # @example Separate getter and setter
+  #   def set_value(v); @entry.insert(0, v); end
+  #   def get_value; @entry.get; end
+  #   option_methods([:set_value, :get_value])
+  #
+  # @example With configinfo method
+  #   option_methods([:set_foo, :get_foo, :foo_info])
   def option_methods(*opts)
     if opts.size == 1 && opts[0].kind_of?(Hash)
       # {name => [m_set, m_cget, m_info], name => method} style
@@ -179,6 +307,20 @@ module TkComposite
     end
   end
 
+  # Forward an option to child widgets under a different name.
+  #
+  # Like {#delegate}, but the option exposed by the composite widget
+  # can have a different name than the option on the child widget.
+  #
+  # @param alias_opt [String, Symbol] Option name exposed by composite
+  # @param option [String, Symbol] Actual option name on child widgets
+  # @param wins [Array<TkWindow>] Child widgets to forward to
+  # @return [void]
+  # @raise [ArgumentError] If no widgets given or aliasing 'DEFAULT'
+  #
+  # @example Expose 'label' option that maps to 'text' on a TkLabel
+  #   delegate_alias('label', 'text', @label_widget)
+  #   # Now: widget.configure(label: 'Hello') sets @label_widget's text
   def delegate_alias(alias_opt, option, *wins)
     if wins.length == 0
       fail ArgumentError, "target widgets are not given"
@@ -199,10 +341,32 @@ module TkComposite
     end
   end
 
+  # Forward an option to child widgets.
+  #
+  # When the composite widget's option is configured or queried,
+  # the operation is forwarded to the specified child widgets.
+  #
+  # Use `'DEFAULT'` as the option name to forward all unrecognized
+  # options to the specified widgets.
+  #
+  # @param option [String, Symbol] Option name to delegate
+  # @param wins [Array<TkWindow>] Child widgets to forward to
+  # @return [void]
+  #
+  # @example Forward specific options
+  #   delegate('text', @label)
+  #   delegate('command', @button)
+  #
+  # @example Forward all unknown options to main widget
+  #   delegate('DEFAULT', @entry)
+  #
+  # @example Forward to multiple widgets (e.g., sync colors)
+  #   delegate('background', @label, @entry, @button)
   def delegate(option, *wins)
     delegate_alias(option, option, *wins)
   end
 
+  # @!visibility private
   def __cget_delegates(slot)
     slot = slot.to_s
 
@@ -237,6 +401,10 @@ module TkComposite
   end
   private :__cget_delegates
 
+  # Get option value as a Tk string.
+  #
+  # Checks option_methods and delegates before falling back to frame.
+  # (see TkConfigMethod#cget_tkstring)
   def cget_tkstring(slot)
     if (ret = __cget_delegates(slot)) == None
       super(slot)
@@ -245,6 +413,16 @@ module TkComposite
     end
   end
 
+  # Get an option value.
+  #
+  # Checks option_methods and delegates before falling back to frame.
+  #
+  # @param slot [String, Symbol] Option name
+  # @return [Object] The option value
+  #
+  # @example
+  #   widget.cget(:text)   # => "Hello"
+  #   widget.cget(:width)  # => 100
   def cget(slot)
     if (ret = __cget_delegates(slot)) == None
       super(slot)
@@ -253,6 +431,7 @@ module TkComposite
     end
   end
 
+  # (see #cget)
   def cget_strict(slot)
     if (ret = __cget_delegates(slot)) == None
       super(slot)
@@ -295,6 +474,19 @@ module TkComposite
   end
 =end
 
+  # Set one or more options.
+  #
+  # Checks option_methods and delegates before falling back to frame.
+  #
+  # @param slot [String, Symbol, Hash] Option name, or Hash of options
+  # @param value [Object] Value to set (ignored if slot is Hash)
+  # @return [self, Object] self for chaining, or result of delegated configure
+  #
+  # @example Set single option
+  #   widget.configure(:text, 'Hello')
+  #
+  # @example Set multiple options
+  #   widget.configure(text: 'Hello', width: 100)
   def configure(slot, value=None)
     if slot.kind_of? Hash
       slot.each{|slot,value| configure slot, value}
@@ -332,6 +524,21 @@ module TkComposite
     super(slot, value)
   end
 
+  # Get configuration information.
+  #
+  # Returns detailed info about options including database name,
+  # class, default value, and current value.
+  #
+  # @param slot [String, Symbol, nil] Option name, or nil for all options
+  # @return [Array] For single option: [name, dbname, dbclass, default, value]
+  # @return [Array<Array>] For all options: array of option info arrays
+  #
+  # @example Get info for one option
+  #   widget.configinfo(:text)
+  #   # => ['text', 'text', 'Text', '', 'Hello']
+  #
+  # @example Get all options
+  #   widget.configinfo.each { |info| puts info.inspect }
   def configinfo(slot = nil)
     if slot
       slot = slot.to_s

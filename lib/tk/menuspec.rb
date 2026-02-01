@@ -6,58 +6,122 @@
 # based on tkmenubar.rb :
 #   Copyright (C) 1998 maeda shugo. All rights reserved.
 #   This file can be distributed under the terms of the Ruby.
+
+# DSL for declaratively creating menus and menubars.
 #
-# The format of the menu_spec is:
-#   [ menubutton_info, menubutton_info, ... ]
+# TkMenuSpec provides a way to define complex menu structures using
+# nested arrays instead of manual TkMenu/add calls. It supports all
+# menu entry types: command, checkbutton, radiobutton, cascade, and separator.
 #
-# The format of the menubutton_info is:
-#   [ menubutton_info, entry_info, entry_info, ... ]
+# ## Basic Structure
 #
-# And each format of *_info is:
-#   [
-#     [text, underline, configs], # menu button/entry (*1)
-#     [label, command, underline, accelerator, configs],   # command entry
-#     [label, TkVar_obj, underline, accelerator, configs], # checkbutton entry
-#     [label, [TkVar_obj, value],
-#                        underline, accelerator, configs], # radiobutton entry
-#     [label, [[...menu_info...], [...menu_info...], ...],
-#                        underline, accelerator, configs], # cascade entry (*2)
-#     '---', # separator
-#     ...
+# A menu specification is a nested array:
+#
+#     menu_spec = [
+#       [['File', 0],                    # Menu button (underline F)
+#         ['New', proc { new_file }, 0, 'Ctrl+N'],    # Command
+#         ['Open...', proc { open_file }, 0, 'Ctrl+O'],
+#         '---',                                       # Separator
+#         ['Exit', proc { exit }]
+#       ],
+#       [['Edit', 0],
+#         ['Cut', proc { cut }, 2, 'Ctrl+X'],
+#         ['Copy', proc { copy }, 0, 'Ctrl+C'],
+#         ['Paste', proc { paste }, 0, 'Ctrl+V']
+#       ]
+#     ]
+#
+# ## Entry Formats
+#
+# Each entry can be an Array or Hash:
+#
+# ### Command Entry (Array)
+#     [label, command, underline, accelerator, options]
+#
+# ### Checkbutton Entry
+#     [label, TkVariable, underline, accelerator, options]
+#
+# ### Radiobutton Entry
+#     [label, [TkVariable, value], underline, accelerator, options]
+#
+# ### Cascade (Submenu) Entry
+#     [label, [[...entries...]], underline, accelerator, options]
+#
+# ### Separator
+#     '---'
+#
+# ### Hash Form (more explicit)
+#     { type: 'command', label: 'New', command: proc { }, underline: 0 }
+#     { type: 'checkbutton', label: 'Bold', variable: @bold_var }
+#     { type: 'cascade', label: 'Recent', menu: [[...entries...]] }
+#
+# ## Underline Shortcuts
+#
+# The underline parameter supports multiple formats:
+# - Integer: character index (0 = first char)
+# - `true`: find '&' in label, remove it, underline next char
+# - String/Regexp: find pattern, underline at match position
+#
+#     ['&File', true]        # Underline 'F', label becomes 'File'
+#     ['Edit', 'E']          # Underline 'E' (first occurrence)
+#     ['Help', /H/]          # Same, using Regexp
+#
+# ## Platform-Specific Menus
+#
+# Special menu names for platform conventions:
+# - `menu_name: 'help'` - Help menu (right-aligned on Unix/X11)
+# - `menu_name: 'system'` - System menu (Windows)
+# - `menu_name: 'apple'` - Apple menu (macOS)
+#
+#     [['Help', 0, { menu_name: 'help' }],
+#       ['About', proc { show_about }]
+#     ]
+#
+# ## Layout Options
+#
+# For menubutton-based bars (non-toplevel parents):
+# - `layout_proc: :horizontal` - Pack left-to-right (default)
+# - `layout_proc: :vertical` - Pack top-to-bottom
+# - `layout_proc: proc { |parent, btn| ... }` - Custom layout
+#
+# @example Complete menubar
+#   menu_spec = [
+#     [['&File', true],
+#       ['&New', proc { new_doc }, true, 'Ctrl+N'],
+#       ['&Open...', proc { open_doc }, true, 'Ctrl+O'],
+#       ['&Save', proc { save_doc }, true, 'Ctrl+S'],
+#       '---',
+#       ['Recent Files', [
+#         ['file1.txt', proc { open('file1.txt') }],
+#         ['file2.txt', proc { open('file2.txt') }]
+#       ]],
+#       '---',
+#       ['E&xit', proc { exit }, true]
+#     ],
+#     [['&Edit', true],
+#       ['&Undo', proc { undo }, true, 'Ctrl+Z'],
+#       '---',
+#       ['Cu&t', proc { cut }, true, 'Ctrl+X'],
+#       ['&Copy', proc { copy }, true, 'Ctrl+C'],
+#       ['&Paste', proc { paste }, true, 'Ctrl+V']
+#     ],
+#     [['&View', true],
+#       ['Show &Toolbar', @show_toolbar, true],  # Checkbutton
+#       '---',
+#       ['Zoom', [
+#         ['100%', [@zoom_var, 100]],  # Radiobutton group
+#         ['150%', [@zoom_var, 150]],
+#         ['200%', [@zoom_var, 200]]
+#       ]]
+#     ]
 #   ]
 #
-# A menu_info is an array of menu entries:
-#   [ entry_info, entry_info, ... ]
+#   # Apply to window
+#   root = TkRoot.new
+#   TkMenubar.new(root, menu_spec)
 #
-#
-# underline, accelerator, and configs are optional parameters.
-# Hashes are OK instead of Arrays. Then the entry type ('command',
-# 'checkbutton', 'radiobutton' or 'cascade') is given by 'type' key
-# (e.g. :type=>'cascade'). When type is 'cascade', an array of menu_info
-# is acceptable for 'menu' key (then, create sub-menu).
-#
-# If the value of underline is true instead of an integer,
-# check whether the text/label string contains a '&' character.
-# When includes, the first '&' is removed and its following character is
-# converted the corresponding 'underline' option (first '&' is removed).
-# Else if the value of underline is a String or a Regexp,
-# use the result of label.index(underline) as the index of underline
-# (don't remove matched substring).
-#
-# If the pattern is not found, underline is set to -1 (no underline).
-# NOTE: When querying via entrycget, Tcl 8.6 returns -1, but Tcl 9.0
-# returns empty string (which Ruby Tk converts to nil).
-#
-# NOTE: (*1)
-#   If you want to make special menus (*.help for UNIX, *.system for Win,
-#   and *.apple for Mac), append 'menu_name'=>name (name is 'help' for UNIX,
-#   'system' for Win, and 'apple' for Mac) option to the configs hash of
-#   menu button/entry information.
-#
-# NOTE: (*2)
-#   If you want to configure a cascade menu, add :menu_config=>{...configs..}
-#   to the configs of the cascade entry.
-
+# @see TkMenu For manual menu construction
+# @see TkMenubar For applying menu specs to windows
 module TkMenuSpec
   extend TkMenuSpec
 

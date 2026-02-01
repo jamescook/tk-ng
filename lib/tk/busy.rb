@@ -58,8 +58,27 @@ class << Tk::Busy
   private :itemcget_tkstring, :itemcget, :itemcget_strict
   private :itemconfigure, :itemconfiginfo, :current_itemconfiginfo
 
+  # Get the busy cursor for a window.
+  # @param win [TkWindow] The busy window
+  # @return [String] Cursor name
+  def cursor(win)
+    cget(win, 'cursor')
+  end
+
+  # Set the busy cursor for a window.
+  # @param win [TkWindow] The busy window
+  # @param cursor_name [String] Cursor to display (e.g., 'watch', 'wait')
+  # @return [self]
+  def set_cursor(win, cursor_name)
+    configure(win, 'cursor', cursor_name)
+    self
+  end
+
   def method_missing(id, *args)
     name = id.id2name
+    Tk::Warnings.warn_once(:"busy_method_missing_#{name}",
+      "Tk::Busy.#{name} called via method_missing. " \
+      "Use Tk::Busy.cget/configure or explicit accessors instead.")
     case args.length
     when 1
       if name[-1] == ?=

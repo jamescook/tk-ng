@@ -315,8 +315,8 @@ class TkObject<TkKernel
     self
   end
 
-  # Backwards compatibility stub - font_configure used to handle compound
-  # latin/kanji fonts for JAPANIZED_TK. Now just passes through to configure.
+  # @deprecated Use {#configure} with :font option instead.
+  #   Modern Tk handles Unicode fonts natively without separate latin/kanji fonts.
   def font_configure(slot)
     if slot.kind_of?(Hash)
       tk_call(path, 'configure', *hash_kv(slot))

@@ -4,7 +4,7 @@
 # Uses Ractor::Port for streaming and Ractor.shareable_proc for blocks.
 # Uses thread-inside-ractor pattern for non-blocking message handling.
 #
-# == Why Ractor Mode Requires Ruby 4.x
+# ### Why Ractor Mode Requires Ruby 4.x
 #
 # Ruby 3.x Ractor support was attempted but abandoned due to fundamental issues:
 #
@@ -16,7 +16,7 @@
 # | Orphaned threads on exit    | Hangs in rb_ractor_terminate | Exits cleanly                 |
 # | Non-blocking receive        | No API exists                | Ractor::Port with select      |
 #
-# == What We Tried on Ruby 3.x (All Failed)
+# ### What We Tried on Ruby 3.x (All Failed)
 #
 # 1. Yielder thread pattern: Separate thread does blocking Ractor.yield while
 #    worker pushes to a Queue. Works but adds complexity and has shutdown bugs.

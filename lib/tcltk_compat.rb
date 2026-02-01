@@ -247,21 +247,19 @@ module TkItemConfigMethod
   end
 end
 
-# ---------------------------------------------------------
-# String command evaluation setting
-#
-# Legacy Ruby/Tk allowed passing strings as widget commands:
-#   command "quit 'save'"
-# which would be eval'd as Ruby code when triggered.
-#
-# This is disabled by default for security - if an app were to
-# pass untrusted input as a command string, it would allow
-# arbitrary code execution.
-#
-# Enable only if you need legacy string command compatibility
-# and trust all command strings in your application.
-# ---------------------------------------------------------
 module Tk
+  # String command evaluation setting.
+  #
+  # Legacy Ruby/Tk allowed passing strings as widget commands:
+  #   command "quit 'save'"
+  # which would be eval'd as Ruby code when triggered.
+  #
+  # This is disabled by default for security - if an app were to
+  # pass untrusted input as a command string, it would allow
+  # arbitrary code execution.
+  #
+  # Enable only if you need legacy string command compatibility
+  # and trust all command strings in your application.
   @allow_string_eval = false
 
   class << self

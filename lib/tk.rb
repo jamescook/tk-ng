@@ -139,7 +139,7 @@ module Tk
     # Run work in background thread/ractor with UI-safe callbacks.
     # See docs/BACKGROUND_WORK.md for full documentation.
     #
-    # Example:
+    # @example
     #   Tk.background_work({ files: files }, name: "file-processor") do |task, data|
     #     data[:files].each { |f| task.yield(process(f)) }
     #   end.on_progress { |result| update_ui(result) }
@@ -616,17 +616,8 @@ require_relative 'tkwindow'
 
 TkWidget = TkWindow
 
-# freeze core modules
-#TclTkLib.freeze
-#TclTkIp.freeze
-#TkUtil.freeze
-#TkKernel.freeze
-#TkComm.freeze
-#TkComm::Event.freeze
-#TkCore.freeze
-#Tk.freeze
-
 module Tk
+  # Note: core module freeze is disabled (see commented code above)
   RELEASE_DATE = '2014-10-19'.freeze
 
   autoload :AUTO_PATH,        'tk/variable'
