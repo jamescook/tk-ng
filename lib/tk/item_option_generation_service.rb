@@ -3,9 +3,9 @@
 require_relative 'item_option_generator'
 
 module Tk
-  # Orchestrates item option generation for all widgets.
-  # Called by `rake tk:generate_item_options`.
-  #
+  # @!visibility private
+  # Internal tool for orchestrating item option generation.
+  # Called by `rake tk:generate_item_options`. Not intended for end users.
   class ItemOptionGenerationService
     DEFAULT_OUTPUT_DIR = 'lib/tk/generated'
 

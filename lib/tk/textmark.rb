@@ -4,6 +4,44 @@
 #
 require 'tk/text'
 
+# A position marker in a Text widget that floats with the text.
+#
+# Marks track positions between characters, persisting even when surrounding
+# text is deleted. Unlike character indices (like "1.5"), marks automatically
+# adjust as text is inserted or deleted around them.
+#
+# ## Gravity
+#
+# Each mark has **gravity** (left or right) that determines what happens
+# when text is inserted exactly at the mark's position:
+#
+# - **:left** - Mark stays with character on its left; new text appears to the right
+# - **:right** (default) - New text appears to the left; mark stays rightmost
+#
+# @example Creating and using a mark
+#   text = TkText.new(root)
+#   mark = TkTextMark.new(text, "1.5")
+#   text.insert(mark, "Hello")  # Text inserted at mark position
+#   mark.pos                    # => "1.10" (position updated)
+#
+# @example Controlling gravity
+#   mark = TkTextMark.new(text, "1.0")
+#   mark.gravity = :left        # New text at mark goes to the right
+#   text.insert(mark, "A")
+#   mark.pos                    # Mark didn't move; still at start
+#
+# @example Using index arithmetic
+#   mark = TkTextMark.new(text, "1.0")
+#   text.get(mark, mark + "5 chars")    # Get 5 chars from mark
+#   text.get(mark, mark + 5)            # Same thing
+#
+# @note Marks and tags have separate namespaces—you can have a mark and
+#   tag with the same name referring to different things.
+#
+# @see TkTextMarkInsert The "insert" mark (cursor position)
+# @see TkTextMarkCurrent The "current" mark (mouse position)
+# @see TkTextTag For styling and event handling on text ranges
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
 class TkTextMark<TkObject
   include Tk::Text::IndexModMethods
 
@@ -94,10 +132,17 @@ class TkTextMark<TkObject
   end
   alias destroy unset
 
+  # Returns the mark's gravity.
+  # @return [String] "left" or "right"
   def gravity
     tk_call_without_enc(@t.path, 'mark', 'gravity', @id)
   end
 
+  # Sets the mark's gravity.
+  # @param direction [String, Symbol] :left or :right
+  # @return [String] The direction set
+  # @note Left gravity: mark stays put when text inserted at position.
+  #   Right gravity (default): mark moves right when text inserted.
   def gravity=(direction)
     tk_call_without_enc(@t.path, 'mark', 'gravity', @id, direction)
     #self
@@ -122,8 +167,15 @@ class TkTextMark<TkObject
 end
 TktMark = TkTextMark
 
-# Named marks are cached per (parent, name) pair via the text widget's @tags hash.
-# self.new returns existing mark if found, otherwise creates new via initialize.
+# A mark with a user-specified name (cached per text widget).
+#
+# Unlike auto-generated TkTextMark IDs, named marks use your chosen name.
+# Creating the same named mark twice returns the existing instance.
+#
+# @example
+#   mark1 = TkTextNamedMark.new(text, "my_bookmark", "1.0")
+#   mark2 = TkTextNamedMark.new(text, "my_bookmark")  # Same object as mark1
+#   mark1.equal?(mark2)  # => true
 class TkTextNamedMark<TkTextMark
   def self.new(parent, name, index=nil)
     # Return existing mark if already registered with this text widget
@@ -145,6 +197,15 @@ class TkTextNamedMark<TkTextMark
 end
 TktNamedMark = TkTextNamedMark
 
+# The "insert" mark - the text cursor position.
+#
+# This built-in mark shows where the blinking cursor appears when the
+# text widget has focus. It cannot be deleted.
+#
+# @example Moving the cursor
+#   insert = TkTextMarkInsert.new(text)
+#   insert.set("1.0")           # Move cursor to start
+#   insert.set("end - 1 char")  # Move to end
 class TkTextMarkInsert<TkTextNamedMark
   def self.new(parent,*args)
     super(parent, 'insert', *args)
@@ -152,6 +213,11 @@ class TkTextMarkInsert<TkTextNamedMark
 end
 TktMarkInsert = TkTextMarkInsert
 
+# The "current" mark - tracks character nearest the mouse.
+#
+# This built-in mark automatically updates as the mouse moves over
+# the text widget, except when mouse buttons are pressed.
+# It cannot be deleted.
 class TkTextMarkCurrent<TkTextNamedMark
   def self.new(parent,*args)
     super(parent, 'current', *args)
@@ -159,6 +225,9 @@ class TkTextMarkCurrent<TkTextNamedMark
 end
 TktMarkCurrent = TkTextMarkCurrent
 
+# The "anchor" mark - selection anchor point.
+#
+# Used internally for tracking the start of a text selection.
 class TkTextMarkAnchor<TkTextNamedMark
   def self.new(parent,*args)
     super(parent, 'anchor', *args)

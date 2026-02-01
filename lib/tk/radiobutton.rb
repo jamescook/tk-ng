@@ -1,11 +1,34 @@
 # frozen_string_literal: false
-#
-# tk/radiobutton.rb : treat radiobutton widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/radiobutton.html
-#
 require 'tk/button'
 
+# A radio button for one-of-many selection.
+#
+# Multiple radiobuttons sharing the same variable form a group.
+# Selecting one deselects the others automatically.
+#
+# @example Radio button group
+#   choice = TkVariable.new("medium")
+#
+#   Tk::RadioButton.new(text: "Small",  variable: choice, value: "small").pack
+#   Tk::RadioButton.new(text: "Medium", variable: choice, value: "medium").pack
+#   Tk::RadioButton.new(text: "Large",  variable: choice, value: "large").pack
+#
+#   # choice.value returns whichever is selected ("small", "medium", or "large")
+#
+# @example With command callback
+#   Tk::RadioButton.new(
+#     text: "Option A",
+#     variable: selection,
+#     value: "a",
+#     command: -> { puts "Selected: #{selection.value}" }
+#   ).pack
+#
+# @note All radiobuttons in a group must share the same TkVariable.
+#   Each button needs a unique `:value` to distinguish it.
+#
+# @see Tk::CheckButton for independent on/off toggles
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/radiobutton.html Tcl/Tk radiobutton manual
+#
 class Tk::RadioButton<Tk::Button
   include Tk::Generated::Radiobutton
   # @generated:options:start

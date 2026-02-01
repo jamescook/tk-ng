@@ -2,6 +2,43 @@
 
 require 'tk/option_dsl'
 
+# Base class for all visible Tk widgets (windows, buttons, labels, etc.).
+#
+# TkWindow extends TkObject with functionality specific to visible widgets:
+# - Geometry management (pack, grid, place)
+# - Focus and keyboard grab
+# - Window stacking (raise/lower)
+# - Destruction and cleanup
+#
+# == Creating Widgets
+#
+#   # Widgets take an optional parent and options hash
+#   frame = TkFrame.new
+#   button = TkButton.new(frame, text: "Click me")
+#
+#   # Or pass parent in the options
+#   button = TkButton.new(parent: frame, text: "Click me")
+#
+# == Geometry Management
+#
+# Widgets must be placed using a geometry manager to become visible:
+#
+#   # pack - simple top-to-bottom or side-by-side layout
+#   button.pack(side: :left, padx: 5)
+#
+#   # grid - row/column table layout
+#   button.grid(row: 0, column: 0, sticky: "ew")
+#
+#   # place - absolute or relative positioning
+#   button.place(x: 100, y: 50)
+#
+# == See Also
+# - TkObject for option configuration
+# - TkPack, TkGrid, TkPlace for geometry management details
+# - https://www.tcl.tk/man/tcl/TkCmd/pack.html
+# - https://www.tcl.tk/man/tcl/TkCmd/grid.html
+# - https://www.tcl.tk/man/tcl/TkCmd/place.html
+#
 class TkWindow<TkObject
   include TkWinfo
   extend TkBindCore
@@ -137,7 +174,12 @@ class TkWindow<TkObject
   end
 
   def exist?
+    return false if @destroyed
     TkWinfo.exist?(self)
+  end
+
+  def destroyed?
+    @destroyed || false
   end
 
   alias subcommand tk_send
@@ -164,6 +206,31 @@ class TkWindow<TkObject
     WidgetClassNames[self::WidgetClassName]
   end
 
+  # Arrange this widget using the pack geometry manager.
+  #
+  # Pack is the simplest geometry manager - it places widgets along
+  # the edges of their parent (top, bottom, left, right).
+  #
+  # @param keys [Hash] pack options
+  # @option keys :side [:top, :bottom, :left, :right] which edge to pack against
+  # @option keys :fill [:none, :x, :y, :both] stretch to fill space
+  # @option keys :expand [Boolean] claim extra space when parent grows
+  # @option keys :padx [Integer] horizontal padding (pixels)
+  # @option keys :pady [Integer] vertical padding (pixels)
+  # @option keys :anchor [:n, :s, :e, :w, :center, etc.] position within allocated space
+  # @return [self]
+  #
+  # @example Stack buttons vertically
+  #   button1.pack(side: :top, fill: :x)
+  #   button2.pack(side: :top, fill: :x)
+  #
+  # @example Side-by-side with padding
+  #   btn1.pack(side: :left, padx: 5)
+  #   btn2.pack(side: :left, padx: 5)
+  #
+  # @see #pack_forget to remove from pack management
+  # @see https://www.tcl.tk/man/tcl/TkCmd/pack.html
+  #
   def pack(keys = nil)
     #tk_call_without_enc('pack', epath, *hash_kv(keys, true))
     if keys
@@ -237,6 +304,32 @@ class TkWindow<TkObject
     TkPack.slaves(self)
   end
 
+  # Arrange this widget using the grid geometry manager.
+  #
+  # Grid places widgets in a table of rows and columns, offering precise
+  # control over layout. It's the most flexible geometry manager.
+  #
+  # @param keys [Hash] grid options
+  # @option keys :row [Integer] row number (0-based)
+  # @option keys :column [Integer] column number (0-based)
+  # @option keys :rowspan [Integer] how many rows to span
+  # @option keys :columnspan [Integer] how many columns to span
+  # @option keys :sticky [String] edges to stick to ("n", "s", "e", "w", "nsew", etc.)
+  # @option keys :padx [Integer] horizontal padding
+  # @option keys :pady [Integer] vertical padding
+  # @return [self]
+  #
+  # @example Simple form layout
+  #   label.grid(row: 0, column: 0, sticky: "e")
+  #   entry.grid(row: 0, column: 1, sticky: "ew")
+  #
+  # @example Spanning multiple columns
+  #   button.grid(row: 1, column: 0, columnspan: 2, sticky: "ew")
+  #
+  # @see #grid_forget to remove from grid management
+  # @see #grid_columnconfigure to configure column weights
+  # @see https://www.tcl.tk/man/tcl/TkCmd/grid.html
+  #
   def grid(keys = nil)
     #tk_call 'grid', epath, *hash_kv(keys)
     if keys
@@ -391,6 +484,31 @@ class TkWindow<TkObject
     TkGrid.slaves(self, keys)
   end
 
+  # Arrange this widget using the place geometry manager.
+  #
+  # Place allows absolute positioning (x, y coordinates) or relative
+  # positioning (percentage of parent). Use sparingly - grid and pack
+  # are usually better for responsive layouts.
+  #
+  # @param keys [Hash] place options
+  # @option keys :x [Integer] absolute x coordinate (pixels)
+  # @option keys :y [Integer] absolute y coordinate (pixels)
+  # @option keys :relx [Float] relative x (0.0 to 1.0, fraction of parent width)
+  # @option keys :rely [Float] relative y (0.0 to 1.0, fraction of parent height)
+  # @option keys :anchor [:n, :s, :e, :w, :center, etc.] which point of widget to position
+  # @option keys :width [Integer] explicit width
+  # @option keys :height [Integer] explicit height
+  # @return [self]
+  #
+  # @example Absolute positioning
+  #   button.place(x: 100, y: 50)
+  #
+  # @example Centered in parent
+  #   button.place(relx: 0.5, rely: 0.5, anchor: :center)
+  #
+  # @see #place_forget to remove from place management
+  # @see https://www.tcl.tk/man/tcl/TkCmd/place.html
+  #
   def place(keys)
     #tk_call 'place', epath, *hash_kv(keys)
     TkPlace.configure(self, keys)
@@ -458,6 +576,17 @@ class TkWindow<TkObject
     TkPlace.slaves(self)
   end
 
+  # Give keyboard focus to this widget.
+  #
+  # @param force [Boolean] if true, steal focus even from other applications
+  # @return [self]
+  #
+  # @example
+  #   entry.focus           # normal focus
+  #   entry.focus(true)     # force focus (use sparingly)
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/focus.html
+  #
   def set_focus(force=false)
     if force
       tk_call_without_enc('focus', '-force', path)
@@ -468,6 +597,27 @@ class TkWindow<TkObject
   end
   alias focus set_focus
 
+  # Manage pointer/keyboard grab for modal dialogs.
+  #
+  # A "grab" redirects all pointer and keyboard events to this widget,
+  # preventing interaction with other windows. Used for modal dialogs.
+  #
+  # @param opt [Symbol, String, nil] grab operation
+  # @option opt :set acquire a local grab (default when opt is nil)
+  # @option opt :global acquire a global grab (all applications)
+  # @option opt :release release the grab
+  # @option opt :current return the window with the current grab
+  # @option opt :status return grab status ("none", "local", or "global")
+  # @return [self, TkWindow, String] depends on operation
+  #
+  # @example Modal dialog pattern
+  #   dialog = TkToplevel.new
+  #   dialog.grab              # acquire grab
+  #   dialog.wait_window       # block until closed
+  #   dialog.grab(:release)    # release grab (or destroyed automatically)
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/grab.html
+  #
   def grab(opt = nil)
     unless opt
       tk_call_without_enc('grab', 'set', path)
@@ -515,6 +665,20 @@ class TkWindow<TkObject
     grab('status')
   end
 
+  # Lower this window in the stacking order (move toward back).
+  #
+  # @param below [TkWindow, nil] place this window below the specified sibling
+  # @return [self]
+  #
+  # @example Send window to back
+  #   window.lower
+  #
+  # @example Place below a specific sibling
+  #   window.lower(other_window)
+  #
+  # @see #raise to bring window forward
+  # @see https://www.tcl.tk/man/tcl/TkCmd/lower.html
+  #
   def lower(below=None)
     # below = below.epath if below.kind_of?(TkObject)
     below = _epath(below)
@@ -522,6 +686,21 @@ class TkWindow<TkObject
     self
   end
   alias lower_window lower
+
+  # Raise this window in the stacking order (move toward front).
+  #
+  # @param above [TkWindow, nil] place this window above the specified sibling
+  # @return [self]
+  #
+  # @example Bring window to front
+  #   window.raise
+  #
+  # @example Place above a specific sibling
+  #   window.raise(other_window)
+  #
+  # @see #lower to send window backward
+  # @see https://www.tcl.tk/man/tcl/TkCmd/raise.html
+  #
   def raise(above=None)
     #above = above.epath if above.kind_of?(TkObject)
     above = _epath(above)
@@ -549,21 +728,44 @@ class TkWindow<TkObject
     TkXIM.caret(path, keys)
   end
 
+  # Destroy this widget and all its children.
+  #
+  # This removes the widget from the screen, cleans up all registered
+  # callbacks, and releases resources. After calling destroy, the widget
+  # object should not be used.
+  #
+  # @return [void]
+  #
+  # @example
+  #   dialog.destroy  # close and clean up a dialog
+  #
+  # @note Destroying a parent destroys all its children automatically
+  # @see https://www.tcl.tk/man/tcl/TkCmd/destroy.html
+  #
   def destroy
+    # Guard against double-destroy which can cause segfaults in Tk
+    return if @destroyed
+    @destroyed = true
+
     super
-    children = []
-    rexp = /^#{self.path}\.[^.]+$/
+
+    # Find all descendants (not just direct children)
+    # Tk's destroy command destroys all descendants, so we need to mark them all
+    descendants = []
+    prefix = self.path + "."
     TkCore::INTERP.tk_windows.each{|path, obj|
-      children << [path, obj] if path =~ rexp
+      descendants << [path, obj] if path.start_with?(prefix)
     }
+
     if defined?(@cmdtbl)
       for id in @cmdtbl
         uninstall_cmd id
       end
     end
 
-    children.each{|path, obj|
+    descendants.each{|path, obj|
       obj.instance_eval{
+        @destroyed = true  # Mark all descendants as destroyed
         if defined?(@cmdtbl)
           for id in @cmdtbl
             uninstall_cmd id
@@ -580,6 +782,21 @@ class TkWindow<TkObject
     uninstall_win
   end
 
+  # Block until this widget becomes visible.
+  #
+  # Waits for the widget to be mapped (displayed) on screen. Useful when
+  # you need to query geometry after creating a widget.
+  #
+  # @param on_thread [Boolean] if true, yield to other Ruby threads while waiting
+  # @return [void]
+  #
+  # @example Wait for window to appear before querying size
+  #   toplevel = TkToplevel.new
+  #   toplevel.wait_visibility
+  #   puts toplevel.winfo_width  # now has real dimensions
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/tkwait.html
+  #
   def wait_visibility(on_thread = true)
     on_thread &= (Thread.list.size != 1)
     if on_thread
@@ -603,6 +820,24 @@ class TkWindow<TkObject
   alias thread_tkwait thread_wait_visibility
   alias thread_tkwait_visibility thread_wait_visibility
 
+  # Block until this widget is destroyed.
+  #
+  # Commonly used for modal dialogs - the calling code waits until the
+  # user closes the dialog.
+  #
+  # @param on_thread [Boolean] if true, yield to other Ruby threads while waiting
+  # @return [void]
+  #
+  # @example Modal dialog pattern
+  #   dialog = TkToplevel.new
+  #   # ... set up dialog contents ...
+  #   dialog.grab               # make modal
+  #   dialog.wait_destroy       # block here until user closes it
+  #   # dialog is now closed, continue...
+  #
+  # @see #grab for making the dialog modal
+  # @see https://www.tcl.tk/man/tcl/TkCmd/tkwait.html
+  #
   def wait_destroy(on_thread = true)
     on_thread &= (Thread.list.size != 1)
     if on_thread

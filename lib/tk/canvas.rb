@@ -1,19 +1,54 @@
 # frozen_string_literal: false
-#
-# tk/canvas.rb - Tk canvas classes
-#                       by Yukihiro Matsumoto <matz@caelum.co.jp>
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/canvas.html
-#
 require 'tk/canvastag'
 require 'tk/scrollable'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
+# @!visibility private
 module TkCanvasItemConfig
   include Tk::ItemOptionDSL::InstanceMethods
 end
 
+# A widget for drawing graphics and embedding other widgets.
+#
+# Canvas supports structured graphics: rectangles, ovals, lines, polygons,
+# text, images, and embedded windows. Items can be moved, scaled, and
+# bound to events.
+#
+# == Item Types
+# - `TkcRectangle`, `TkcOval` - basic shapes
+# - `TkcLine` - connected line segments, optional arrows
+# - `TkcPolygon` - filled multi-point shapes
+# - `TkcText` - text strings
+# - `TkcImage` - display images
+# - `TkcWindow` - embed other Tk widgets
+# - `TkcArc` - pie slices, chords, arcs
+#
+# == Coordinates
+# All coordinates are in pixels (floats allowed). Origin is upper-left.
+# Use `scrollregion` for canvases larger than the visible area.
+#
+# @example Draw shapes
+#   canvas = Tk::Canvas.new(width: 400, height: 300, bg: 'white')
+#   canvas.pack
+#
+#   TkcRectangle.new(canvas, 10, 10, 100, 80, fill: 'blue')
+#   TkcOval.new(canvas, 50, 50, 150, 120, fill: 'red', outline: 'black')
+#   TkcLine.new(canvas, 0, 0, 200, 150, arrow: :last, width: 2)
+#
+# @example Interactive items with tags
+#   rect = TkcRectangle.new(canvas, 50, 50, 100, 100, fill: 'green', tags: 'draggable')
+#   canvas.bind('draggable', 'Button-1') { |e| start_drag(e) }
+#   canvas.bind('draggable', 'B1-Motion') { |e| do_drag(e) }
+#
+# @note The special tag `"all"` refers to all items. `"current"` is the
+#   topmost item under the mouse.
+#
+# @note Embedded window items always appear on top regardless of stacking order.
+#
+# @see TkcRectangle, TkcOval, TkcLine, TkcText, etc. for item classes
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/canvas.html Tcl/Tk canvas manual
+#
 class Tk::Canvas<TkWindow
   include TkCanvasItemConfig
   include Tk::Scrollable
@@ -410,6 +445,57 @@ end
 Tk.__set_loaded_toplevel_aliases__('tk/canvas.rb', :Tk, Tk::Canvas, :TkCanvas)
 
 
+# Base class for all canvas items.
+#
+# Canvas items are graphical objects displayed on a {Tk::Canvas} widget.
+# Each item has:
+# - A numeric ID (unique within its canvas)
+# - Coordinates defining its shape and position
+# - Configuration options for appearance
+# - Optional tags for grouping
+#
+# Items can be manipulated after creation via methods inherited from
+# {TkcTagAccess}: configure, move, scale, bind events, etc.
+#
+# ## Coordinate Systems
+#
+# Item coordinates are in canvas units (pixels by default). Use the canvas's
+# `canvasx` and `canvasy` methods to convert window coordinates to canvas
+# coordinates, accounting for scrolling.
+#
+# ## Creating Items
+#
+# Items are created by instantiating subclasses with a canvas and coordinates:
+#
+#     rect = TkcRectangle.new(canvas, 10, 10, 100, 50, fill: 'blue')
+#     line = TkcLine.new(canvas, 0, 0, 100, 100, 200, 50, arrow: :last)
+#
+# Or with explicit coords array:
+#
+#     TkcPolygon.new(canvas, coords: [0, 0, 50, 100, 100, 0], fill: 'green')
+#
+# ## Common Options
+#
+# Most items support these options:
+# - `:fill` - Interior color (empty string for transparent)
+# - `:outline` - Border color
+# - `:width` - Border width in pixels
+# - `:dash` - Dash pattern for borders
+# - `:stipple` - Fill pattern (bitmap name)
+# - `:state` - :normal, :disabled, or :hidden
+# - `:tags` - Array of tag names for grouping
+#
+# ## Stacking Order
+#
+# Items are drawn in creation order (later items on top). Use {#raise} and
+# {#lower} to adjust stacking. Note: {TkcWindow} items always appear above
+# all other items regardless of stacking order.
+#
+# @abstract Subclasses must define CItemTypeName constant.
+#
+# @see TkcTag For grouping items with tags
+# @see Tk::Canvas The parent canvas widget
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm Tcl/Tk canvas manual
 class TkcItem<TkObject
   extend Tk
   include TkcTagAccess
@@ -509,41 +595,322 @@ class TkcItem<TkObject
   alias destroy delete
 end
 
+# An arc, pie slice, or chord shape on a canvas.
+#
+# Arcs are sections of an ellipse defined by a bounding rectangle and
+# angular range. The style determines how the arc is drawn:
+# - `:pieslice` (default) - Filled wedge with lines to center
+# - `:chord` - Filled area with straight line connecting endpoints
+# - `:arc` - Just the curved edge, no fill
+#
+# @example Drawing a pie chart slice
+#   TkcArc.new(canvas, 50, 50, 150, 150,
+#     start: 0, extent: 90,
+#     style: :pieslice,
+#     fill: 'red', outline: 'black')
+#
+# @example Drawing a curved line (arc style)
+#   TkcArc.new(canvas, 0, 0, 100, 100,
+#     start: 45, extent: 180,
+#     style: :arc,
+#     outline: 'blue', width: 3)
+#
+# ## Coordinates
+#
+# Four values (x1, y1, x2, y2) defining the bounding rectangle of the
+# ellipse from which the arc is cut.
+#
+# ## Key Options
+#
+# - `:start` - Starting angle in degrees (0 = 3 o'clock, counterclockwise)
+# - `:extent` - Size of arc in degrees (positive = counterclockwise)
+# - `:style` - :pieslice, :chord, or :arc
+# - `:fill`, `:outline` - Colors (fill ignored for :arc style)
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M21 Arc item docs
 class TkcArc<TkcItem
   CItemTypeName = 'arc'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A monochrome bitmap image on a canvas.
+#
+# Bitmaps display two-color images using the classic X11 bitmap format.
+# For full-color images, use {TkcImage} instead.
+#
+# @example Displaying a built-in bitmap
+#   TkcBitmap.new(canvas, 50, 50,
+#     bitmap: 'warning',
+#     foreground: 'red')
+#
+# @example Using a custom bitmap file
+#   TkcBitmap.new(canvas, 100, 100,
+#     bitmap: '@/path/to/custom.xbm',
+#     foreground: 'blue',
+#     background: 'white')
+#
+# ## Coordinates
+#
+# Single point (x, y) for positioning. Use `:anchor` to control which
+# part of the bitmap is placed at this point.
+#
+# ## Key Options
+#
+# - `:bitmap` - Bitmap name (built-in or @filename for custom)
+# - `:foreground` - Color for "1" bits (default: black)
+# - `:background` - Color for "0" bits (default: transparent)
+# - `:anchor` - Position relative to coordinates (:center, :n, :ne, etc.)
+#
+# ## Built-in Bitmaps
+#
+# error, gray12, gray25, gray50, gray75, hourglass, info, questhead, question, warning
+#
+# @see TkcImage For full-color images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M28 Bitmap item docs
 class TkcBitmap<TkcItem
   CItemTypeName = 'bitmap'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A full-color image on a canvas.
+#
+# Displays a TkPhotoImage or TkBitmapImage on the canvas. The image
+# must be created first using the image classes.
+#
+# @example Displaying a photo
+#   photo = TkPhotoImage.new(file: 'picture.png')
+#   TkcImage.new(canvas, 100, 100, image: photo)
+#
+# @example With active state (hover effect)
+#   normal = TkPhotoImage.new(file: 'button.png')
+#   hover = TkPhotoImage.new(file: 'button_hover.png')
+#   img = TkcImage.new(canvas, 50, 50,
+#     image: normal,
+#     activeimage: hover)
+#
+# ## Coordinates
+#
+# Single point (x, y) for positioning. Use `:anchor` to control which
+# part of the image is placed at this point.
+#
+# ## Key Options
+#
+# - `:image` - TkPhotoImage or TkBitmapImage to display
+# - `:activeimage` - Image to show when mouse hovers
+# - `:disabledimage` - Image to show when state is :disabled
+# - `:anchor` - Position relative to coordinates (:center default)
+#
+# @note The image object must remain in scope; if garbage collected,
+#   the canvas item becomes blank.
+#
+# @see TkPhotoImage For creating images
+# @see TkcBitmap For monochrome X11 bitmaps
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M35 Image item docs
 class TkcImage<TkcItem
   CItemTypeName = 'image'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A line or polyline on a canvas.
+#
+# Lines connect two or more points with straight or curved segments.
+# Supports arrowheads, dashes, and smooth curves.
+#
+# @example Simple line
+#   TkcLine.new(canvas, 0, 0, 100, 100, fill: 'black', width: 2)
+#
+# @example Polyline with arrow
+#   TkcLine.new(canvas, 10, 10, 50, 80, 90, 10,
+#     arrow: :last,
+#     fill: 'blue', width: 3)
+#
+# @example Smooth curve through points
+#   TkcLine.new(canvas, 0, 50, 25, 0, 50, 50, 75, 0, 100, 50,
+#     smooth: true,
+#     splinesteps: 20)
+#
+# ## Coordinates
+#
+# Two or more points (x1, y1, x2, y2, ...) defining the line path.
+#
+# ## Key Options
+#
+# - `:arrow` - Arrowheads: :none (default), :first, :last, :both
+# - `:arrowshape` - [d1, d2, d3] controlling arrowhead size
+# - `:smooth` - true for Bezier curves, false for straight segments
+# - `:splinesteps` - Curve smoothness (higher = smoother, default 12)
+# - `:capstyle` - Line ends: :butt, :projecting, :round
+# - `:joinstyle` - Vertex corners: :miter, :bevel, :round
+# - `:dash` - Dash pattern (e.g., "5 3" for 5-pixel dash, 3-pixel gap)
+#
+# @note Lines have no fill option; use `:fill` for the line color itself.
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M41 Line item docs
 class TkcLine<TkcItem
   CItemTypeName = 'line'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# An oval (ellipse or circle) on a canvas.
+#
+# Ovals are defined by their bounding rectangle. For a circle,
+# make the bounding rectangle square.
+#
+# @example Drawing a circle
+#   TkcOval.new(canvas, 50, 50, 100, 100,
+#     fill: 'red', outline: 'black')
+#
+# @example Drawing an ellipse
+#   TkcOval.new(canvas, 10, 30, 110, 70,
+#     fill: 'blue', width: 2)
+#
+# ## Coordinates
+#
+# Four values (x1, y1, x2, y2) defining diagonally opposite corners
+# of the bounding rectangle.
+#
+# ## Key Options
+#
+# - `:fill` - Interior color (empty string for transparent)
+# - `:outline` - Border color
+# - `:width` - Border width in pixels
+# - `:stipple` - Fill pattern (bitmap name)
+#
+# @note The oval includes its top and left edges but not its bottom
+#   or right edges. This matters at the pixel level.
+#
+# @see TkcArc For partial ellipses
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M49 Oval item docs
 class TkcOval<TkcItem
   CItemTypeName = 'oval'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A filled polygon on a canvas.
+#
+# Polygons are closed shapes defined by three or more vertices.
+# The shape closes automatically (last point connects to first).
+# Supports smooth curves through vertices.
+#
+# @example Triangle
+#   TkcPolygon.new(canvas, 50, 10, 10, 90, 90, 90,
+#     fill: 'yellow', outline: 'black')
+#
+# @example Star shape
+#   TkcPolygon.new(canvas,
+#     50, 0, 60, 35, 100, 35, 70, 55, 80, 90, 50, 70, 20, 90, 30, 55, 0, 35, 40, 35,
+#     fill: 'gold', outline: 'orange', width: 2)
+#
+# @example Smooth blob
+#   TkcPolygon.new(canvas, 50, 0, 100, 50, 50, 100, 0, 50,
+#     smooth: true, fill: 'green')
+#
+# ## Coordinates
+#
+# Three or more points (x1, y1, x2, y2, x3, y3, ...) defining vertices.
+#
+# ## Key Options
+#
+# - `:fill` - Interior color
+# - `:outline` - Border color
+# - `:smooth` - true for curved edges through vertices
+# - `:splinesteps` - Curve smoothness (higher = smoother)
+# - `:joinstyle` - Vertex corners: :miter, :bevel, :round
+#
+# @note Unlike most items, a polygon's interior is considered "inside"
+#   even when unfilled. Mouse events trigger over the whole area.
+#
+# @see TkcLine For open polylines
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M55 Polygon item docs
 class TkcPolygon<TkcItem
   CItemTypeName = 'polygon'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A rectangle on a canvas.
+#
+# Rectangles are axis-aligned boxes defined by two diagonal corners.
+#
+# @example Simple filled rectangle
+#   TkcRectangle.new(canvas, 10, 10, 100, 50,
+#     fill: 'blue', outline: 'black')
+#
+# @example Outlined box with dash pattern
+#   TkcRectangle.new(canvas, 20, 20, 80, 80,
+#     fill: '',
+#     outline: 'red',
+#     dash: '5 3',
+#     width: 2)
+#
+# ## Coordinates
+#
+# Four values (x1, y1, x2, y2) defining diagonally opposite corners.
+# The corners can be specified in any order.
+#
+# ## Key Options
+#
+# - `:fill` - Interior color (empty string for transparent)
+# - `:outline` - Border color
+# - `:width` - Border width in pixels
+# - `:dash` - Dash pattern for border
+# - `:stipple` - Fill pattern (bitmap name)
+#
+# @note The rectangle includes its top and left edges but not its
+#   bottom or right edges. This matters at the pixel level.
+#
+# @see TkcOval For ellipses
+# @see TkcPolygon For arbitrary shapes
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M63 Rectangle item docs
 class TkcRectangle<TkcItem
   CItemTypeName = 'rectangle'.freeze
   CItemTypeToClass[CItemTypeName] = self
 end
 
+# A text string on a canvas.
+#
+# Text items display one or more lines of text, with optional rotation
+# and editing support. Supports the full range of canvas bindings and
+# can receive keyboard focus.
+#
+# @example Simple label
+#   TkcText.new(canvas, 100, 50,
+#     text: "Hello World",
+#     font: "Helvetica 14 bold",
+#     fill: 'black')
+#
+# @example Multi-line centered text
+#   TkcText.new(canvas, 200, 100,
+#     text: "Line 1\nLine 2\nLine 3",
+#     justify: :center,
+#     anchor: :center)
+#
+# @example Rotated text (Tk 8.6+)
+#   TkcText.new(canvas, 150, 150,
+#     text: "Rotated!",
+#     angle: 45)
+#
+# ## Coordinates
+#
+# Single point (x, y) for text positioning. The `:anchor` option
+# controls which part of the text bounding box aligns to this point.
+#
+# ## Key Options
+#
+# - `:text` - String to display
+# - `:font` - Font specification
+# - `:fill` - Text color
+# - `:justify` - Multi-line alignment: :left, :center, :right
+# - `:anchor` - Position relative to coordinates (:center, :n, :nw, etc.)
+# - `:width` - Maximum line width (0 = no wrapping)
+# - `:angle` - Rotation in degrees (counterclockwise, Tk 8.6+)
+# - `:underline` - Character index to underline (for keyboard shortcuts)
+#
+# ## Text Editing
+#
+# Canvas text items support in-place editing via canvas focus and
+# insertion cursor methods. See {Tk::Canvas#focus} and {#icursor}.
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M69 Text item docs
 class TkcText<TkcItem
   CItemTypeName = 'text'.freeze
   CItemTypeToClass[CItemTypeName] = self
@@ -558,6 +925,47 @@ class TkcText<TkcItem
   end
 end
 
+# An embedded widget on a canvas.
+#
+# Window items place Tk widgets on the canvas, allowing buttons, entries,
+# or any widget to be positioned and scrolled with canvas content.
+#
+# @example Button on canvas
+#   btn = TkButton.new(canvas, text: "Click Me") { puts "clicked!" }
+#   TkcWindow.new(canvas, 100, 50, window: btn)
+#
+# @example Entry field with explicit size
+#   entry = TkEntry.new(canvas)
+#   TkcWindow.new(canvas, 200, 100,
+#     window: entry,
+#     width: 150,
+#     height: 25)
+#
+# ## Coordinates
+#
+# Single point (x, y) for widget positioning. The `:anchor` option
+# controls which part of the widget aligns to this point.
+#
+# ## Key Options
+#
+# - `:window` - The widget to embed (must be child of canvas or toplevel)
+# - `:width` - Override widget's natural width (0 = use natural)
+# - `:height` - Override widget's natural height (0 = use natural)
+# - `:anchor` - Position relative to coordinates (:center default)
+#
+# ## Quirks
+#
+# - Window items always appear above all other canvas items, regardless
+#   of stacking order set by raise/lower
+# - Windows are not clipped by the canvas border; they may extend outside
+# - Embedded windows scroll with the canvas view
+# - The widget must be a descendant of the canvas or its toplevel
+#
+# @note Unlike {TkTextWindow} in Text widgets, canvas windows don't
+#   support lazy creation via a `:create` callback.
+#
+# @see TkTextWindow For embedding widgets in Text widgets
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm#M76 Window item docs
 class TkcWindow<TkcItem
   CItemTypeName = 'window'.freeze
   CItemTypeToClass[CItemTypeName] = self

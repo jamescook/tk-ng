@@ -3,6 +3,67 @@
 # tk/pack.rb : control pack geometry manager
 #
 
+# Pack geometry manager for simple stacking layouts.
+#
+# Pack arranges widgets by stacking them against container edges.
+# It's the simplest geometry manager, ideal for toolbars, button rows,
+# and basic layouts.
+#
+# ## Basic Usage
+#
+# Widgets call `.pack` with side/fill options:
+#
+#     button1.pack(side: :left)
+#     button2.pack(side: :left)
+#     text_area.pack(side: :top, fill: :both, expand: true)
+#
+# Or use the module directly:
+#
+#     TkPack.configure(button, side: :left, padx: 5)
+#
+# ## Key Options
+#
+# - `:side` - Which edge to pack against: :top, :bottom, :left, :right
+# - `:fill` - Stretch widget: :none, :x, :y, :both
+# - `:expand` - Claim extra space when container grows (true/false)
+# - `:anchor` - Position within allocated space: :n, :s, :e, :w, :center, etc.
+# - `:padx`, `:pady` - External padding
+# - `:ipadx`, `:ipady` - Internal padding (increases widget size)
+#
+# ## How Pack Works
+#
+# Pack processes widgets in order. Each widget claims a "parcel" from
+# the remaining "cavity":
+#
+# 1. Widget gets a rectangular parcel along the specified side
+# 2. Widget is sized/positioned within its parcel
+# 3. Parcel is removed from cavity
+# 4. Next widget uses remaining cavity
+#
+# @example Toolbar with buttons
+#   btn1.pack(side: :left, padx: 2)
+#   btn2.pack(side: :left, padx: 2)
+#   btn3.pack(side: :left, padx: 2)
+#
+# @example Main content with sidebar
+#   sidebar.pack(side: :left, fill: :y)
+#   content.pack(side: :left, fill: :both, expand: true)
+#
+# @example Centered button row
+#   frame = TkFrame.new(root)
+#   frame.pack(side: :bottom)
+#   ok_btn.pack(side: :left, padx: 5, in: frame)
+#   cancel_btn.pack(side: :left, padx: 5, in: frame)
+#
+# @note **Propagation**: By default, containers shrink-wrap their contents.
+#   Use `TkPack.propagate(container, false)` for fixed-size containers.
+#
+# @note **Order matters**: Widgets packed first get space first. If space
+#   runs out, later widgets may not be visible until the container grows.
+#
+# @see TkGrid For table-like layouts with rows and columns
+# @see TkPlace For absolute positioning
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/pack.htm Tcl/Tk pack manual
 module TkPack
   include Tk
   extend Tk
@@ -68,6 +129,14 @@ module TkPack
     return info
   end
 
+  # Gets or sets geometry propagation.
+  #
+  # When enabled (default), the container shrink-wraps its packed contents.
+  # Disable for fixed-size containers.
+  #
+  # @param master [TkWindow] Container window
+  # @param mode [Boolean, nil] true/false to set, nil to query
+  # @return [Boolean, void] Current state if querying
   def propagate(master, mode=None)
     # master = master.epath if master.kind_of?(TkObject)
     master = _epath(master)

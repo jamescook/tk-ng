@@ -2,6 +2,33 @@
 #
 # tk/winfo.rb : methods for winfo command
 #
+
+# Window information query methods.
+#
+# TkWinfo provides methods to query window properties: geometry, hierarchy,
+# display characteristics, and state. Methods can be called as module methods
+# or as instance methods on windows.
+#
+# ## Categories of Information
+#
+# - **Geometry**: width, height, x, y, rootx, rooty, geometry
+# - **Hierarchy**: parent, children, toplevel, containing
+# - **Display**: depth, visual, colormap, cells, screen
+# - **State**: exists, ismapped, viewable, manager
+# - **Pointer**: pointerx, pointery, pointerxy
+#
+# @example Query window dimensions
+#   TkWinfo.width(my_window)   # => 300
+#   my_window.winfo_width      # => 300
+#
+# @example Find window under mouse pointer
+#   win = TkWinfo.containing(x, y)
+#
+# @example Query window hierarchy
+#   TkWinfo.children(parent)   # => [child1, child2, ...]
+#   TkWinfo.parent(child)      # => parent_window
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/winfo.htm Tcl/Tk winfo manual
 module TkWinfo
 end
 

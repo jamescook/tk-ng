@@ -3,32 +3,69 @@
 require_relative 'option'
 
 module Tk
-  # DSL for declaring item options and providing item configuration methods.
+  # DSL for declaring item options on container widgets.
   #
-  # This module provides both the class-level DSL for declaring item options
-  # and command patterns, AND the instance methods for itemcget/itemconfigure.
-  # When you `extend Tk::ItemOptionDSL`, it automatically includes the
-  # InstanceMethods module to provide the implementation.
+  # ItemOptionDSL is for widgets that contain configurable items:
+  # - Canvas items (rectangles, lines, text, etc.)
+  # - Menu entries
+  # - Text widget tags, marks, images, windows
+  # - Listbox entries (conceptually)
   #
-  # Example:
-  #   class TkCanvas
-  #     extend Tk::OptionDSL
-  #     extend Tk::ItemOptionDSL
+  # This module provides:
+  # 1. Class-level DSL for declaring item options
+  # 2. Instance methods for itemcget/itemconfigure
+  # 3. Flexible command building for different widget patterns
   #
-  #     # Declare how item commands are built
+  # ## Basic Usage
+  #
+  #     class TkCanvas
+  #       extend Tk::ItemOptionDSL
+  #
+  #       # Specify Tcl subcommands
+  #       item_commands cget: 'itemcget', configure: 'itemconfigure'
+  #
+  #       # Declare item options with types
+  #       item_option :fill, type: :color
+  #       item_option :outline, type: :color
+  #       item_option :width, type: :integer
+  #       item_option :smooth, type: :boolean
+  #     end
+  #
+  #     # Instance methods are automatically available:
+  #     canvas.itemcget(item_id, :fill)
+  #     canvas.itemconfigure(item_id, fill: 'red', width: 2)
+  #
+  # ## Command Patterns
+  #
+  # Different widgets use different Tcl command patterns:
+  #
+  #     # Canvas: .canvas itemcget $id -option
   #     item_commands cget: 'itemcget', configure: 'itemconfigure'
   #
-  #     # Item options (for rectangles, ovals, lines, text, etc.)
-  #     item_option :fill, type: :color
-  #     item_option :outline, type: :color
-  #     item_option :width, type: :integer
-  #     item_option :smooth, type: :boolean
-  #   end
+  #     # Menu: .menu entrycget $index -option
+  #     item_commands cget: 'entrycget', configure: 'entryconfigure'
   #
-  #   # Now instances have itemcget, itemconfigure, itemconfiginfo methods
-  #   canvas.itemcget(item_id, :fill)
-  #   canvas.itemconfigure(item_id, fill: 'red')
+  # For complex patterns, use procs:
   #
+  #     # Text widget: .text $type cget $id -option
+  #     item_cget_cmd { |(type, id)| [path, type, 'cget', id] }
+  #     item_configure_cmd { |(type, id)| [path, type, 'configure', id] }
+  #
+  # ## Inheritance
+  #
+  # Item options and command configuration are inherited by subclasses,
+  # allowing specialized widgets to extend the base set.
+  #
+  # @example Canvas with item options
+  #   canvas.itemconfigure(rect, fill: 'blue', outline: 'black')
+  #   color = canvas.itemcget(rect, :fill)  # => "blue"
+  #
+  # @example Menu with entry options
+  #   menu.entryconfigure(0, label: 'New', command: proc { new_file })
+  #   label = menu.entrycget(0, :label)  # => "New"
+  #
+  # @see OptionDSL For widget-level options
+  # @see Option Metadata for individual options
   module ItemOptionDSL
     # Called when module is extended into a class/module - adds instance methods
     def self.extended(base)
@@ -173,22 +210,37 @@ module Tk
       @_item_options ||= {}
     end
 
-    # ========================================================================
-    # Instance Methods - included automatically when extending ItemOptionDSL
-    # ========================================================================
+    # Instance methods for item configuration.
     #
-    # These provide the actual itemcget, itemconfigure, itemconfiginfo methods.
-    # They use the DSL configuration to build commands and convert values.
+    # Automatically included when extending ItemOptionDSL.
+    # Provides itemcget, itemconfigure, itemconfiginfo methods.
     #
+    # @note These methods use the DSL configuration to build Tcl commands
+    #   and convert values using declared item options.
     module InstanceMethods
       include TkUtil
 
+      # Get raw Tcl string value for an item option (no type conversion).
+      #
+      # @param tagOrId [Object] Item identifier
+      # @param option [Symbol, String] Option name
+      # @return [String] Raw Tcl value
       def itemcget_tkstring(tagOrId, option)
         opt = option.to_s
         raise ArgumentError, "Invalid option `#{option.inspect}'" if opt.empty?
         tk_call_without_enc(*(_item_cget_cmd(tagid(tagOrId)) << "-#{opt}"))
       end
 
+      # Get an item option value with type conversion.
+      #
+      # @param tagOrId [Object] Item identifier (e.g., canvas item ID, menu index)
+      # @param option [Symbol, String] Option name (aliases are resolved)
+      # @return [Object] Ruby value (converted from Tcl)
+      #
+      # @example
+      #   canvas.itemcget(rect, :fill)     # => "blue"
+      #   canvas.itemcget(rect, :width)    # => 2 (Integer, not "2")
+      #   canvas.itemcget(rect, :smooth)   # => true (Boolean)
       def itemcget(tagOrId, option)
         option = option.to_s
         raise ArgumentError, "Invalid option `#{option.inspect}'" if option.empty?
@@ -204,6 +256,24 @@ module Tk
       end
       alias itemcget_strict itemcget
 
+      # Configure one or more item options.
+      #
+      # @overload itemconfigure(tagOrId, options_hash)
+      #   @param tagOrId [Object] Item identifier
+      #   @param options_hash [Hash] Option names to values
+      #   @return [self]
+      #
+      # @overload itemconfigure(tagOrId, option, value)
+      #   @param tagOrId [Object] Item identifier
+      #   @param option [Symbol, String] Single option name
+      #   @param value [Object] Value to set
+      #   @return [self]
+      #
+      # @example Hash form (multiple options)
+      #   canvas.itemconfigure(rect, fill: 'blue', outline: 'black', width: 2)
+      #
+      # @example Single option form
+      #   canvas.itemconfigure(rect, :fill, 'red')
       def itemconfigure(tagOrId, slot, value = None)
         if slot.kind_of?(Hash)
           slot = _symbolkey2str(slot)
@@ -233,6 +303,24 @@ module Tk
         self
       end
 
+      # Get configuration info for an item option.
+      #
+      # Returns the full Tcl configuration tuple:
+      # `[option_name, db_name, db_class, default, current]`
+      #
+      # For alias options, returns: `[alias_name, target_name]`
+      #
+      # @param tagOrId [Object] Item identifier
+      # @param slot [Symbol, String, nil] Specific option, or nil for all
+      # @return [Array, Array<Array>] Config tuple(s)
+      #
+      # @example Single option
+      #   canvas.itemconfiginfo(rect, :fill)
+      #   # => ["fill", "fill", "Fill", "", "blue"]
+      #
+      # @example All options
+      #   canvas.itemconfiginfo(rect)
+      #   # => [["fill", ...], ["outline", ...], ...]
       def itemconfiginfo(tagOrId, slot = nil)
         if slot
           slot = slot.to_s
@@ -251,6 +339,18 @@ module Tk
         end
       end
 
+      # Get current values of item options as a hash.
+      #
+      # @param tagOrId [Object] Item identifier
+      # @param slot [Symbol, String, nil] Specific option, or nil for all
+      # @return [Hash] Option name => current value
+      #
+      # @example
+      #   canvas.current_itemconfiginfo(rect)
+      #   # => {"fill" => "blue", "outline" => "black", "width" => 2, ...}
+      #
+      #   canvas.current_itemconfiginfo(rect, :fill)
+      #   # => {"fill" => "blue"}
       def current_itemconfiginfo(tagOrId, slot = nil)
         if slot
           conf = itemconfiginfo(tagOrId, slot)

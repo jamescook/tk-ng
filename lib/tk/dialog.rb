@@ -4,11 +4,57 @@
 #
 require 'tk/variable.rb'
 
+# Creates custom dialog boxes with configurable buttons, message, and bitmap.
+#
+# TkDialogObj wraps Tk's `tk_dialog` command, which displays a modal dialog
+# window and waits for user interaction before returning.
+#
+# @note **Largely deprecated**: The underlying `tk_dialog` command is largely
+#   deprecated by {Tk.messageBox} (which wraps `tk_messageBox`). Use
+#   {Tk.messageBox} for standard OK/Cancel/Yes/No dialogs. TkDialogObj is
+#   still useful when you need highly customized button labels or dialog
+#   appearance beyond what `tk_messageBox` offers.
+#
+# @example Basic usage with show class method
+#   dialog = TkDialogObj.show(nil,
+#     title: "Confirm Action",
+#     message: "Are you sure you want to proceed?",
+#     bitmap: "question",
+#     buttons: ["Yes", "No", "Cancel"],
+#     default: 0
+#   )
+#   case dialog.value
+#   when 0 then puts "User clicked Yes"
+#   when 1 then puts "User clicked No"
+#   when 2 then puts "User clicked Cancel"
+#   end
+#
+# @example Subclassing for reusable dialogs
+#   class ConfirmDeleteDialog < TkDialogObj
+#     private
+#     def title; "Confirm Delete"; end
+#     def message; "This cannot be undone. Continue?"; end
+#     def bitmap; "warning"; end
+#     def buttons; ["Delete", "Cancel"]; end
+#     def default_button; 1; end  # Cancel is default
+#   end
+#
+#   dialog = ConfirmDeleteDialog.new
+#   dialog.show
+#   if dialog.value == 0
+#     # perform delete
+#   end
+#
+# @see Tk.messageBox For standard message dialogs (preferred for simple cases)
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/dialog.htm Tcl/Tk tk_dialog manual
 class TkDialogObj < TkWindow
   extend Tk
 
   TkCommandNames = ['tk_dialog'.freeze].freeze
 
+  # Creates and immediately shows a dialog, returning the dialog object.
+  # @param args [Array] Arguments passed to {#initialize}
+  # @return [TkDialogObj] The dialog object (call {#value} to get result)
   def self.show(*args)
     dlog = self.new(*args)
     dlog.show
@@ -162,6 +208,14 @@ class TkDialogObj < TkWindow
   end
   private :create_self
 
+  # Displays the dialog and waits for user interaction.
+  #
+  # This method blocks until the user clicks a button or closes the dialog.
+  # During display, a local grab prevents interaction with other application
+  # windows.
+  #
+  # @return [Integer] The button index (0 for leftmost, 1 for next, etc.)
+  # @note Returns -1 if the dialog window is destroyed before a button is clicked.
   def show
     # if @command.kind_of?(Proc)
     if TkComm._callback_entry?(@command)
@@ -193,11 +247,16 @@ class TkDialogObj < TkWindow
                                     ].concat(@buttons))).to_i
   end
 
+  # Returns the index of the button that was clicked.
+  # @return [Integer, nil] 0 for leftmost button, 1 for next, etc.
+  #   Returns -1 if dialog was destroyed, nil if not yet shown.
   def value
     # @var.value.to_i
     @val
   end
 
+  # Returns the label text of the button that was clicked.
+  # @return [String, nil] The button label, or nil if no button was clicked
   def name
     (@val)? @buttons[@val]: nil
   end
@@ -258,9 +317,16 @@ class TkDialogObj < TkWindow
 end
 TkDialog2 = TkDialogObj
 
+# Dialog that automatically shows when instantiated.
 #
-# TkDialog : with showing at initialize
+# Unlike {TkDialogObj}, TkDialog displays immediately upon creation,
+# so you don't need to call {#show} separately.
 #
+# @example
+#   dialog = TkDialog.new(nil, title: "Info", message: "Done!", buttons: ["OK"])
+#   puts "User clicked button #{dialog.value}"
+#
+# @see TkDialogObj For dialogs that don't auto-show
 class TkDialog < TkDialogObj
   def self.show(*args)
     self.new(*args)
@@ -273,9 +339,21 @@ class TkDialog < TkDialogObj
 end
 
 
+# Pre-configured warning dialog with "warning" bitmap and single OK button.
 #
-# dialog for warning
+# A convenience subclass of {TkDialogObj} for simple warning messages.
+# Title defaults to "WARNING" with a warning icon.
 #
+# @example Simple warning message
+#   warn_dialog = TkWarningObj.new("File not found!")
+#   warn_dialog.show
+#
+# @example With parent window
+#   warn_dialog = TkWarningObj.new(parent_window, "Invalid input")
+#   warn_dialog.show
+#
+# @see TkWarning For auto-showing warning dialogs
+# @see Tk.messageBox For more flexible message dialogs
 class TkWarningObj < TkDialogObj
   def initialize(parent = nil, mes = nil)
     if !mes
@@ -315,6 +393,15 @@ class TkWarningObj < TkDialogObj
 end
 TkWarning2 = TkWarningObj
 
+# Warning dialog that automatically shows when instantiated.
+#
+# Combines {TkWarningObj}'s pre-configured warning appearance with
+# auto-show behavior (like {TkDialog}).
+#
+# @example One-liner warning
+#   TkWarning.new("Operation failed!")
+#
+# @see TkWarningObj For warnings that don't auto-show
 class TkWarning < TkWarningObj
   def self.show(*args)
     self.new(*args)

@@ -2,23 +2,49 @@
 #
 # tk/font.rb - TkFont class for creating and manipulating fonts
 #
-# TkFont creates named Tcl fonts that can be modified after creation.
-# Changes to a TkFont automatically propagate to all widgets using it.
-#
-# Usage:
-#   font = TkFont.new('Helvetica 12 bold')
-#   font = TkFont.new(family: 'Courier', size: 14)
-#   label = TkLabel.new(root, font: font)
-#
-#   # Modify font - widget updates automatically
-#   font.family = 'Times'
-#   font.size = 18
-#
-#   # Or via widget.font accessor:
-#   label.font.family = 'Arial'
-#
 require 'tk'
 
+# Creates named fonts that can be modified after creation.
+#
+# Unlike simple font strings ("Helvetica 12 bold"), TkFont objects create
+# named Tcl fonts that automatically update all widgets using them when
+# modified. This is useful for implementing font preferences or themes.
+#
+# @example Creating fonts
+#   # From font description string
+#   font = TkFont.new('Helvetica 12 bold')
+#
+#   # From keyword options
+#   font = TkFont.new(family: 'Courier', size: 14, weight: 'bold')
+#
+#   # Apply to widget
+#   label = TkLabel.new(root, font: font)
+#
+# @example Modifying fonts (auto-updates widgets)
+#   font.family = 'Times'
+#   font.size = 18
+#   font.weight = 'bold'
+#   # All widgets using this font update automatically
+#
+# @example Querying fonts
+#   TkFont.families         # => ["Arial", "Courier", "Helvetica", ...]
+#   TkFont.names            # => ["TkDefaultFont", "TkTextFont", ...]
+#   TkFont.measure(font, "Hello")  # => pixel width
+#   TkFont.metrics(font)    # => {ascent: 12, descent: 3, linespace: 15, fixed: 0}
+#
+# @example Deriving fonts (creates new font)
+#   bold_font = font.weight('bold')  # New TkFont with bold weight
+#   big_font = font.size(24)         # New TkFont with size 24
+#
+# @note **macOS limitation**: System fonts (TkDefaultFont, etc.) cannot be
+#   directly modified on Aqua. Use {#actual} to get current attributes,
+#   then create a new TkFont with those attributes.
+#
+# @note **Standard fonts warning**: Avoid modifying TkDefaultFont,
+#   TkTextFont, etc. directly. Tk may alter these in response to system
+#   changes, overwriting your modifications.
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/font.htm Tcl/Tk font manual
 class TkFont
   @font_id = 0
   @font_id_mutex = Mutex.new
@@ -38,8 +64,17 @@ class TkFont
     @registry_mutex.synchronize { @registry[name] }
   end
 
-  # TkFont.new('Helvetica 12') or TkFont.new(family: 'Helvetica', size: 12)
-  # widget: optional source widget for auto-reconfigure on setter calls
+  # Creates a new named font.
+  # @param font_spec [String, nil] Font description (e.g., "Helvetica 12 bold")
+  # @param fallback [String, nil] Fallback font (legacy, ignored in modern Tk)
+  # @param widget [TkWindow, nil] Source widget for auto-reconfigure
+  # @param opts [Hash] Font attributes
+  # @option opts [String] :family Font family name
+  # @option opts [Integer] :size Font size in points
+  # @option opts [String] :weight "normal" or "bold"
+  # @option opts [String] :slant "roman" or "italic"
+  # @option opts [Boolean] :underline Underline text
+  # @option opts [Boolean] :overstrike Strikethrough text
   def initialize(font_spec = nil, fallback = nil, widget: nil, **opts)
     if font_spec.is_a?(Hash)
       opts = font_spec
@@ -142,9 +177,17 @@ class TkFont
     Tk.tk_call('font', 'configure', @tcl_font_name, '-size').to_i
   end
 
-  # Get actual font attributes (after Tk resolves substitutions)
-  # With no args, returns hash of all attributes
-  # With option arg, returns single value
+  # Returns actual font attributes after Tk resolves substitutions.
+  #
+  # The "actual" attributes may differ from requested attributes due to
+  # platform limitations or font unavailability.
+  #
+  # @param option [String, Symbol, nil] Specific attribute to query
+  # @return [Hash, String] All attributes as hash, or single value if option given
+  # @example Get all actual attributes
+  #   font.actual  # => {family: "Helvetica", size: "12", weight: "normal", ...}
+  # @example Get specific attribute
+  #   font.actual(:family)  # => "Helvetica"
   def actual(option = nil)
     if option
       Tk.tk_call('font', 'actual', @tcl_font_name, "-#{option}")
@@ -189,23 +232,38 @@ class TkFont
 
   public
 
-  # TkFont.families - list available font families
+  # Returns all available font families on this display.
+  # @return [Array<String>] Font family names
+  # @example
+  #   TkFont.families  # => ["Arial", "Courier", "Helvetica", ...]
   def self.families
     TkCore::INTERP._split_tklist(Tk.tk_call('font', 'families'))
   end
 
-  # TkFont.names - list all named fonts (including system fonts like TkDefaultFont)
+  # Returns all named fonts (including system fonts like TkDefaultFont).
+  # @return [Array<String>] Named font identifiers
   def self.names
     TkCore::INTERP._split_tklist(Tk.tk_call('font', 'names'))
   end
 
-  # TkFont.measure(font, text) - measure text width in pixels
+  # Measures text width in pixels using a given font.
+  # @param font [TkFont, String] Font to use for measurement
+  # @param text [String] Text to measure
+  # @return [Integer] Width in pixels
+  # @example
+  #   TkFont.measure("Helvetica 12", "Hello World")  # => 78
   def self.measure(font, text)
     font_str = font.respond_to?(:to_str) ? font.to_str : font.to_s
     Tk.tk_call('font', 'measure', font_str, text).to_i
   end
 
-  # TkFont.metrics(font, option) - get font metrics
+  # Returns font metrics.
+  # @param font [TkFont, String] Font to query
+  # @param option [String, Symbol, nil] Specific metric (:ascent, :descent, :linespace, :fixed)
+  # @return [Hash, Integer] All metrics as hash, or single value if option given
+  # @example
+  #   TkFont.metrics("Helvetica 12")  # => {ascent: 11, descent: 3, linespace: 14, fixed: 0}
+  #   TkFont.metrics("Helvetica 12", :ascent)  # => 11
   def self.metrics(font, option = nil)
     font_str = font.respond_to?(:to_str) ? font.to_str : font.to_s
     if option

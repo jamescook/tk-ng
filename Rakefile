@@ -3,6 +3,38 @@ require 'rake/extensiontask'
 require 'rake/testtask'
 require 'rake/clean'
 
+# YARD documentation generation
+begin
+  require 'yard'
+
+  # Load vendored yard-markdown template if YARD_MARKDOWN=1
+  if ENV['YARD_MARKDOWN']
+    $LOAD_PATH.unshift(File.expand_path('vendor/yard-markdown/lib', __dir__))
+    require 'yard-markdown'
+  end
+
+  YARD::Rake::YardocTask.new(:yard) do |t|
+    t.files = ['lib/**/*.rb']
+    t.options = [
+      '--readme', 'README.md',
+      '--title', 'tk-ng API Documentation',
+      '--markup', 'markdown',
+      '--exclude', 'test/',
+      '--exclude', 'sample/',
+      '--exclude', 'vendor/'
+    ]
+    # Use markdown format when YARD_MARKDOWN=1
+    t.options += ['--format', 'markdown'] if ENV['YARD_MARKDOWN']
+  end
+  # Alias for convenience
+  task doc: :yard
+rescue LoadError
+  desc "Generate YARD documentation (yard gem not installed)"
+  task :yard do
+    abort "YARD is not available. Run: bundle install"
+  end
+end
+
 # Compiling on macOS with Homebrew:
 #
 # Tcl/Tk 9.0:

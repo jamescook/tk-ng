@@ -1,9 +1,7 @@
 # frozen_string_literal: false
-#
-# tk/clock.rb : methods for clock command
-#
 
 module Tk
+  # Methods for the Tcl clock command.
   module Clock
     include Tk
     extend TkCore

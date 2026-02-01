@@ -3,8 +3,9 @@
 require 'prism'
 
 module Tk
-  # Injects generated option documentation as comments into widget source files.
-  # Uses Prism for proper AST parsing to find the right insertion point.
+  # @!visibility private
+  # Internal tool for injecting generated option documentation into widget source files.
+  # Used by rake tasks, not intended for end users.
   class OptionCommentInjector
     MARKER_START = "# @generated:options:start"
     MARKER_END   = "# @generated:options:end"

@@ -2,9 +2,81 @@
 #
 #   tk/timer.rb : methods for Tcl/Tk after command
 #
-#   $Id$
-#
 
+# Schedule callbacks to run after a delay or repeatedly.
+#
+# TkTimer wraps Tcl's `after` command to execute Ruby procs after
+# a specified delay. Supports one-shot delays, repeated execution,
+# and sequences of different callbacks.
+#
+# ## One-Shot Delay
+#
+#     # Run once after 1000ms
+#     TkTimer.new(1000, 1, proc { puts "Done!" }).start
+#
+#     # Or with block
+#     TkTimer.start(1000, 1) { puts "Done!" }
+#
+# ## Repeated Execution
+#
+#     # Run every 500ms, forever (-1 = infinite)
+#     timer = TkTimer.new(500, -1, proc { update_display }).start
+#
+#     # Run 10 times
+#     timer = TkTimer.new(100, 10, proc { animate_step }).start
+#
+#     # Stop when done
+#     timer.cancel
+#
+# ## Callback Sequences
+#
+# Multiple procs execute in sequence, then loop:
+#
+#     TkTimer.new(1000, -1,
+#       proc { puts "First" },
+#       proc { puts "Second" },
+#       proc { puts "Third" }
+#     ).start
+#
+# ## Dynamic Intervals
+#
+# Use a proc for variable timing:
+#
+#     # Interval increases each iteration
+#     n = 0
+#     TkTimer.new(proc { n += 100; n * 100 }, 10, proc {
+#       puts "Iteration with increasing delay"
+#     }).start
+#
+# ## Idle Callbacks
+#
+# Use `:idle` to run when Tk is idle (no pending events):
+#
+#     TkTimer.new(:idle, 1, proc { background_task }).start
+#
+# ## Waiting for Completion
+#
+#     timer = TkTimer.new(1000, 5, proc { work }).start
+#     result = timer.wait  # Blocks until all iterations complete
+#
+# @example Animation loop
+#   frame = 0
+#   timer = TkTimer.new(33, -1) do  # ~30 FPS
+#     canvas.itemconfigure(sprite, image: frames[frame % frames.size])
+#     frame += 1
+#   end
+#   timer.start
+#   # Later: timer.cancel
+#
+# @example Debounced input
+#   @debounce_timer = nil
+#   entry.bind('<KeyRelease>') do
+#     @debounce_timer&.cancel
+#     @debounce_timer = TkTimer.start(300, 1) { search(entry.get) }
+#   end
+#
+# @see TkRTTimer Real-time timer with drift correction
+# @see https://www.tcl-lang.org/man/tcl8.6/TclCmd/after.htm Tcl after manual
 class TkTimer
   include TkCore
   extend TkCore
@@ -35,10 +107,20 @@ class TkTimer
   ###############################
   # class methods
   ###############################
+
+  # Create and immediately start a timer.
+  #
+  # @param args [Array] Same arguments as {#initialize}
+  # @yield Same as {#initialize}
+  # @return [TkTimer] The started timer
+  #
+  # @example
+  #   TkTimer.start(1000, 1) { puts "Done!" }
   def self.start(*args, &b)
     self.new(*args, &b).start
   end
 
+  # @!visibility private
   def self.callback(obj_id)
     ex_obj = Tk_CBTBL[obj_id]
     return "" if ex_obj == nil; # canceled
@@ -147,6 +229,24 @@ class TkTimer
     set_callback(sleep, cmd_args)
   end
 
+  # Create a new timer.
+  #
+  # @overload initialize(interval, loop_count, *procs, &block)
+  #   @param interval [Integer, :idle, Proc] Milliseconds between callbacks,
+  #     or `:idle` to run when idle, or a Proc returning ms
+  #   @param loop_count [Integer] Number of iterations (-1 = forever, 0 = none)
+  #   @param procs [Array<Proc>] Callbacks to execute in sequence
+  #   @yield [timer] Optional callback (added to procs)
+  #   @yieldparam timer [TkTimer] This timer instance
+  #
+  # @example Basic timer
+  #   TkTimer.new(1000, 5, proc { puts "tick" })
+  #
+  # @example With block
+  #   TkTimer.new(500, -1) { |t| puts "Iteration #{t.loop_rest}" }
+  #
+  # @example Idle callback
+  #   TkTimer.new(:idle, 1) { background_work }
   def initialize(*args, &b)
     Tk_CBID.mutex.synchronize{
       # @id = Tk_CBID.join('')
@@ -251,10 +351,14 @@ class TkTimer
     #self
   end
 
+  # Check if the timer is currently running.
+  # @return [Boolean]
   def running?
     @running
   end
 
+  # Get remaining loop iterations.
+  # @return [Integer] Iterations left (-1 if infinite)
   def loop_rest
     @do_loop
   end
@@ -367,6 +471,14 @@ class TkTimer
     self
   end
 
+  # Start the timer.
+  #
+  # @param init_args [Array] Optional: [initial_delay, init_proc, *args]
+  # @yield [timer] Optional initial callback
+  # @return [self, nil] self if started, nil if already running
+  #
+  # @example Start with initial delay
+  #   timer.start(2000)  # 2 second initial delay before first callback
   def start(*init_args, &b)
     return nil if @running
 
@@ -429,6 +541,14 @@ class TkTimer
     self
   end
 
+  # Stop and restart the timer.
+  #
+  # If no arguments given, restarts with the same parameters as
+  # the original {#start} call.
+  #
+  # @param restart_args [Array] New parameters (same as {#start})
+  # @yield New callback
+  # @return [self]
   def restart(*restart_args, &b)
     cancel if @running
     if restart_args.empty? && !b
@@ -438,6 +558,12 @@ class TkTimer
     end
   end
 
+  # Stop the timer.
+  #
+  # Cancels any pending callback and marks the timer as not running.
+  # Can be restarted with {#start} or {#restart}.
+  #
+  # @return [self]
   def cancel
     @running = false
     # @wait_var.value = 0
@@ -500,6 +626,18 @@ class TkTimer
     self
   end
 
+  # Block until the timer completes all iterations.
+  #
+  # @param on_thread [Boolean] Use thread-based waiting (default: true)
+  # @param check_root [Boolean] Check if root window destroyed
+  # @return [Object] Last callback's return value
+  # @raise [Exception] Re-raises exception from callback if one occurred
+  #
+  # @example Wait for animation to complete
+  #   timer = TkTimer.new(100, 10) { animate_frame }
+  #   timer.start
+  #   timer.wait
+  #   puts "Animation complete!"
   def wait(on_thread = true, check_root = false)
     unless @running
       if @return_value.kind_of?(Exception)
@@ -533,9 +671,27 @@ class TkTimer
   end
 end
 
+# Alias for TkTimer (historical compatibility).
 TkAfter = TkTimer
 
 
+# Real-time timer with drift correction.
+#
+# TkRTTimer compensates for execution time of callbacks to maintain
+# consistent timing. Use this when accurate intervals matter, such as
+# for animations or time-sensitive updates.
+#
+# Standard TkTimer schedules the next callback after the specified
+# delay from when the current callback *finishes*. TkRTTimer schedules
+# from when the callback *should have run*, correcting for drift.
+#
+# @example Accurate 30 FPS animation
+#   timer = TkRTTimer.new(33, -1) do  # 33ms ≈ 30 FPS
+#     render_frame  # Even if this takes 10ms, next frame is on schedule
+#   end
+#   timer.start
+#
+# @see TkTimer Base timer without drift correction
 class TkRTTimer < TkTimer
   DEFAULT_OFFSET_LIST_SIZE = 5
 

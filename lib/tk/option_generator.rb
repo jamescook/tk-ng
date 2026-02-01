@@ -6,8 +6,9 @@ require_relative 'option_comments'
 require_relative 'version_options'
 
 module Tk
-  # Generates Option DSL declarations by introspecting Tk widgets at runtime.
-  # Used by `rake tk:generate_options` to create version-specific option files.
+  # @!visibility private
+  # Internal tool for generating Option DSL declarations by introspecting Tk widgets.
+  # Used by `rake tk:generate_options`. Not intended for end users.
   class OptionGenerator
     TEMPLATES_DIR = File.expand_path('templates', __dir__)
     # Represents a single option parsed from Tk's configure output

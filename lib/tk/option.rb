@@ -5,21 +5,50 @@ require_relative 'option_type'
 module Tk
   # Metadata for a widget configuration option.
   #
-  # Holds the option name, Tcl name, type converter, any aliases, and version requirements.
+  # Option objects hold all the information needed to work with a widget
+  # option: its Ruby name, Tcl name (if different), type converter,
+  # aliases, and version requirements.
   #
-  # Example:
-  #   opt = Tk::Option.new(name: :bg, tcl_name: 'background', type: :color, aliases: [:background])
-  #   opt.to_tcl("red")   # => "red"
-  #   opt.from_tcl("red") # => "red"
+  # ## Name Mapping
   #
-  #   # Version-restricted option (Tcl/Tk 9.0+)
-  #   opt = Tk::Option.new(name: :activerelief, type: :relief, min_version: 9)
-  #   opt.available?      # => false on Tk 8.6, true on Tk 9.0+
+  # Ruby and Tcl may use different names for the same option:
+  # - Ruby: `:bg` (short, convenient)
+  # - Tcl: `background` (canonical Tcl name)
   #
-  #   # Custom converters (for special cases like menu => window object)
-  #   opt = Tk::Option.new(name: :menu, type: :string,
-  #                        from_tcl: ->(v, widget:) { widget.window(v) })
+  # The `tcl_name` parameter handles this mapping.
   #
+  # ## Type Conversion
+  #
+  # Options use {OptionType} converters for Ruby <-> Tcl translation:
+  #
+  #     opt = Option.new(name: :width, type: :integer)
+  #     opt.to_tcl(100)    # => "100"
+  #     opt.from_tcl("50") # => 50
+  #
+  # ## Aliases
+  #
+  # Options can have multiple names pointing to the same setting:
+  #
+  #     opt = Option.new(name: :background, type: :color, aliases: [:bg])
+  #     # Now :bg and :background both work
+  #
+  # ## Version Requirements
+  #
+  # Some options only exist in newer Tk versions:
+  #
+  #     opt = Option.new(name: :placeholder, type: :string, min_version: 9)
+  #     opt.available?  # => false on Tk 8.6, true on Tk 9.0+
+  #
+  # ## Custom Converters
+  #
+  # For special cases, provide custom procs:
+  #
+  #     opt = Option.new(name: :menu, type: :string,
+  #       from_tcl: ->(v, widget:) { widget.window(v) }
+  #     )
+  #
+  # @see OptionDSL Declares options at class level
+  # @see OptionType Built-in type converters
   class Option
     attr_reader :name, :tcl_name, :type, :aliases, :min_version
 

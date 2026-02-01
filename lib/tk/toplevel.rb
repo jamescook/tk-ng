@@ -1,13 +1,40 @@
 # frozen_string_literal: false
-#
-# tk/toplevel.rb : treat toplevel widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/toplevel.html
-#
 require 'tk/wm'
 require 'tk/menuspec'
 require 'tk/option_dsl'
 
+# A top-level window (separate from the main application window).
+#
+# Toplevels are used for dialogs, secondary windows, and popups.
+# They include the {Wm} mixin for window manager control (title,
+# geometry, minimize, etc.).
+#
+# @example Simple dialog window
+#   dialog = Tk::Toplevel.new(title: "Settings")
+#   Tk::Label.new(dialog, text: "Options here").pack
+#   Tk::Button.new(dialog, text: "Close") { dialog.destroy }.pack
+#
+# @example Modal dialog pattern
+#   dialog = Tk::Toplevel.new
+#   dialog.title("Confirm")
+#   dialog.grab           # capture all input
+#   dialog.transient(root)  # stay on top of parent
+#   # ... add widgets ...
+#   dialog.wait_window    # block until closed
+#
+# @example Window positioning
+#   top = Tk::Toplevel.new
+#   top.geometry("400x300+100+50")  # WxH+X+Y
+#   top.minsize(200, 150)
+#   top.resizable(true, false)  # width resizable, height fixed
+#
+# @note Options like `:class`, `:screen`, `:colormap`, and `:use` can only
+#   be set at creation time, not changed afterward.
+#
+# @see Wm for window manager methods (title, geometry, iconify, etc.)
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/toplevel.html Tcl/Tk toplevel manual
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/wm.html Tcl/Tk wm manual
+#
 class Tk::Toplevel<TkWindow
   include Wm
   include TkMenuSpec

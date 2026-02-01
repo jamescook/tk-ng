@@ -33,6 +33,15 @@ module TclTkLib
   end
 end
 
+# Main Tk module - Ruby bindings for Tcl/Tk.
+#
+# Provides widgets, geometry managers, event handling, and more.
+#
+# @example Basic usage
+#   require 'tk'
+#   Tk::Button.new(text: "Hello") { puts "clicked!" }.pack
+#   Tk.mainloop
+#
 module Tk
   include TkCore
   extend Tk
@@ -260,8 +269,8 @@ module Tk
     end
   end
 
-  # Compatibility: UTF8_String is no longer needed in Ruby 3.x (strings are UTF-8).
-  # This converts \uXXXX escapes in single-quoted strings for old demo compatibility.
+  # @deprecated No longer needed. Ruby strings are UTF-8 by default.
+  # @!visibility private
   class UTF8_String < String
     def initialize(str)
       Tk::Warnings.warn_once(:utf8_string,

@@ -1,11 +1,33 @@
 # frozen_string_literal: false
-#
-# tk/message.rb : treat message widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/message.html
-#
 require 'tk/label'
 
+# A widget for displaying multi-line text with automatic line wrapping.
+#
+# Unlike {Tk::Label}, Message automatically wraps text based on the
+# `:aspect` ratio or `:width`. Useful for longer messages and dialogs.
+#
+# @example Basic message
+#   Tk::Message.new(
+#     text: "This is a longer message that will be automatically " \
+#           "wrapped to fit the aspect ratio.",
+#     aspect: 200  # wider than tall
+#   ).pack
+#
+# @example Fixed width
+#   Tk::Message.new(
+#     text: "Message with fixed width",
+#     width: 200,
+#     justify: :center
+#   ).pack
+#
+# @note The `:aspect` option is `100 * width / height`. Default 150 (roughly
+#   square). Use 200+ for wider, 100 or less for taller.
+#
+# @note Tabs don't work well with centered or right-justified text.
+#
+# @see Tk::Label for single-line or fixed-layout text
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/message.html Tcl/Tk message manual
+#
 class Tk::Message<Tk::Label
   include Tk::Generated::Message
   # @generated:options:start

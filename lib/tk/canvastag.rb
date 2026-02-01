@@ -4,6 +4,13 @@
 #
 require 'tk/tagfont'
 
+# Shared methods for canvas items and tags.
+#
+# This module provides the common interface for manipulating canvas items
+# and tags: configuration, coordinates, bindings, and transformations.
+#
+# @see TkcItem Base class for canvas items
+# @see TkcTag For grouping items with tags
 module TkcTagAccess
   include TkComm
   include TkTreatTagFont
@@ -223,6 +230,51 @@ module TkcTagAccess
   end
 end
 
+# A tag for grouping canvas items.
+#
+# Tags allow you to manipulate multiple canvas items as a group.
+# Each item can have multiple tags, and the same tag can apply to
+# many items.
+#
+# ## Tag Operations
+#
+# - Apply a tag to items with selection methods (closest, enclosed, etc.)
+# - Configure all tagged items at once with {#configure}
+# - Bind events to all items with a tag using {#bind}
+# - Move, scale, or delete all tagged items together
+#
+# ## Logical Tag Expressions (Tk 8.3+)
+#
+# Tags support logical operators for complex selections:
+#
+#     tag1 & tag2   # Items with both tags
+#     tag1 | tag2   # Items with either tag
+#     tag1 ^ tag2   # Items with one but not both
+#     -tag1         # Items without this tag
+#
+# @example Creating and using tags
+#   canvas = TkCanvas.new(root)
+#   rect = TkcRectangle.new(canvas, 10, 10, 50, 50, fill: 'red')
+#   oval = TkcOval.new(canvas, 60, 10, 100, 50, fill: 'blue')
+#
+#   # Create a tag and add items
+#   shapes = TkcTag.new(canvas)
+#   shapes.withtag(rect)
+#   shapes.withtag(oval)
+#
+#   # Operate on all tagged items
+#   shapes.configure(outline: 'black', width: 2)
+#   shapes.move(20, 20)
+#
+# @example Using selection methods
+#   nearby = TkcTag.new(canvas)
+#   nearby.closest(x, y)     # Tag item closest to point
+#   nearby.enclosed(x1, y1, x2, y2)  # Tag items fully inside rect
+#
+# @see TkcTagAll The special "all" tag (every item)
+# @see TkcTagCurrent The "current" tag (item under mouse)
+# @see TkcGroup For explicit item grouping
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm Tcl/Tk canvas manual
 class TkcTag<TkObject
   include TkcTagAccess
 
@@ -337,18 +389,49 @@ class TkcTagString<TkcTag
 end
 TkcNamedTag = TkcTagString
 
+# The special "all" tag that matches every canvas item.
+#
+# @example Operating on all items
+#   all = TkcTagAll.new(canvas)
+#   all.configure(state: 'disabled')
+#   all.delete  # Clear the canvas
 class TkcTagAll<TkcTagString
   def self.new(parent)
     super(parent, 'all')
   end
 end
 
+# The special "current" tag for the topmost item under the mouse.
+#
+# This tag automatically tracks the item currently under the mouse
+# cursor. Useful for hover effects and tooltips.
+#
+# @example Highlight on hover
+#   current = TkcTagCurrent.new(canvas)
+#   canvas.bind('Enter') { current.configure(outline: 'red') }
+#   canvas.bind('Leave') { current.configure(outline: 'black') }
 class TkcTagCurrent<TkcTagString
   def self.new(parent)
     super(parent, 'current')
   end
 end
 
+# A named group of canvas items.
+#
+# TkcGroup provides an explicit way to manage a collection of items.
+# Use {#include} to add items and {#exclude} to remove them.
+#
+# @example Grouping items
+#   group = TkcGroup.new(canvas, rect1, rect2, line1)
+#   group.configure(fill: 'yellow')
+#   group.move(10, 10)
+#
+# @example Dynamic membership
+#   group = TkcGroup.new(canvas)
+#   group.include(new_item)
+#   group.exclude(old_item)
+#
+# @see TkcTag For tag-based grouping
 class TkcGroup<TkcTag
   (Tk_cGroup_ID = ['tkcg'.freeze, '00000']).instance_eval{
     @mutex = Mutex.new

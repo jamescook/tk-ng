@@ -3,6 +3,84 @@
 # tk/variable.rb : treat Tk variable object
 #
 
+# A Ruby wrapper for Tcl variables with automatic widget binding.
+#
+# TkVariable creates a Tcl variable that can be shared between Ruby and
+# Tk widgets. When a widget's `textvariable`, `variable`, or `listvariable`
+# option is set to a TkVariable, changes in either Ruby or the widget
+# automatically synchronize.
+#
+# ## Basic Usage
+#
+# TkVariable can hold strings, numbers, booleans, lists, or hashes:
+#
+#     var = TkVariable.new("initial value")
+#     var.value = "new value"
+#     var.value  # => "new value"
+#
+# ## Widget Binding
+#
+# The main use case is connecting widgets to variables:
+#
+#     name_var = TkVariable.new("")
+#     entry = TkEntry.new(root, textvariable: name_var)
+#     # User types in entry -> name_var.value updates
+#     # name_var.value = "Bob" -> entry display updates
+#
+# ## Traces (Callbacks)
+#
+# You can watch for variable changes:
+#
+#     var.trace('write') { |var, elem, op| puts "Changed to #{var.value}" }
+#
+# Trace operations:
+# - `'read'` or `'r'` - Variable was read
+# - `'write'` or `'w'` - Variable was modified
+# - `'unset'` or `'u'` - Variable was deleted
+# - `'array'` or `'a'` - Array command was used
+#
+# ## Type Conversion
+#
+# Set a default type for automatic conversion:
+#
+#     var = TkVariable.new(0, :numeric)
+#     var.value = "42"
+#     var.value  # => 42 (Integer, not String)
+#
+# Available types: `:numeric`, `:bool`, `:string`, `:symbol`, `:list`, `:numlist`
+#
+# @example Entry with live update
+#   name = TkVariable.new("")
+#   TkEntry.new(root, textvariable: name)
+#   TkLabel.new(root, textvariable: name)  # Shows same text
+#
+# @example Checkbutton with boolean variable
+#   enabled = TkVariable.new(false, :bool)
+#   TkCheckbutton.new(root, variable: enabled, text: "Enable")
+#   enabled.bool  # => true or false
+#
+# @example Scale with numeric variable
+#   volume = TkVariable.new(50, :numeric)
+#   TkScale.new(root, variable: volume, from: 0, to: 100)
+#   volume.numeric  # => 50
+#
+# @example Trace for validation/logging
+#   var = TkVariable.new("")
+#   var.trace('write') do |v, elem, op|
+#     puts "Value changed to: #{v.value}"
+#   end
+#
+# @example Hash (associative array) variable
+#   config = TkVariable.new({})
+#   config['name'] = 'MyApp'
+#   config['version'] = '1.0'
+#   config.keys  # => ['name', 'version']
+#
+# @note Traces are suspended while their callback executes, preventing
+#   infinite recursion if the callback modifies the variable.
+#
+# @see TkVarAccess For accessing existing Tcl variables by name
+# @see https://www.tcl-lang.org/man/tcl8.6/TclCmd/trace.htm Tcl trace manual
 class TkVariable
   include Tk
   extend TkCore
@@ -354,6 +432,23 @@ class TkVariable
 =end
   end
 
+  # Waits until this variable is modified.
+  #
+  # Blocks the current thread (while still processing Tk events) until
+  # the variable's value changes. Useful for simple dialogs or waiting
+  # for user input.
+  #
+  # @param on_thread [Boolean] Use threaded wait (default: false)
+  # @param check_root [Boolean] Also check if root window is destroyed
+  # @return [void]
+  #
+  # @example Wait for dialog result
+  #   result = TkVariable.new
+  #   dialog = TkToplevel.new
+  #   TkButton.new(dialog, text: "OK") { result.value = "ok"; dialog.destroy }
+  #   TkButton.new(dialog, text: "Cancel") { result.value = "cancel"; dialog.destroy }
+  #   result.wait
+  #   puts "User chose: #{result.value}"
   def wait(on_thread = false, check_root = false)
     on_thread &= (Thread.list.size != 1)
     if on_thread
@@ -1221,6 +1316,35 @@ class TkVariable
   end
   private :_check_trace_opt
 
+  # Adds a trace callback for variable operations.
+  #
+  # The callback is invoked when the specified operations occur on this
+  # variable. Multiple traces can be added; they execute in reverse order
+  # of creation (most recent first).
+  #
+  # @param opts [String, Array] Operations to trace:
+  #   - `'read'` or `'r'` - Variable was accessed
+  #   - `'write'` or `'w'` - Variable was modified
+  #   - `'unset'` or `'u'` - Variable was deleted
+  #   - `'array'` or `'a'` - Array command was used
+  #   - Combine with `'rw'` or `['read', 'write']`
+  # @param cmd [Proc, nil] Callback proc (or use block)
+  # @yield [var, elem, op] Called when trace fires
+  # @yieldparam var [TkVariable] This variable
+  # @yieldparam elem [String] Element name (for arrays) or empty string
+  # @yieldparam op [String] Operation that triggered trace
+  # @return [self]
+  #
+  # @example Log all changes
+  #   var.trace('w') { |v, e, op| puts "Now: #{v.value}" }
+  #
+  # @example Validate input
+  #   var.trace('write') do |v, elem, op|
+  #     v.value = v.value.upcase  # Force uppercase
+  #   end
+  #
+  # @note Traces are temporarily disabled while callback executes.
+  # @see #trace_remove To remove a trace
   def trace(opts, cmd = nil, &block)
     cmd ||= block
     opts = _check_trace_opt(opts)
@@ -1386,6 +1510,21 @@ class TkVariable
   alias trace_vdelete_for_element trace_remove_for_element
 end
 
+# Access an existing Tcl variable by name.
+#
+# Unlike TkVariable which creates a new Tcl variable, TkVarAccess wraps
+# an existing one. Useful for accessing Tcl global variables or variables
+# created by other Tcl code.
+#
+# @example Access Tcl's auto_path
+#   auto_path = TkVarAccess.new('auto_path')
+#   auto_path.list  # => ["/usr/lib/tcl", ...]
+#
+# @example Access array element
+#   env = TkVarAccess.new('env(HOME)')
+#   env.value  # => "/home/user"
+#
+# @see TkVariable For creating new variables
 class TkVarAccess<TkVariable
   def self.new(name, *args)
     if name.kind_of?(TkVariable)

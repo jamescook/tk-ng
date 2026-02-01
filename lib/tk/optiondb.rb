@@ -3,28 +3,90 @@
 # tk/optiondb.rb : treat option database
 #
 
+# Interface to Tk's X11-style option (resource) database.
+#
+# The option database allows setting widget options using patterns,
+# similar to X11 resource files (.Xdefaults). This enables theming and
+# default configuration without modifying widget creation code.
+#
+# ## Pattern Syntax
+#
+# Patterns use dots (`.`) for direct parent-child and asterisks (`*`) for
+# any-depth matching:
+#
+# - `*Button.background` - All Button backgrounds
+# - `*Frame.Button.foreground` - Buttons directly in Frames
+# - `.myapp*Label.font` - Labels anywhere under .myapp toplevel
+#
+# Conventionally, uppercase words match class names; others match instance names.
+#
+# @example Setting default button colors
+#   TkOptionDB.add("*Button.background", "navy")
+#   TkOptionDB.add("*Button.foreground", "white")
+#
+# @example Loading from X resource file
+#   TkOptionDB.readfile("/home/user/.Xdefaults", TkOptionDB::Priority::UserDefault)
+#
+# @example Querying an option
+#   color = TkOptionDB.get(my_button, "background", "Background")
+#
+# @note On some platforms, certain options (like foreground) may be ignored
+#   by the system theme despite proper specification.
+#
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/option.htm Tcl/Tk option manual
 module TkOptionDB
   include Tk
   extend Tk
 
   TkCommandNames = ['option'.freeze].freeze
 
+  # Priority levels for option database entries.
+  #
+  # Higher priority values override lower ones. When priorities are equal,
+  # the most recently added option wins.
+  #
+  # @example Using priority constants
+  #   TkOptionDB.add("*Button.bg", "red", TkOptionDB::Priority::UserDefault)
   module Priority
+    # Hard-coded widget defaults (lowest priority)
     WidgetDefault = 20
+    # Application startup file settings
     StartupFile   = 40
+    # User preference files (.Xdefaults, etc.)
     UserDefault   = 60
+    # Runtime/interactive specifications (highest, default if unspecified)
     Interactive   = 80
   end
 
+  # Adds an entry to the option database.
+  # @param pat [String] Pattern (e.g., "*Button.background")
+  # @param value [String] Option value
+  # @param pri [Integer, Symbol] Priority (default: Interactive/80)
+  # @return [String] Empty string
   def add(pat, value, pri=None)
     tk_call('option', 'add', pat, value, pri)
   end
+
+  # Clears all entries from the option database.
+  # @note Widget defaults will reload automatically on next add operation.
+  # @return [void]
   def clear
     tk_call_without_enc('option', 'clear')
   end
+
+  # Retrieves an option value for a window.
+  # @param win [TkWindow] The window to query
+  # @param name [String] Option name (e.g., "background")
+  # @param klass [String] Option class (e.g., "Background")
+  # @return [String] The option value, or empty string if not found
   def get(win, name, klass)
     tk_call('option', 'get', win ,name, klass)
   end
+
+  # Loads options from an X resource file.
+  # @param file [String] Path to resource file (UTF-8 encoded)
+  # @param pri [Integer, Symbol] Priority for all loaded options
+  # @return [void]
   def readfile(file, pri=None)
     tk_call('option', 'readfile', file, pri)
   end

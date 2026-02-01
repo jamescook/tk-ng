@@ -86,9 +86,9 @@ class TclTkIp
   # the previous command succeeded (0 = TCL_OK).
   def _return_value = 0
 
-  # Legacy encoding methods - no-ops since modern Tcl/Ruby use UTF-8 natively
-  # TODO: Remove these and fix 150+ callsites in tk.rb
+  # @deprecated No longer needed. Modern Ruby/Tcl use UTF-8 natively.
   def _toUTF8(str, enc = nil) = str.to_s
+  # @deprecated No longer needed. Modern Ruby/Tcl use UTF-8 natively.
   def _fromUTF8(str, enc = nil) = str.to_s
 
   # Legacy encoding table method - removed in new bridge.

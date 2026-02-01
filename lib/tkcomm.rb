@@ -368,8 +368,9 @@ module TkComm
               } << str))
   end
 
-  # Legacy encoding methods - no-ops since modern Ruby/Tcl use UTF-8 natively
+  # @deprecated No longer needed. Modern Ruby strings are UTF-8 by default.
   def _toUTF8(str, encoding = nil) = str.to_s
+  # @deprecated No longer needed. Modern Ruby strings are UTF-8 by default.
   def _fromUTF8(str, encoding = nil) = str.to_s
   private :_toUTF8, :_fromUTF8
   module_function :_toUTF8, :_fromUTF8

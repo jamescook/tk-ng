@@ -1,0 +1,34 @@
+--markup markdown
+--title "Ruby/Tk API Documentation"
+--readme README.md
+--output-dir doc
+
+# Main library
+lib/**/*.rb
+
+# Exclude alias/shim files (just require the real file)
+--exclude lib/tkafter.rb
+--exclude lib/tkbgerror.rb
+--exclude lib/tkcanvas.rb
+--exclude lib/tkconsole.rb
+--exclude lib/tkdialog.rb
+--exclude lib/tkentry.rb
+--exclude lib/tkfont.rb
+--exclude lib/tkmacpkg.rb
+--exclude lib/tkmenubar.rb
+--exclude lib/tkmngfocus.rb
+--exclude lib/tkpalette.rb
+--exclude lib/tkscrollbox.rb
+--exclude lib/tktext.rb
+--exclude lib/tkutil.rb
+--exclude lib/tkvirtevent.rb
+--exclude lib/tkwinpkg.rb
+--exclude lib/multi-tk.rb
+--exclude lib/remote-tk.rb
+--exclude lib/thread_tk.rb
+
+# Exclude internal/compatibility files
+--exclude lib/tcltk_compat.rb
+--exclude lib/tk/option_comments.rb
+--exclude lib/tk/option_comment_injector.rb
+--exclude lib/tk/option_generator.rb

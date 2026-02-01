@@ -5,6 +5,23 @@
 
 require 'tk/option_dsl'
 
+# Base class for Tk images.
+#
+# TkImage provides common functionality for bitmap and photo images.
+# In most cases, you'll use the subclasses {TkBitmapImage} or {TkPhotoImage}.
+#
+# @abstract Use {TkBitmapImage} for two-color images or {TkPhotoImage} for
+#   full-color images.
+#
+# @example Querying available image types
+#   TkImage.types  # => ["bitmap", "photo"]
+#
+# @example Listing all images
+#   TkImage.names  # => [#<TkPhotoImage:...>, ...]
+#
+# @see TkBitmapImage For two-color bitmap images
+# @see TkPhotoImage For full-color photo images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/image.htm Tcl/Tk image manual
 class TkImage<TkObject
   include Tk
 
@@ -83,6 +100,8 @@ class TkImage<TkObject
     end
   end
 
+  # Deletes this image and frees associated resources.
+  # @return [self]
   def delete
     Tk_IMGTBL.mutex.synchronize{
       Tk_IMGTBL.delete(@id) if @id
@@ -90,19 +109,33 @@ class TkImage<TkObject
     tk_call_without_enc('image', 'delete', @path)
     self
   end
+
+  # Returns the image height in pixels.
+  # @return [Integer]
   def height
     number(tk_call_without_enc('image', 'height', @path))
   end
+
+  # Returns whether this image is currently displayed by any widget.
+  # @return [Boolean]
   def inuse
     bool(tk_call_without_enc('image', 'inuse', @path))
   end
+
+  # Returns the image type ("bitmap" or "photo").
+  # @return [String]
   def itemtype
     tk_call_without_enc('image', 'type', @path)
   end
+
+  # Returns the image width in pixels.
+  # @return [Integer]
   def width
     number(tk_call_without_enc('image', 'width', @path))
   end
 
+  # Returns all image objects.
+  # @return [Array<TkImage, String>] Image objects or names
   def TkImage.names
     Tk_IMGTBL.mutex.synchronize{
       Tk.tk_call_without_enc('image', 'names').split.collect!{|id|
@@ -111,11 +144,26 @@ class TkImage<TkObject
     }
   end
 
+  # Returns available image types.
+  # @return [Array<String>] Typically ["bitmap", "photo"]
   def TkImage.types
     Tk.tk_call_without_enc('image', 'types').split
   end
 end
 
+# A two-color bitmap image.
+#
+# Bitmap images display in foreground/background colors with no gradients.
+# Useful for icons, cursors, and simple graphics.
+#
+# @example Creating from file
+#   icon = TkBitmapImage.new(file: '/path/to/icon.xbm')
+#
+# @example With foreground/background colors
+#   icon = TkBitmapImage.new(file: 'check.xbm', foreground: 'green', background: 'white')
+#
+# @see TkPhotoImage For full-color images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/bitmap.htm Tcl/Tk bitmap manual
 class TkBitmapImage<TkImage
   extend Tk::OptionDSL
 
@@ -130,12 +178,39 @@ class TkBitmapImage<TkImage
   end
 end
 
-# A photo is an image whose pixels can display any color or be transparent.
-# At present, only GIF and PPM/PGM formats are supported, but an interface
-# exists to allow additional image file formats to be added easily.
+# A full-color image with optional transparency.
 #
-# This class documentation is a copy from the original Tcl/Tk at
-# http://www.tcl.tk/man/tcl8.5/TkCmd/photo.htm with some rewritten parts.
+# Photo images can display any color and support per-pixel transparency.
+# Built-in support for PNG, GIF, and PPM/PGM formats; additional formats
+# (JPEG, TIFF, etc.) available via the tkimg extension.
+#
+# @note **Supported formats**: Only PNG, GIF, and PPM/PGM are built-in.
+#   For JPEG, BMP, TIFF, etc., install the tkimg extension.
+#
+# @note **Dithering quirk**: If loading image data in pieces, the dithered
+#   image may not be exactly correct. Call {#redither} to recalculate.
+#
+# @example Creating from file
+#   img = TkPhotoImage.new(file: '/path/to/photo.png')
+#
+# @example Creating empty image with fixed size
+#   img = TkPhotoImage.new(width: 200, height: 150)
+#
+# @example Getting/setting pixels
+#   r, g, b = img.get(10, 20)  # Get pixel at (10, 20)
+#   img.put('{red green blue}', to: [0, 0, 3, 1])  # Set 3 pixels
+#
+# @example Copying regions with zoom
+#   dest.copy(source, from: [0, 0, 100, 100], zoom: [2, 2])
+#
+# @example High-performance pixel writes (e.g. for games)
+#   rgba_data = "\xFF\x00\x00\xFF" * (100 * 100)  # 100x100 red
+#   img.put_block(rgba_data, 100, 100)
+#   # Or with scaling:
+#   img.put_zoomed_block(rgba_data, 100, 100, zoom_x: 3, zoom_y: 3)
+#
+# @see TkBitmapImage For two-color images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/photo.htm Tcl/Tk photo manual
 class TkPhotoImage<TkImage
   NullArgOptionKeys = [ "shrink", "grayscale" ]
 
@@ -221,13 +296,7 @@ class TkPhotoImage<TkImage
     super(*args)
   end
 
-  # Blank the image; that is, set the entire image to have no data, so it will
-  # be displayed as transparent, and the background of whatever window it is
-  # displayed in will show through.
-  def blank
-    tk_send_without_enc('blank')
-    self
-  end
+  # Note: blank is defined below using the faster C API (Tk_PhotoBlank)
 
   def cget_strict(option)
     case option.to_s

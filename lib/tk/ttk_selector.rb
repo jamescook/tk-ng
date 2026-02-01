@@ -1,10 +1,7 @@
 # frozen_string_literal: false
-#
-#  ttk_selector
-#
-######################################
-#  toplevel classes/modules
+
 module Tk
+  # ttk_selector - toplevel classes/modules
   @TOPLEVEL_ALIAS_TABLE[:Ttk] = {
     :TkButton       => 'tkextlib/tile/tbutton',
 
