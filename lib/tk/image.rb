@@ -409,40 +409,44 @@ class TkPhotoImage<TkImage
     self
   end
 
-  # Fast RGBA pixel writes using Tk_PhotoPutBlock C API.
+  # Fast pixel writes using Tk_PhotoPutBlock C API.
   #
   # Much faster than #put for real-time graphics - uses direct memory copy
   # instead of parsing hex color strings.
   #
-  # @param rgba_data [String] Binary string of RGBA pixels (4 bytes per pixel)
+  # @param pixel_data [String] Binary string of pixels (4 bytes per pixel)
   # @param width [Integer] Width in pixels
   # @param height [Integer] Height in pixels
   # @param x [Integer] X offset in destination image (default: 0)
   # @param y [Integer] Y offset in destination image (default: 0)
+  # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
   #
-  # @example Fill a 100x100 image with red pixels
+  # @example Fill a 100x100 image with red pixels (RGBA)
   #   img = TkPhotoImage.new(width: 100, height: 100)
   #   red_rgba = "\xFF\x00\x00\xFF" * (100 * 100)
   #   img.put_block(red_rgba, 100, 100)
   #
-  # @example Update a region at offset (10, 20)
-  #   img.put_block(rgba_data, 50, 50, x: 10, y: 20)
+  # @example Using ARGB format (common in SDL2, graphics libraries)
+  #   # ARGB integers packed little-endian: 0xAARRGGBB -> [B,G,R,A] bytes
+  #   argb_data = [0xFFFF0000].pack('V*') * (100 * 100)  # red
+  #   img.put_block(argb_data, 100, 100, format: :argb)
   #
-  def put_block(rgba_data, width, height, x: 0, y: 0)
+  def put_block(pixel_data, width, height, x: 0, y: 0, format: :rgba)
     opts = {}
     opts[:x] = x if x != 0
     opts[:y] = y if y != 0
-    Tk::INTERP.photo_put_block(@path, rgba_data, width, height, opts.empty? ? nil : opts)
+    opts[:format] = format if format != :rgba
+    Tk::INTERP.photo_put_block(@path, pixel_data, width, height, opts.empty? ? nil : opts)
     self
   end
 
-  # Fast RGBA pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
+  # Fast pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
   #
   # Writes pixels and scales in a single operation - faster than put_block + copy.
   # Zoom replicates pixels, subsample skips pixels.
   #
-  # @param rgba_data [String] Binary string of RGBA pixels (4 bytes per pixel)
+  # @param pixel_data [String] Binary string of pixels (4 bytes per pixel)
   # @param width [Integer] Source width in pixels
   # @param height [Integer] Source height in pixels
   # @param x [Integer] X offset in destination (default: 0)
@@ -451,14 +455,20 @@ class TkPhotoImage<TkImage
   # @param zoom_y [Integer] Vertical zoom factor (default: 1)
   # @param subsample_x [Integer] Horizontal subsample factor (default: 1)
   # @param subsample_y [Integer] Vertical subsample factor (default: 1)
+  # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
   #
   # @example Scale up 3x for display
   #   img = TkPhotoImage.new(width: 960, height: 720)
   #   img.put_zoomed_block(rgba_data, 320, 240, zoom_x: 3, zoom_y: 3)
   #
-  def put_zoomed_block(rgba_data, width, height, x: 0, y: 0,
-                       zoom_x: 1, zoom_y: 1, subsample_x: 1, subsample_y: 1)
+  # @example NES emulator with ARGB pixel data
+  #   # Optcarrot outputs ARGB integers, pack and pass directly
+  #   argb_data = colors.pack('V*')
+  #   img.put_zoomed_block(argb_data, 256, 224, zoom_x: 3, zoom_y: 3, format: :argb)
+  #
+  def put_zoomed_block(pixel_data, width, height, x: 0, y: 0,
+                       zoom_x: 1, zoom_y: 1, subsample_x: 1, subsample_y: 1, format: :rgba)
     opts = {}
     opts[:x] = x if x != 0
     opts[:y] = y if y != 0
@@ -466,7 +476,8 @@ class TkPhotoImage<TkImage
     opts[:zoom_y] = zoom_y if zoom_y != 1
     opts[:subsample_x] = subsample_x if subsample_x != 1
     opts[:subsample_y] = subsample_y if subsample_y != 1
-    Tk::INTERP.photo_put_zoomed_block(@path, rgba_data, width, height, opts.empty? ? nil : opts)
+    opts[:format] = format if format != :rgba
+    Tk::INTERP.photo_put_zoomed_block(@path, pixel_data, width, height, opts.empty? ? nil : opts)
     self
   end
 
