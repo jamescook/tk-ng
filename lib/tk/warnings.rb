@@ -1,19 +1,17 @@
 # frozen_string_literal: true
-#
-# tk/warnings.rb - Centralized warning management for ruby-tk
-#
-# Usage:
-#   Tk::Warnings.warn_once(:pickplace, "xview_pickplace is deprecated...")
-#
-# User control:
-#   Tk::Warnings.disable(:pickplace)   # silence specific warning
-#   Tk::Warnings.disable_all           # silence all ruby-tk warnings
-#   Tk::Warnings.enable(:pickplace)    # re-enable specific warning
-#   Tk::Warnings.enable_all            # re-enable all warnings
-#   Tk::Warnings.suppress(:key) { }    # temporarily suppress in block
-#
 
 module Tk
+  # Centralized warning management for ruby-tk.
+  #
+  # @example Usage
+  #   Tk::Warnings.warn_once(:pickplace, "xview_pickplace is deprecated...")
+  #
+  # @example User control
+  #   Tk::Warnings.disable(:pickplace)   # silence specific warning
+  #   Tk::Warnings.disable_all           # silence all ruby-tk warnings
+  #   Tk::Warnings.enable(:pickplace)    # re-enable specific warning
+  #   Tk::Warnings.enable_all            # re-enable all warnings
+  #   Tk::Warnings.suppress(:key) { }    # temporarily suppress in block
   module Warnings
     @disabled = {}
     @fired = {}

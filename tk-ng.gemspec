@@ -7,10 +7,10 @@ Gem::Specification.new do |spec|
   spec.summary       = %q{Tk interface module with Tcl/Tk 8.6+ and 9.x support.}
   spec.description   = %q{Tk interface module using tcltklib. Fork of ruby/tk with Tcl/Tk 9.x compatibility.}
   spec.homepage      = "https://github.com/jamescook/tk-ng"
-  spec.license       = "BSD-2-Clause"
+  spec.licenses      = ["BSD-2-Clause", "Ruby"]
 
   spec.files         = Dir.glob("{lib,ext,exe,sample}/**/*").select { |f| File.file?(f) } +
-                       %w[Rakefile LICENSE.txt README.md tk-ng.gemspec Gemfile]
+                       %w[Rakefile LICENSE README.md tk-ng.gemspec Gemfile]
   spec.bindir        = "exe"
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]

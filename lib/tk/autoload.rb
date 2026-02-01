@@ -1,7 +1,6 @@
 # frozen_string_literal: false
 
 module Tk
-  # geometry manager autoloads
   autoload :Grid,             'tk/grid'
   def Grid(*args); TkGrid.configure(*args); end
 

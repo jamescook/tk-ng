@@ -1,9 +1,7 @@
 # frozen_string_literal: false
-#
-#  tk/validation.rb - validation support module for entry, spinbox, and so on
-#
 
 module Tk
+  # Validation support module for entry, spinbox, and so on.
   module ValidateConfigure
     def self.__def_validcmd(scope, klass, keys=nil)
       keys = klass._config_keys unless keys

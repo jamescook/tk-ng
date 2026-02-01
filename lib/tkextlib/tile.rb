@@ -25,7 +25,6 @@ module Tk
   end
 end
 
-# autoload
 module Tk
   module Tile
     TkComm::TkExtlibAutoloadModule.unshift(self)

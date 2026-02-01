@@ -1,11 +1,8 @@
 # frozen_string_literal: false
-#
-# tk/tk_mac.rb : Access Mac-Specific functionality on macOS from Tk
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/tk_mac.html
-#
 
 module Tk
+  # Access Mac-Specific functionality on macOS from Tk.
+  # @see https://www.tcl-lang.org/man/tcl/TkCmd/tk_mac.html
   module Mac
   end
 end
