@@ -30,10 +30,51 @@
   function initSearch() {
     var searchInput = document.getElementById('search-input');
     var searchResults = document.getElementById('search-results');
+    var selectedIndex = -1;
 
     if (!searchInput || !searchResults) return;
 
+    function updateSelection() {
+      var items = searchResults.querySelectorAll('[data-search-result]');
+      items.forEach(function(item, i) {
+        item.toggleAttribute('data-selected', i === selectedIndex);
+      });
+      if (selectedIndex >= 0 && items[selectedIndex]) {
+        var item = items[selectedIndex];
+        var container = searchResults;
+        var itemTop = item.offsetTop;
+        var itemBottom = itemTop + item.offsetHeight;
+        if (itemTop < container.scrollTop) {
+          container.scrollTop = itemTop;
+        } else if (itemBottom > container.scrollTop + container.clientHeight) {
+          container.scrollTop = itemBottom - container.clientHeight;
+        }
+      }
+    }
+
+    searchInput.addEventListener('keydown', function(e) {
+      var items = searchResults.querySelectorAll('[data-search-result]');
+      if (!items.length) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+        updateSelection();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        selectedIndex = Math.max(selectedIndex - 1, -1);
+        updateSelection();
+      } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        items[selectedIndex].click();
+      } else if (e.key === 'Escape') {
+        searchResults.style.display = 'none';
+        selectedIndex = -1;
+      }
+    });
+
     searchInput.addEventListener('input', function() {
+      selectedIndex = -1;
       var query = this.value.trim();
 
       if (query.length < 2) {
@@ -126,7 +167,7 @@
           }
         }
 
-        return '<a href="' + baseUrl + doc.url + '" class="search-result-item">' + badge + ' ' + doc.title + snippet + '</a>';
+        return '<a href="' + baseUrl + doc.url + '" class="search-result-item" data-search-result>' + badge + ' ' + doc.title + snippet + '</a>';
       }).join('');
 
       searchResults.innerHTML = html;

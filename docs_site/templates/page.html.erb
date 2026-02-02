@@ -19,7 +19,7 @@ nav_order: <%= nav_order %>
 <% end %>
 
 <% if doc['superclass'] %>
-<p><strong>Inherits:</strong> <code><%= h doc['superclass'] %></code></p>
+<p><strong>Inherits:</strong> <a href="#inherited-from-<%= doc['superclass'].gsub('::', '-') %>"><code><%= h doc['superclass'] %></code></a></p>
 <% end %>
 
 <% if doc['class_mixins']&.any? %>
@@ -50,15 +50,60 @@ nav_order: <%= nav_order %>
 <% if doc['inherited_methods']&.any? %>
 <div class="inherited-section">
 <h6>Inherited Methods</h6>
+<%
+  direct_sources = [doc['superclass'], *(doc['class_mixins'] || []), *(doc['instance_mixins'] || [])].compact
+%>
 <% doc['inherited_methods'].each do |source, methods| %>
-<div class="inherited-source">
-<span class="inherited-from">from <a href="{{ '/api/<%= source.gsub('::', '/') %>/' | relative_url }}"><%= h source %></a></span>
+<%
+  via = nil
+  unless direct_sources.include?(source)
+    via = doc['superclass']
+  end
+%>
+<div class="inherited-source" id="inherited-from-<%= source.gsub('::', '-') %>">
+<span class="inherited-from">from <a href="{{ '/api/<%= source.gsub('::', '/') %>/' | relative_url }}"><%= h source %></a><% if via %> <span class="inherited-via">(via <%= h via %>)</span><% end %></span>
 <ul class="inherited-list">
 <% methods['class_methods']&.each do |m| %>
 <li><a href="{{ '/api/<%= source.gsub('::', '/') %>/' | relative_url }}#class-method-<%= m %>" class="inherited-class-method">.<%= h m %></a></li>
 <% end %>
 <% methods['instance_methods']&.each do |m| %>
 <li><a href="{{ '/api/<%= source.gsub('::', '/') %>/' | relative_url }}#method-<%= m %>" class="inherited-instance-method">#<%= h m %></a></li>
+<% end %>
+</ul>
+</div>
+<% end %>
+</div>
+<% end %>
+
+<% if included_by.any? || extended_by.any? || inherited_by.any? %>
+<div class="used-by-section">
+<h6>Used By</h6>
+<% if included_by.any? %>
+<div class="used-by-group">
+<span class="used-by-label">Included by:</span>
+<ul class="used-by-list">
+<% included_by.each do |path| %>
+<li><a href="{{ '/api/<%= path.gsub('::', '/') %>/' | relative_url }}"><%= h path %></a></li>
+<% end %>
+</ul>
+</div>
+<% end %>
+<% if extended_by.any? %>
+<div class="used-by-group">
+<span class="used-by-label">Extended by:</span>
+<ul class="used-by-list">
+<% extended_by.each do |path| %>
+<li><a href="{{ '/api/<%= path.gsub('::', '/') %>/' | relative_url }}"><%= h path %></a></li>
+<% end %>
+</ul>
+</div>
+<% end %>
+<% if inherited_by.any? %>
+<div class="used-by-group">
+<span class="used-by-label">Subclasses:</span>
+<ul class="used-by-list">
+<% inherited_by.each do |path| %>
+<li><a href="{{ '/api/<%= path.gsub('::', '/') %>/' | relative_url }}"><%= h path %></a></li>
 <% end %>
 </ul>
 </div>

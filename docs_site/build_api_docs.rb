@@ -70,6 +70,10 @@ class APIDocBuilder
     @nav_order = 0
     @children = Hash.new { |h, k| h[k] = [] }
     @templates = {}
+    # Inverse indexes: module/class -> who uses it
+    @included_by = Hash.new { |h, k| h[k] = [] }
+    @extended_by = Hash.new { |h, k| h[k] = [] }
+    @inherited_by = Hash.new { |h, k| h[k] = [] }
   end
 
   def template(name)
@@ -80,7 +84,7 @@ class APIDocBuilder
     FileUtils.rm_rf(@output_dir)
     FileUtils.mkdir_p(@output_dir)
 
-    # First pass: identify parent-child relationships and collect metadata
+    # First pass: identify parent-child relationships, collect metadata, build inverse indexes
     @all_paths = {}
     json_files.each do |file|
       doc = JSON.parse(File.read(file))
@@ -92,6 +96,11 @@ class APIDocBuilder
         parent = parts[0..-2].join('::')
         @children[parent] << parts.last
       end
+
+      # Build inverse indexes
+      doc['instance_mixins']&.each { |m| @included_by[m] << path }
+      doc['class_mixins']&.each { |m| @extended_by[m] << path }
+      @inherited_by[doc['superclass']] << path if doc['superclass']
     end
 
     # Generate navigation include
@@ -270,6 +279,11 @@ has_children: true
     end
     children_modules = children_list.select { |c| c[:type] == 'module' }
     children_classes = children_list.select { |c| c[:type] != 'module' }
+
+    # Inverse relationships for this doc
+    included_by = @included_by[doc['path']].sort
+    extended_by = @extended_by[doc['path']].sort
+    inherited_by = @inherited_by[doc['path']].sort
 
     @nav_order += 1
     nav_order = @nav_order

@@ -191,7 +191,8 @@ main {
   border-bottom: none;
 }
 
-.search-result-item:hover {
+.search-result-item:hover,
+.search-result-item[data-selected] {
   background: #f8f9fa;
 }
 
@@ -221,7 +222,7 @@ main {
 .nav-chevron {
   color: var(--bs-secondary);
   margin-right: 0.25rem;
-  font-size: 0.8em;
+  font-size: 1.1em;
 }
 
 /* Nav breadcrumb tracker */
@@ -237,7 +238,7 @@ main {
   display: none;
 }
 
-.nav-breadcrumb.visible {
+.nav-breadcrumb[data-visible] {
   display: block;
 }
 
@@ -330,6 +331,11 @@ main {
   margin-bottom: 0.25rem;
 }
 
+.inherited-via {
+  opacity: 0.7;
+  font-style: italic;
+}
+
 .inherited-list {
   column-count: 3;
   column-gap: 1.5rem;
@@ -359,6 +365,61 @@ main {
 
 .inherited-instance-method {
   color: var(--bs-success);
+}
+
+/* Used By section */
+.used-by-section {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--bs-light);
+}
+
+.used-by-section h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.used-by-group {
+  margin-bottom: 0.5rem;
+}
+
+.used-by-group:last-child {
+  margin-bottom: 0;
+}
+
+.used-by-label {
+  font-size: 0.75rem;
+  color: var(--bs-secondary);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.used-by-list {
+  column-count: 3;
+  column-gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.used-by-list li {
+  break-inside: avoid;
+  padding: 0.1rem 0;
+  font-size: 0.8rem;
+}
+
+.used-by-list a {
+  text-decoration: none;
+}
+
+.used-by-list a:hover {
+  text-decoration: underline;
 }
 
 /* Code blocks */

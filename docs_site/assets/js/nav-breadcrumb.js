@@ -28,7 +28,7 @@
       }
 
       if (!currentItem) {
-        breadcrumb.classList.remove('visible');
+        breadcrumb.removeAttribute('data-visible');
         breadcrumb.innerHTML = '';
         return;
       }
@@ -52,7 +52,7 @@
       }
 
       if (parents.length === 0) {
-        breadcrumb.classList.remove('visible');
+        breadcrumb.removeAttribute('data-visible');
         breadcrumb.innerHTML = '';
         return;
       }
@@ -62,7 +62,7 @@
       }).join(' <span class="text-muted">›</span> ');
 
       breadcrumb.innerHTML = html;
-      breadcrumb.classList.add('visible');
+      breadcrumb.setAttribute('data-visible', '');
     }
 
     // Throttle scroll events
