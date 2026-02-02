@@ -177,42 +177,50 @@ class TkMsgCatalog < TkObject
   # @return [String] File extension for translation files (default: '.msg')
   attr_accessor :msgcat_ext
 
+  # DSL: locale names become methods (e.g., `catalog.en('Hello', 'Hello')`)
+  # First call defines the method; subsequent calls bypass method_missing.
   def method_missing(id, *args)
-    # locale(src, trans) ==> set_translation(locale, src, trans)
     loc = id.id2name
+
+    # Define the method for future calls
+    define_singleton_method(id) do |*inner_args|
+      _handle_locale_dsl(loc, *inner_args)
+    end
+
+    # Handle this call
+    _handle_locale_dsl(loc, *args)
+  end
+
+  def respond_to_missing?(_id, _include_private = false)
+    true # Any symbol could be a locale
+  end
+
+  # locale(src, trans) ==> set_translation(locale, src, trans)
+  # @api private
+  def _handle_locale_dsl(loc, *args)
     case args.length
     when 0 # set locale
-      self.locale=(loc)
+      self.locale = loc
 
     when 1 # src only, or trans_list
       if args[0].kind_of?(Array)
-        # trans_list
-        #list = args[0].collect{|src, trans|
-        #  [ Tk::UTF8_String.new(src), Tk::UTF8_String.new(trans) ]
-        #}
-        self.set_translation_list(loc, args[0])
+        set_translation_list(loc, args[0])
       else
-        # src
-        #self.set_translation(loc, Tk::UTF8_String.new(args[0]))
-        self.set_translation(loc, args[0])
+        set_translation(loc, args[0])
       end
 
     when 2 # src and trans, or, trans_list and enc
       if args[0].kind_of?(Array)
-        # trans_list
-        self.set_translation_list(loc, *args)
+        set_translation_list(loc, *args)
       else
-        #self.set_translation(loc, args[0], Tk::UTF8_String.new(args[1]))
-        self.set_translation(loc, *args)
+        set_translation(loc, *args)
       end
 
     when 3 # src and trans and enc
-      self.set_translation(loc, *args)
+      set_translation(loc, *args)
 
     else
-      super(id, *args)
-#      fail NameError, "undefined method `#{name}' for #{self.to_s}", error_at
-
+      raise NoMethodError, "undefined method `#{loc}' for #{self}"
     end
   end
 
