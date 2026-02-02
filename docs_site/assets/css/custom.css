@@ -499,8 +499,25 @@ code {
   margin-top: 0.5rem;
 }
 
-.method-source .source-coverage {
+.method-source .source-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.method-source .github-link {
+  opacity: 0.5;
+}
+
+.method-source .github-link:hover {
+  opacity: 1;
+}
+
+.method-source .github-icon-sm {
+  width: 16px;
+  height: 16px;
 }
 
 .method-source pre {

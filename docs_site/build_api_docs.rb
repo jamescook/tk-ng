@@ -76,6 +76,10 @@ class APIDocBuilder
     @inherited_by = Hash.new { |h, k| h[k] = [] }
     # Method coverage data (nil if unavailable)
     @method_coverage = load_method_coverage
+    # Git info for GitHub links
+    @github_repo = detect_github_repo
+    @git_commit = `git rev-parse HEAD 2>/dev/null`.strip
+    @git_commit = 'main' if @git_commit.empty?
   end
 
   def load_method_coverage
@@ -87,6 +91,18 @@ class APIDocBuilder
   rescue => e
     warn "Failed to load method coverage: #{e.message}"
     nil
+  end
+
+  def detect_github_repo
+    remote = `git remote get-url origin 2>/dev/null`.strip
+    return nil if remote.empty?
+
+    # Handle git@github.com:user/repo.git or https://github.com/user/repo.git
+    if remote =~ %r{github\.com[:/](.+?)(?:\.git)?$}
+      "https://github.com/#{$1.sub(/\.git$/, '')}"
+    else
+      nil
+    end
   end
 
   # Returns coverage level: :high (>=80), :medium (50-79.9), :low (<50), or nil
@@ -332,8 +348,19 @@ has_children: true
       method_cov = class_coverage.dig(scope_key, method['name'])
     end
     method_coverage_level = coverage_level(method_cov)
+    github_url = method_github_url(method)
 
     template('method').result(binding)
+  end
+
+  def method_github_url(method)
+    return nil unless @github_repo && method['source_file'] && method['source_line']
+
+    file = method['source_file']
+    start_line = method['source_line']
+    end_line = method['source_lines'] ? start_line + method['source_lines'] - 1 : start_line
+
+    "#{@github_repo}/blob/#{@git_commit}/#{file}#L#{start_line}-L#{end_line}"
   end
 
   def render_attribute(attr)

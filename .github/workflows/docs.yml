@@ -20,6 +20,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch coverage data
+        run: |
+          RUN_ID=$(gh run list --workflow=test.yml --branch=main --status=success --limit=1 --json databaseId -q '.[0].databaseId')
+          if [ -n "$RUN_ID" ]; then
+            gh run download "$RUN_ID" --name coverage-ruby3.4-tcl9 --dir coverage/ || echo "No coverage artifact"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
