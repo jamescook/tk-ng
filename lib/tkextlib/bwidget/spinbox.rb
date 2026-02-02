@@ -11,6 +11,27 @@ require 'tkextlib/bwidget/entry'
 
 module Tk
   module BWidget
+    # Numeric or list value selector with increment/decrement buttons.
+    #
+    # SpinBox allows selecting values from a predefined list or a numeric
+    # range. Arrow keys and buttons cycle through values.
+    #
+    # @example Numeric range
+    #   require 'tkextlib/bwidget'
+    #   spin = Tk::BWidget::SpinBox.new(root,
+    #     range: [0, 100, 5])  # min, max, increment
+    #   spin.pack
+    #
+    # @example List of values
+    #   spin = Tk::BWidget::SpinBox.new(root,
+    #     values: ['Small', 'Medium', 'Large', 'X-Large'])
+    #
+    # @example Non-editable (select only)
+    #   spin = Tk::BWidget::SpinBox.new(root,
+    #     values: ['Red', 'Green', 'Blue'],
+    #     editable: false)
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/SpinBox.html
     class SpinBox < Tk::Entry
     end
   end

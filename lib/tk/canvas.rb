@@ -94,6 +94,7 @@ class Tk::Canvas<TkWindow
   WidgetClassName = 'Canvas'.freeze
   WidgetClassNames[WidgetClassName] ||= self
 
+  # @!visibility private
   def self.new(*args, &block)
     obj = super(*args){}
     obj.init_instance_variable
@@ -101,26 +102,35 @@ class Tk::Canvas<TkWindow
     obj
   end
 
+  # @!visibility private
   def init_instance_variable
     @items ||= {}
     @canvas_tags ||= {}
   end
 
+  # @!visibility private
   def _additem(id, obj)
     @items ||= {}
     @items[id] = obj
   end
 
+  # @!visibility private
   def _addtag(id, obj)
     @canvas_tags ||= {}
     @canvas_tags[id] = obj
   end
 
+  # Looks up a TkcItem object by its numeric ID.
+  # @param id [Integer] Canvas item ID
+  # @return [TkcItem, Integer] The item object, or the ID if not found
   def itemid2obj(id)
     return id unless @items
     @items[id] || id
   end
 
+  # Looks up a TkcTag object by its string ID.
+  # @param id [String] Tag string
+  # @return [TkcTag, String] The tag object, or the string if not found
   def canvastagid2obj(id)
     return id unless @canvas_tags
     @canvas_tags[id] || id
@@ -148,7 +158,17 @@ class Tk::Canvas<TkWindow
   private :tagid
 
 
-  # create a canvas item without creating a TkcItem object
+  # Creates a canvas item without creating a TkcItem Ruby object.
+  #
+  # Returns the numeric item ID. Use this for low-level operations where
+  # you don't need the convenience of TkcItem wrapper objects.
+  #
+  # @param type [Class, String] Item type class (e.g., TkcRectangle) or type name ("rectangle")
+  # @param args [Array] Coordinates and options passed to the item
+  # @return [Integer] The numeric canvas item ID
+  # @example
+  #   id = canvas.create(TkcRectangle, 10, 10, 50, 50, fill: 'blue')
+  #   id = canvas.create('oval', 0, 0, 100, 100)
   def create(type, *args)
     if type.kind_of?(Class) && type < TkcItem
       # do nothing
@@ -160,6 +180,13 @@ class Tk::Canvas<TkWindow
     type.create(self, *args)
   end
 
+  # Adds a tag to items matching the given search specification.
+  #
+  # @param tag [String, TkcTag] Tag to add
+  # @param mode [String, Symbol] Search mode ('above', 'all', 'below', 'closest', 'enclosed', 'overlapping', 'withtag')
+  # @param args [Array] Mode-specific arguments
+  # @return [self]
+  # @see #addtag_above, #addtag_all, etc. for convenient wrappers
   def addtag(tag, mode, *args)
     mode = mode.to_s
     if args[0] && mode =~ /^(above|below|with(tag)?)$/
@@ -168,33 +195,97 @@ class Tk::Canvas<TkWindow
     tk_send_without_enc('addtag', tagid(tag), mode, *args)
     self
   end
+
+  # Adds a tag to the item just above the given item in stacking order.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param target [TkcItem, Integer, String] Reference item
+  # @return [self]
   def addtag_above(tagOrId, target)
     addtag(tagOrId, 'above', tagid(target))
   end
+
+  # Adds a tag to all items on the canvas.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @return [self]
   def addtag_all(tagOrId)
     addtag(tagOrId, 'all')
   end
+
+  # Adds a tag to the item just below the given item in stacking order.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param target [TkcItem, Integer, String] Reference item
+  # @return [self]
   def addtag_below(tagOrId, target)
     addtag(tagOrId, 'below', tagid(target))
   end
+
+  # Adds a tag to the item closest to the given point.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param x [Numeric] X coordinate
+  # @param y [Numeric] Y coordinate
+  # @param halo [Numeric] Distance outside item that still counts as "closest"
+  # @param start [TkcItem, Integer] Start searching below this item
+  # @return [self]
   def addtag_closest(tagOrId, x, y, halo=None, start=None)
     addtag(tagOrId, 'closest', x, y, halo, start)
   end
+
+  # Adds a tag to all items completely enclosed by the rectangle.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param x1 [Numeric] Left edge
+  # @param y1 [Numeric] Top edge
+  # @param x2 [Numeric] Right edge
+  # @param y2 [Numeric] Bottom edge
+  # @return [self]
   def addtag_enclosed(tagOrId, x1, y1, x2, y2)
     addtag(tagOrId, 'enclosed', x1, y1, x2, y2)
   end
+
+  # Adds a tag to all items overlapping the rectangle.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param x1 [Numeric] Left edge
+  # @param y1 [Numeric] Top edge
+  # @param x2 [Numeric] Right edge
+  # @param y2 [Numeric] Bottom edge
+  # @return [self]
   def addtag_overlapping(tagOrId, x1, y1, x2, y2)
     addtag(tagOrId, 'overlapping', x1, y1, x2, y2)
   end
+
+  # Adds a tag to all items with the specified tag.
+  # @param tagOrId [String, TkcTag] Tag to add
+  # @param tag [String, TkcTag] Existing tag to search for
+  # @return [self]
   def addtag_withtag(tagOrId, tag)
     addtag(tagOrId, 'withtag', tagid(tag))
   end
 
+  # Returns the bounding box enclosing the specified items.
+  #
+  # @param tagOrId [TkcItem, Integer, String] First item or tag
+  # @param tags [Array<TkcItem, Integer, String>] Additional items or tags
+  # @return [Array<Integer>] [x1, y1, x2, y2] bounding coordinates, or empty if no items
+  # @example
+  #   x1, y1, x2, y2 = canvas.bbox('all')
+  #   x1, y1, x2, y2 = canvas.bbox(rect1, rect2, 'mygroup')
   def bbox(tagOrId, *tags)
     list(tk_send_without_enc('bbox', tagid(tagOrId),
                              *tags.collect{|t| tagid(t)}))
   end
 
+  # Binds an event to canvas items matching the tag.
+  #
+  # Associates a command with events on items. When the event occurs
+  # over a matching item, the command is executed.
+  #
+  # @param tag [String, TkcTag, TkcItem] Tag or item to bind
+  # @param context [String] Event sequence (e.g., '<Button-1>', '<Enter>')
+  # @param args [Array] Additional bind arguments (substitution patterns)
+  # @yield Block to execute when event occurs
+  # @return [self]
+  # @example
+  #   canvas.itembind('draggable', '<Button-1>') { |e| start_drag(e) }
+  #   canvas.itembind(rect, '<Enter>') { rect.configure(fill: 'red') }
   def itembind(tag, context, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
     if TkComm._callback_entry?(args[0]) || !block
@@ -206,6 +297,16 @@ class Tk::Canvas<TkWindow
     self
   end
 
+  # Appends a binding to existing bindings for an event.
+  #
+  # Unlike {#itembind}, which replaces existing bindings, this method
+  # adds to them so multiple callbacks can fire for one event.
+  #
+  # @param tag [String, TkcTag, TkcItem] Tag or item to bind
+  # @param context [String] Event sequence
+  # @param args [Array] Additional bind arguments
+  # @yield Block to execute when event occurs
+  # @return [self]
   def itembind_append(tag, context, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
     if TkComm._callback_entry?(args[0]) || !block
@@ -217,19 +318,52 @@ class Tk::Canvas<TkWindow
     self
   end
 
+  # Removes a binding from canvas items.
+  #
+  # @param tag [String, TkcTag, TkcItem] Tag or item
+  # @param context [String] Event sequence to unbind
+  # @return [self]
   def itembind_remove(tag, context)
     _bind_remove([path, "bind", tagid(tag)], context)
     self
   end
 
+  # Returns binding information for canvas items.
+  #
+  # @param tag [String, TkcTag, TkcItem] Tag or item to query
+  # @param context [String, nil] Event sequence, or nil for all sequences
+  # @return [Array<String>, String] List of bound sequences, or the command for a specific sequence
   def itembindinfo(tag, context=nil)
     _bindinfo([path, "bind", tagid(tag)], context)
   end
 
+  # Converts a window X coordinate to canvas coordinate.
+  #
+  # Accounts for scrolling to convert screen position to canvas position.
+  # Essential for handling mouse events on scrolled canvases.
+  #
+  # @param screen_x [Numeric] X coordinate in window
+  # @param args [Array<Numeric>] Optional gridspacing; if specified, rounds to nearest multiple
+  # @return [Float] X coordinate in canvas space
+  # @example Getting canvas coordinates from mouse event
+  #   canvas.bind('<Button-1>') do |e|
+  #     cx = canvas.canvasx(e.x)
+  #     cy = canvas.canvasy(e.y)
+  #     TkcOval.new(canvas, cx-5, cy-5, cx+5, cy+5, fill: 'red')
+  #   end
   def canvasx(screen_x, *args)
     #tk_tcl2ruby(tk_send_without_enc('canvasx', screen_x, *args))
     number(tk_send_without_enc('canvasx', screen_x, *args))
   end
+
+  # Converts a window Y coordinate to canvas coordinate.
+  #
+  # Accounts for scrolling to convert screen position to canvas position.
+  #
+  # @param screen_y [Numeric] Y coordinate in window
+  # @param args [Array<Numeric>] Optional gridspacing; if specified, rounds to nearest multiple
+  # @return [Float] Y coordinate in canvas space
+  # @see #canvasx
   def canvasy(screen_y, *args)
     #tk_tcl2ruby(tk_send_without_enc('canvasy', screen_y, *args))
     number(tk_send_without_enc('canvasy', screen_y, *args))
@@ -237,6 +371,21 @@ class Tk::Canvas<TkWindow
   alias canvas_x canvasx
   alias canvas_y canvasy
 
+  # Gets or sets the coordinates of a canvas item.
+  #
+  # Without arguments, returns the item's current coordinates.
+  # With arguments, replaces the item's coordinates.
+  #
+  # @overload coords(tag)
+  #   @param tag [TkcItem, Integer, String] Item or tag to query
+  #   @return [Array<Float>] Current coordinates
+  # @overload coords(tag, *new_coords)
+  #   @param tag [TkcItem, Integer, String] Item or tag to modify
+  #   @param new_coords [Array<Numeric>] New coordinate values
+  #   @return [self]
+  # @example
+  #   coords = canvas.coords(rect)  # => [10.0, 10.0, 50.0, 50.0]
+  #   canvas.coords(rect, 0, 0, 100, 100)  # move and resize
   def coords(tag, *args)
     if args.empty?
       tk_split_list(tk_send_without_enc('coords', tagid(tag)))
@@ -246,12 +395,32 @@ class Tk::Canvas<TkWindow
     end
   end
 
+  # Deletes characters or coordinates from an item.
+  #
+  # For text items, deletes characters in the range [first, last].
+  # For line/polygon items, deletes coordinates in the range.
+  #
+  # @param tag [TkcItem, Integer, String] Item to modify
+  # @param first [Integer, String] Start index
+  # @param last [Integer, String] End index (defaults to first if omitted)
+  # @return [self]
   def dchars(tag, first, last=None)
     tk_send_without_enc('dchars', tagid(tag),
                         _get_eval_enc_str(first), _get_eval_enc_str(last))
     self
   end
 
+  # Deletes items from the canvas.
+  #
+  # Removes items matching the specified tags or IDs. Also removes
+  # the items from Ruby's internal tracking.
+  #
+  # @param args [Array<TkcItem, Integer, String>] Items or tags to delete
+  # @return [self]
+  # @example
+  #   canvas.delete(rect)
+  #   canvas.delete('temporary', 'markers')
+  #   canvas.delete('all')  # delete everything
   def delete(*args)
     args.each{|tag|
       find('withtag', tag).each{|item|
@@ -263,39 +432,114 @@ class Tk::Canvas<TkWindow
   end
   alias remove delete
 
+  # Removes a tag from items.
+  #
+  # Removes the specified tag from all items matching the search tag.
+  # If tag_to_del is omitted, removes the search tag itself.
+  #
+  # @param tag [TkcItem, Integer, String] Items to modify (search tag)
+  # @param tag_to_del [String, TkcTag] Tag to remove (defaults to tag)
+  # @return [self]
+  # @example
+  #   canvas.dtag(rect, 'highlighted')  # remove 'highlighted' from rect
+  #   canvas.dtag('temporary')  # remove 'temporary' tag from items that have it
   def dtag(tag, tag_to_del=None)
     tk_send_without_enc('dtag', tagid(tag), tagid(tag_to_del))
     self
   end
   alias deltag dtag
 
+  # Finds items matching the search specification.
+  #
+  # Returns items in stacking order (lowest first).
+  #
+  # @param mode [String, Symbol] Search mode ('above', 'all', 'below', 'closest', 'enclosed', 'overlapping', 'withtag')
+  # @param args [Array] Mode-specific arguments
+  # @return [Array<TkcItem>] Matching items
+  # @see #find_above, #find_all, etc. for convenient wrappers
   def find(mode, *args)
     list(tk_send_without_enc('find', mode, *args)).collect!{|id|
       TkcItem.id2obj(self, id)
     }
   end
+
+  # Finds the item just above the given item in stacking order.
+  # @param target [TkcItem, Integer, String] Reference item
+  # @return [Array<TkcItem>] Single-element array with item above, or empty
   def find_above(target)
     find('above', tagid(target))
   end
+
+  # Returns all items on the canvas.
+  # @return [Array<TkcItem>] All items in stacking order
   def find_all
     find('all')
   end
+
+  # Finds the item just below the given item in stacking order.
+  # @param target [TkcItem, Integer, String] Reference item
+  # @return [Array<TkcItem>] Single-element array with item below, or empty
   def find_below(target)
     find('below', tagid(target))
   end
+
+  # Finds the item closest to the given point.
+  #
+  # @param x [Numeric] X coordinate
+  # @param y [Numeric] Y coordinate
+  # @param halo [Numeric] Distance outside item that counts as "closest"
+  # @param start [TkcItem, Integer] Start searching below this item
+  # @return [Array<TkcItem>] Single-element array with closest item, or empty
   def find_closest(x, y, halo=None, start=None)
     find('closest', x, y, halo, start)
   end
+
+  # Finds all items completely enclosed by the rectangle.
+  #
+  # An item is enclosed if its entire bounding box is within the rectangle.
+  #
+  # @param x1 [Numeric] Left edge
+  # @param y1 [Numeric] Top edge
+  # @param x2 [Numeric] Right edge
+  # @param y2 [Numeric] Bottom edge
+  # @return [Array<TkcItem>] Enclosed items
   def find_enclosed(x1, y1, x2, y2)
     find('enclosed', x1, y1, x2, y2)
   end
+
+  # Finds all items overlapping the rectangle.
+  #
+  # An item overlaps if any part of it intersects the rectangle.
+  #
+  # @param x1 [Numeric] Left edge
+  # @param y1 [Numeric] Top edge
+  # @param x2 [Numeric] Right edge
+  # @param y2 [Numeric] Bottom edge
+  # @return [Array<TkcItem>] Overlapping items
   def find_overlapping(x1, y1, x2, y2)
     find('overlapping', x1, y1, x2, y2)
   end
+
+  # Finds all items with the specified tag.
+  # @param tag [String, TkcTag] Tag to search for
+  # @return [Array<TkcItem>] Items with the tag
   def find_withtag(tag)
     find('withtag', tag)
   end
 
+  # Gets or sets the keyboard focus item.
+  #
+  # Only one item can have focus at a time. Text items with focus
+  # display an insertion cursor and receive keyboard events.
+  #
+  # @overload itemfocus
+  #   @return [TkcItem, nil] The focused item, or nil if none
+  # @overload itemfocus(tagOrId)
+  #   @param tagOrId [TkcItem, Integer, String] Item to focus
+  #   @return [self]
+  # @example
+  #   canvas.itemfocus(text_item)  # give focus to text item
+  #   focused = canvas.itemfocus  # get currently focused item
   def itemfocus(tagOrId=nil)
     if tagOrId
       tk_send_without_enc('focus', tagid(tagOrId))
@@ -310,33 +554,79 @@ class Tk::Canvas<TkWindow
     end
   end
 
+  # Returns the tags associated with an item.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Item to query
+  # @return [Array<TkcTag>] Tags on the item
   def gettags(tagOrId)
     list(tk_send_without_enc('gettags', tagid(tagOrId))).collect{|tag|
       TkcTag.id2obj(self, tag)
     }
   end
 
+  # Sets the insertion cursor position in a text item.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Text item
+  # @param index [Integer, String] Position for cursor ('end', 'insert', or number)
+  # @return [self]
   def icursor(tagOrId, index)
     tk_send_without_enc('icursor', tagid(tagOrId), index)
     self
   end
 
+  # Moves a coordinate point within a line or polygon item.
+  #
+  # Relocates the index-th coordinate to the new (x, y) position.
+  # Only works on line and polygon items.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Line or polygon item
+  # @param idx [Integer] Coordinate index (0-based)
+  # @param x [Numeric] New X coordinate
+  # @param y [Numeric] New Y coordinate
+  # @return [self]
+  # @note Requires Tcl/Tk 8.6 or later
   def imove(tagOrId, idx, x, y)
     tk_send_without_enc('imove', tagid(tagOrId), idx, x, y)
     self
   end
   alias i_move imove
 
+  # Returns the numeric index for an index specification.
+  #
+  # Converts textual index descriptions ('end', 'insert', '@x,y') to numbers.
+  # For text items, returns character index. For line/polygon, coordinate index.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Item to query
+  # @param idx [String, Integer] Index specification
+  # @return [Integer] Numeric index
   def index(tagOrId, idx)
     number(tk_send_without_enc('index', tagid(tagOrId), idx))
   end
 
+  # Inserts text or coordinates into an item.
+  #
+  # For text items, inserts the string before the specified index.
+  # For line/polygon items, inserts coordinate pairs.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Item to modify
+  # @param index [Integer, String] Position to insert before
+  # @param string [String] Text or coordinate values to insert
+  # @return [self]
   def insert(tagOrId, index, string)
     tk_send_without_enc('insert', tagid(tagOrId), index,
                         _get_eval_enc_str(string))
     self
   end
 
+  # Moves items lower in the stacking order.
+  #
+  # Moves matching items to appear below the reference item, or to
+  # the bottom if no reference given. Items maintain relative order.
+  #
+  # @param tag [TkcItem, Integer, String] Items to move
+  # @param below [TkcItem, Integer, String, nil] Reference item (items go below this)
+  # @return [self]
+  # @note Has no effect on window items; they always appear on top
   def lower(tag, below=nil)
     if below
       tk_send_without_enc('lower', tagid(tag), tagid(below))
@@ -346,11 +636,29 @@ class Tk::Canvas<TkWindow
     self
   end
 
+  # Moves items by a delta amount.
+  #
+  # Adds the x and y amounts to each coordinate of matching items.
+  #
+  # @param tag [TkcItem, Integer, String] Items to move
+  # @param dx [Numeric] Amount to add to X coordinates
+  # @param dy [Numeric] Amount to add to Y coordinates
+  # @return [self]
   def move(tag, dx, dy)
     tk_send_without_enc('move', tagid(tag), dx, dy)
     self
   end
 
+  # Moves items to an absolute position.
+  #
+  # Positions the first matching item's upper-left corner at (x, y).
+  # Other matching items maintain their relative positions.
+  #
+  # @param tag [TkcItem, Integer, String] Items to move
+  # @param x [Numeric] New X position for upper-left corner
+  # @param y [Numeric] New Y position for upper-left corner
+  # @return [self]
+  # @note Requires Tcl/Tk 8.6 or later
   def moveto(tag, x, y)
     # Tcl/Tk 8.6 or later
     tk_send_without_enc('moveto', tagid(tag), x, y)
@@ -358,10 +666,32 @@ class Tk::Canvas<TkWindow
   end
   alias move_to moveto
 
+  # Generates Encapsulated PostScript for the canvas.
+  #
+  # @param keys [Hash] PostScript options
+  # @option keys [String] :file Write to file instead of returning string
+  # @option keys [String] :colormode 'color', 'gray', or 'mono'
+  # @option keys [Numeric] :height Height of area to print
+  # @option keys [Numeric] :width Width of area to print
+  # @option keys [Numeric] :x Left edge of area to print
+  # @option keys [Numeric] :y Top edge of area to print
+  # @option keys [Boolean] :rotate Rotate output 90 degrees
+  # @option keys [Numeric] :pagewidth Scale to this width on page
+  # @option keys [Numeric] :pageheight Scale to this height on page
+  # @return [String, nil] PostScript data, or nil if written to file
   def postscript(keys)
     tk_send("postscript", *hash_kv(keys))
   end
 
+  # Moves items higher in the stacking order.
+  #
+  # Moves matching items to appear above the reference item, or to
+  # the top if no reference given. Items maintain relative order.
+  #
+  # @param tag [TkcItem, Integer, String] Items to move
+  # @param above [TkcItem, Integer, String, nil] Reference item (items go above this)
+  # @return [self]
+  # @note Has no effect on window items; they always appear on top
   def raise(tag, above=nil)
     if above
       tk_send_without_enc('raise', tagid(tag), tagid(above))
@@ -371,6 +701,17 @@ class Tk::Canvas<TkWindow
     self
   end
 
+  # Replaces characters or coordinates in an item.
+  #
+  # For text items, replaces text between first and last indices.
+  # For line/polygon items, replaces coordinates between those indices.
+  #
+  # @param tag [TkcItem, Integer, String] Item to modify
+  # @param first [Integer, String] Start index
+  # @param last [Integer, String] End index
+  # @param str_or_coords [String, Array] Replacement text or coordinates
+  # @return [self]
+  # @note Requires Tcl/Tk 8.6 or later
   def rchars(tag, first, last, str_or_coords)
     # Tcl/Tk 8.6 or later
     str_or_coords = str_or_coords.flatten if str_or_coords.kind_of? Array
@@ -380,44 +721,128 @@ class Tk::Canvas<TkWindow
   alias replace_chars rchars
   alias replace_coords rchars
 
+  # Scales item coordinates around an origin point.
+  #
+  # Each coordinate is adjusted: new = origin + (old - origin) * scale
+  #
+  # @param tag [TkcItem, Integer, String] Items to scale
+  # @param x [Numeric] X coordinate of scale origin
+  # @param y [Numeric] Y coordinate of scale origin
+  # @param xs [Numeric] X scale factor (1.0 = no change)
+  # @param ys [Numeric] Y scale factor (1.0 = no change)
+  # @return [self]
+  # @note Single-coordinate items (text, image, bitmap) only move; they don't change size
   def scale(tag, x, y, xs, ys)
     tk_send_without_enc('scale', tagid(tag), x, y, xs, ys)
     self
   end
 
+  # Records a position for canvas scanning (fast scrolling).
+  #
+  # Use with {#scan_dragto} for click-and-drag scrolling.
+  #
+  # @param x [Integer] X coordinate of mark position
+  # @param y [Integer] Y coordinate of mark position
+  # @return [self]
+  # @see #scan_dragto
+  # @example Implementing drag-to-scroll
+  #   canvas.bind('<Button-2>') { |e| canvas.scan_mark(e.x, e.y) }
+  #   canvas.bind('<B2-Motion>') { |e| canvas.scan_dragto(e.x, e.y) }
   def scan_mark(x, y)
     tk_send_without_enc('scan', 'mark', x, y)
     self
   end
+
+  # Scrolls the canvas based on distance from scan mark.
+  #
+  # Scrolls by (gain * distance) from the position set by {#scan_mark}.
+  # The gain defaults to 10, making scrolling feel fast.
+  #
+  # @param x [Integer] Current X coordinate
+  # @param y [Integer] Current Y coordinate
+  # @param gain [Numeric] Scroll multiplier (default: 10)
+  # @return [self]
+  # @see #scan_mark
   def scan_dragto(x, y, gain=None)
     tk_send_without_enc('scan', 'dragto', x, y, gain)
     self
   end
 
+  # Manipulates text selection in canvas items.
+  #
+  # @param mode [String] Selection operation ('adjust', 'clear', 'from', 'item', 'to')
+  # @param args [Array] Mode-specific arguments
+  # @return [TkcItem, self] The selected item for 'item' mode, self otherwise
+  # @see #select_adjust, #select_clear, #select_from, #select_item, #select_to
   def select(mode, *args)
     r = tk_send_without_enc('select', mode, *args)
     (mode == 'item')? TkcItem.id2obj(self, r): self
   end
+
+  # Adjusts the selection to include the specified index.
+  #
+  # Moves the end of the selection nearest to the index to that index.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Text item
+  # @param index [Integer, String] Index to adjust to
+  # @return [self]
   def select_adjust(tagOrId, index)
     select('adjust', tagid(tagOrId), index)
   end
+
+  # Clears the current text selection.
+  # @return [self]
   def select_clear
     select('clear')
   end
+
+  # Sets the selection anchor.
+  #
+  # Sets one end of the selection; use {#select_to} to set the other end.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Text item
+  # @param index [Integer, String] Anchor index
+  # @return [self]
   def select_from(tagOrId, index)
     select('from', tagid(tagOrId), index)
   end
+
+  # Returns the item containing the current selection.
+  # @return [TkcItem, nil] Item with selection, or nil if none
   def select_item
     select('item')
   end
+
+  # Extends the selection to the specified index.
+  #
+  # Sets the other end of the selection from the anchor set by {#select_from}.
+  #
+  # @param tagOrId [TkcItem, Integer, String] Text item
+  # @param index [Integer, String] End index
+  # @return [self]
   def select_to(tagOrId, index)
     select('to', tagid(tagOrId), index)
   end
 
+  # Returns the type of a canvas item.
+  #
+  # @param tag [TkcItem, Integer, String] Item to query
+  # @return [Class] The TkcItem subclass (TkcRectangle, TkcLine, etc.)
   def itemtype(tag)
     TkcItem.type2class(tk_send('type', tagid(tag)))
   end
 
+  # Creates a Ruby wrapper object for an existing canvas item ID.
+  #
+  # Useful when you have a numeric item ID (e.g., from Tcl code) and
+  # need a TkcItem object to work with it in Ruby.
+  #
+  # @param idnum [Integer, String] Numeric canvas item ID
+  # @return [TkcItem] A TkcItem subclass instance wrapping the item
+  # @example
+  #   # If you have an item ID from elsewhere
+  #   item = canvas.create_itemobj_from_id(42)
+  #   item.configure(fill: 'red')
   def create_itemobj_from_id(idnum)
     id = TkcItem.id2obj(self, idnum.to_i)
     return id if id.kind_of?(TkcItem)

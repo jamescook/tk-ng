@@ -10,7 +10,43 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Hierarchical tree widget for displaying parent-child data.
+    #
+    # Displays a collapsible tree structure with customizable nodes.
+    # Each node can have text, images, and child nodes. Built on canvas
+    # for flexible rendering.
+    #
+    # @example Basic tree with nodes
+    #   require 'tkextlib/bwidget'
+    #   tree = Tk::BWidget::Tree.new(root)
+    #   tree.insert('end', 'root', 'folder1', text: 'Documents')
+    #   tree.insert('end', 'folder1', 'file1', text: 'readme.txt')
+    #   tree.insert('end', 'folder1', 'file2', text: 'notes.txt')
+    #   tree.pack(fill: :both, expand: true)
+    #
+    # @example With selection handling
+    #   tree.textbind('<Double-1>') do |event|
+    #     node = tree.selection_get.first
+    #     puts "Double-clicked: #{node}"
+    #   end
+    #
+    # @example Expand/collapse nodes
+    #   tree.open_tree('folder1')   # expand
+    #   tree.close_tree('folder1')  # collapse
+    #
+    # @see Tk::BWidget::Tree::Node Individual tree node class
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/Tree.html
     class Tree < TkWindow
+      # Represents a single node in a BWidget Tree.
+      #
+      # Nodes can be created directly and added to the tree. Each node
+      # can have text, an image, custom data, and child nodes.
+      #
+      # @example Creating nodes
+      #   node = Tk::BWidget::Tree::Node.new(tree, 'parent_id',
+      #     text: 'My Node',
+      #     image: my_image,
+      #     data: {id: 123})
       class Node < TkObject
       end
     end

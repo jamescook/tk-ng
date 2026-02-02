@@ -53,26 +53,36 @@ def serialize(object)
 <% if (pubmeths = public_class_methods(object)).size > 0 %>
 # Class Methods
 <% pubmeths.each do |item| %>
+<div class="method-card<%= " has-docs" if has_content?(item) %>" markdown="1">
+
 ## <%= item.name(false) %>(<%= item.parameters.map {|p| p.join(" ") }.join(", ") %>) [](#<%=aref(item)%>)
 <%= rdoc_to_md item.docstring %>
+
 <%= render_tags item %>
+</div>
 <% end %><% end %>
 <% if (attrs = attr_listing(object)).size > 0 %>
 # Attributes
 <% attrs.each do |item|%>
+<div class="method-card<%= " has-docs" if has_content?(item) %>" markdown="1">
+
 ## <%= item.name %><%= item.reader? ? "[RW]" : "[R]" %> [](#<%=aref(item)%>)
 <%= rdoc_to_md item.docstring %>
 
 <%= render_tags item %>
+</div>
 <% end %><% end %>
 
 <% if (insmeths = public_instance_methods(object)).size > 0 %>
 # Instance Methods
 <% insmeths.each do |item| %>
+<div class="method-card<%= " has-docs" if has_content?(item) %>" markdown="1">
+
 ## <%= item.name(false) %>(<%= item.parameters.map {|p| p.join("") }.join(", ")%>) [](#<%=aref(item)%>)
 <%= rdoc_to_md item.docstring %>
 
 <%= render_tags item %>
+</div>
 <% end %><% end %>',
       trim_mode: "<>",
     )
@@ -109,26 +119,81 @@ def render_tags(object)
   result = String.new("")
   object.tags.each do |tag|
     result << case tag.tag_name
-    when "example"
+    when "example", "option"
+      # Handled separately below
       ""
-    when "option"
-      # @option tags store the actual option in tag.pair
+    when "see"
+      # @see can be a URL or a method reference
+      render_see_tag(tag)
+    when "yield", "yieldparam", "yieldreturn"
+      # Block-related tags
+      name_part = tag.name ? "`#{tag.name}` " : ""
+      types_str = format_types(tag.types)
+      "**@#{tag.tag_name}** #{name_part}#{types_str} #{tag.text}\n\n"
+    else
+      name_part = tag.name ? "`#{tag.name}` " : ""
+      types_str = format_types(tag.types)
+      "**@#{tag.tag_name}** #{name_part}#{types_str} #{tag.text}\n\n"
+    end
+  end
+
+  # Handle @option tags - group into a single "Options" section
+  option_tags = object.tags.select { |t| t.tag_name == "option" }
+  unless option_tags.empty?
+    result << "**Options**\n\n"
+    option_tags.each do |tag|
       opt = tag.pair
-      "**@#{tag.tag_name}** #{opt.name} [#{opt.types&.join(', ')}] #{opt.text}\n\n"
-    else
-      name_part = tag.name ? "#{tag.name} " : ""
-      "**@#{tag.tag_name}** #{name_part}[#{tag.types&.join(', ')}] #{tag.text}\n\n"
+      types_str = format_types(opt.types)
+      text_part = opt.text && !opt.text.empty? ? " — #{opt.text}" : ""
+      result << "- `#{opt.name}` #{types_str}#{text_part}\n"
     end
+    result << "\n"
   end
 
-  object.tags.each do |tag|
-    result << if tag.tag_name == "example"
-      "\n**@#{tag.tag_name}**\n```ruby\n#{tag.text}\n```"
-    else
-      ""
-    end
+  # Handle @example tags - must be after all other tags to avoid breaking markdown
+  object.tags.select { |t| t.tag_name == "example" }.each do |tag|
+    title = tag.name ? " #{tag.name}" : ""
+    result << "\n**@example**#{title}\n```ruby\n#{tag.text}\n```\n\n"
   end
 
+  result
+end
+
+# Format types array as inline code
+def format_types(types)
+  return "" if types.nil? || types.empty?
+  "`#{types.join(', ')}`"
+end
+
+# Render @see tag with proper linking
+def render_see_tag(tag)
+  ref = tag.name || tag.text
+  return "" if ref.nil? || ref.empty?
+
+  if ref =~ /\Ahttps?:\/\//
+    # URL - create markdown link
+    "**@see** [#{ref}](#{ref})\n\n"
+  elsif ref.start_with?('#')
+    # Instance method reference
+    method_name = ref[1..]
+    "**@see** [`#{ref}`](#method-i-#{method_name}) #{tag.text}\n\n"
+  elsif ref.start_with?('.')
+    # Class method reference
+    method_name = ref[1..]
+    "**@see** [`#{ref}`](#method-c-#{method_name}) #{tag.text}\n\n"
+  elsif ref.include?('#')
+    # Class#method reference
+    "**@see** `#{ref}` #{tag.text}\n\n"
+  else
+    # Could be a class/module reference or plain text
+    "**@see** #{ref} #{tag.text}\n\n"
+  end
+end
+
+# Check if a method/attribute has documentation content
+def has_content?(item)
+  result = !item.docstring.empty? || item.tags.any?
+  $stderr.puts "DEBUG has_content?(#{item.name}): docstring.empty?=#{item.docstring.empty?}, tags.any?=#{item.tags.any?}, result=#{result}" if ENV['YARD_DEBUG']
   result
 end
 

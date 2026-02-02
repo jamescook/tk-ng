@@ -10,6 +10,20 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Frame with a boxed title area.
+    #
+    # PanelFrame provides a container with a visible title section
+    # at the top containing widget content.
+    #
+    # @example Panel with title
+    #   require 'tkextlib/bwidget'
+    #   pf = Tk::BWidget::PanelFrame.new(root)
+    #   pf.pack(fill: :both, expand: true)
+    #
+    #   frame = pf.get_frame
+    #   TkLabel.new(frame, text: 'Content here').pack
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/PanelFrame.html
     class PanelFrame < TkWindow
     end
   end

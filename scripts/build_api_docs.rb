@@ -1,0 +1,350 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# ============================================================================
+# API Documentation Builder
+# ============================================================================
+#
+# PIPELINE:
+#   1. YARD parses Ruby source files
+#   2. vendor/yard-json outputs JSON (with markdown in docstrings)
+#   3. THIS SCRIPT (build_api_docs.rb) transforms JSON → HTML via ERB templates
+#   4. Jekyll builds the final site from docs_site/
+#
+# TO MODIFY DOC OUTPUT:
+#   - Templates are in scripts/templates/*.html.erb
+#   - JSON generation: Edit vendor/yard-json/templates/default/fulldoc/json/setup.rb
+#
+# DO NOT edit vendor/yard-json/.../markdown/setup.rb for doc changes -
+# that's only used if generating standalone markdown files, not our JSON→HTML flow.
+#
+# USAGE:
+#   ruby scripts/build_api_docs.rb           # Generate HTML in docs_site/_api/
+#   cd docs_site && bundle exec jekyll build # Build full site
+#   cd docs_site && bundle exec jekyll serve # Preview locally
+#
+# ============================================================================
+
+require "json"
+require "erb"
+require "fileutils"
+require "cgi"
+require "kramdown"
+
+# Helper for building navigation tree
+module NavHelper
+  # Build a nested hash tree from flat paths like ["Tk", "Tk::Button", "Tk::Canvas"]
+  def self.build_tree(paths)
+    root = { children: {}, path: nil, type: nil }
+
+    paths.each do |path, meta|
+      parts = path.split('::')
+      current = root
+
+      parts.each_with_index do |part, i|
+        full_path = parts[0..i].join('::')
+        current[:children][part] ||= { children: {}, path: full_path, type: nil }
+        current = current[:children][part]
+      end
+      current[:type] = meta[:type]
+    end
+
+    root[:children]
+  end
+
+  # Sort tree: modules first, then classes, then alphabetically
+  def self.sort_tree(tree)
+    tree.sort_by do |name, node|
+      type_order = node[:type] == 'module' ? 0 : 1
+      [type_order, name.downcase]
+    end.to_h
+  end
+end
+
+class APIDocBuilder
+  TEMPLATES_DIR = File.expand_path('templates', __dir__)
+
+  def initialize(json_dir:, output_dir:)
+    @json_dir = json_dir
+    @output_dir = output_dir
+    @nav_order = 0
+    @children = Hash.new { |h, k| h[k] = [] }
+    @templates = {}
+  end
+
+  def template(name)
+    @templates[name] ||= ERB.new(File.read(File.join(TEMPLATES_DIR, "#{name}.html.erb")), trim_mode: '-')
+  end
+
+  def build
+    FileUtils.rm_rf(@output_dir)
+    FileUtils.mkdir_p(@output_dir)
+
+    # First pass: identify parent-child relationships and collect metadata
+    @all_paths = {}
+    json_files.each do |file|
+      doc = JSON.parse(File.read(file))
+      path = doc['path']
+      @all_paths[path] = { type: doc['type'] }
+
+      parts = path.split('::')
+      if parts.size > 1
+        parent = parts[0..-2].join('::')
+        @children[parent] << parts.last
+      end
+    end
+
+    # Generate navigation include
+    generate_nav
+
+    # Generate search index
+    generate_search_index
+
+    # Generate index page
+    generate_index
+
+    # Generate stats include
+    generate_stats
+
+    # Second pass: generate HTML
+    json_files.each do |file|
+      process_file(file)
+    end
+
+    puts "Generated #{json_files.size + 1} API doc pages in #{@output_dir}"
+  end
+
+  def generate_index
+    content = <<~HTML
+---
+layout: default
+title: API Reference
+nav_order: 2
+has_children: true
+---
+
+<h1>API Reference</h1>
+
+<p>Browse the Ruby/Tk class and module documentation.</p>
+    HTML
+
+    File.write(File.join(@output_dir, 'index.html'), content)
+  end
+
+  def generate_stats
+    modules = 0
+    classes = 0
+    methods = 0
+
+    json_files.each do |file|
+      doc = JSON.parse(File.read(file))
+      if doc['type'] == 'module'
+        modules += 1
+      else
+        classes += 1
+      end
+      methods += (doc['class_methods']&.size || 0)
+      methods += (doc['instance_methods']&.size || 0)
+    end
+
+    # Try to get gem version
+    version = begin
+      spec_file = File.join(File.dirname(@output_dir), '..', 'tk.gemspec')
+      if File.exist?(spec_file)
+        content = File.read(spec_file)
+        content[/version\s*=\s*["']([^"']+)["']/, 1] || 'unknown'
+      else
+        'unknown'
+      end
+    rescue
+      'unknown'
+    end
+
+    includes_dir = File.join(File.dirname(@output_dir), '_includes')
+    content = <<~HTML
+      <span>v#{version}</span>
+      <span>#{modules} modules</span>
+      <span>#{classes} classes</span>
+      <span>#{methods} methods</span>
+    HTML
+    File.write(File.join(includes_dir, 'stats.html'), content.strip)
+
+    puts "Generated stats: v#{version}, #{modules} modules, #{classes} classes, #{methods} methods"
+  end
+
+  def generate_nav
+    nav_tree = NavHelper.build_tree(@all_paths)
+    nav_tree = NavHelper.sort_tree(nav_tree)
+
+    includes_dir = File.join(File.dirname(@output_dir), '_includes')
+    FileUtils.mkdir_p(includes_dir)
+
+    content = template('nav').result(binding)
+    File.write(File.join(includes_dir, 'nav.html'), content)
+
+    puts "Generated navigation include: #{includes_dir}/nav.html"
+  end
+
+  def generate_search_index
+    search_data = {}
+    idx = 0
+
+    json_files.each do |file|
+      doc = JSON.parse(File.read(file))
+      url = "/api/#{doc['path'].gsub('::', '/')}/"
+
+      # Separate fields for weighted search
+      method_names = []
+      docstrings = [doc['docstring'].to_s]
+
+      (doc['class_methods'] || []).each do |m|
+        method_names << m['name']
+        docstrings << m['docstring'].to_s
+      end
+      (doc['instance_methods'] || []).each do |m|
+        method_names << m['name']
+        docstrings << m['docstring'].to_s
+      end
+
+      # Include path parts in content so entries are searchable even without docstrings
+      # Split path on :: so "Tk::BWidget::DragSite" becomes searchable as "DragSite"
+      path_parts = doc['path'].split('::').join(' ')
+      content_text = ([path_parts] + docstrings).join(' ').gsub(/\s+/, ' ').strip
+
+      search_data[idx.to_s] = {
+        title: doc['path'],
+        type: doc['type'],
+        url: url,
+        methods: method_names.join(' '),
+        content: content_text[0, 500]
+      }
+      idx += 1
+    end
+
+    js_dir = File.join(File.dirname(@output_dir), 'assets', 'js')
+    FileUtils.mkdir_p(js_dir)
+    File.write(File.join(js_dir, 'search-data.json'), JSON.pretty_generate(search_data))
+
+    puts "Generated search index: #{js_dir}/search-data.json (#{idx} entries)"
+  end
+
+  def render_nav_tree(tree, depth = 0)
+    sorted = NavHelper.sort_tree(tree)
+    result = []
+    count = sorted.size
+
+    sorted.each_with_index do |(name, node), idx|
+      url_path = node[:path].gsub('::', '/')
+      children = node[:children]
+      indent = '  ' * depth
+      is_last = (idx == count - 1)
+
+      result << template('nav_item').result(binding)
+    end
+
+    result.join
+  end
+
+  private
+
+  def json_files
+    @json_files ||= Dir.glob(File.join(@json_dir, "**/*.json")).sort
+  end
+
+  def process_file(json_file)
+    doc = JSON.parse(File.read(json_file))
+
+    rel_path = json_file.sub(@json_dir, '').sub(/^\//, '').sub('.json', '.html')
+    output_path = File.join(@output_dir, rel_path)
+
+    parts = doc['path'].split('::')
+    parent = parts.size > 1 ? parts[0..-2].join('::') : nil
+    title = doc['path']
+    has_children = @children[doc['path']].any?
+
+    # Build children list with names, URLs, and types
+    children_list = @children[doc['path']].sort.map do |child_name|
+      full_path = "#{doc['path']}::#{child_name}"
+      child_type = @all_paths[full_path]&.[](:type) || 'class'
+      { name: child_name, url: full_path.gsub('::', '/'), type: child_type }
+    end
+    children_modules = children_list.select { |c| c[:type] == 'module' }
+    children_classes = children_list.select { |c| c[:type] != 'module' }
+
+    @nav_order += 1
+    nav_order = @nav_order
+
+    content = template('page').result(binding)
+
+    FileUtils.mkdir_p(File.dirname(output_path))
+    File.write(output_path, content)
+  end
+
+  def render_method(method)
+    template('method').result(binding)
+  end
+
+  def render_attribute(attr)
+    template('attribute').result(binding)
+  end
+
+  def render_tags(tags)
+    template('tags').result(binding)
+  end
+
+  def h(str)
+    CGI.escapeHTML(str.to_s)
+  end
+
+  def md(text)
+    return '' if text.nil? || text.to_s.strip.empty?
+    Kramdown::Document.new(text.to_s).to_html
+  end
+
+  def method_anchor(method)
+    scope = method['scope'] == 'class' ? 'class-method' : 'method'
+    "#{scope}-#{method['name']}"
+  end
+
+  def render_see_link(see)
+    case see['type']
+    when 'url'
+      "<a href=\"#{h see['url']}\" target=\"_blank\" rel=\"noopener\">#{h see['url']}</a>"
+    when 'instance_method'
+      # #method_name -> link to #method-method_name on same page
+      method_name = see['ref'].sub(/^#/, '')
+      text = see['text'].to_s.empty? ? '' : " #{h see['text']}"
+      "<a href=\"#method-#{h method_name}\"><code>#{h see['ref']}</code></a>#{text}"
+    when 'class_method'
+      # .method_name -> link to #class-method-method_name on same page
+      method_name = see['ref'].sub(/^\./, '')
+      text = see['text'].to_s.empty? ? '' : " #{h see['text']}"
+      "<a href=\"#class-method-#{h method_name}\"><code>#{h see['ref']}</code></a>#{text}"
+    when 'external_method'
+      # ClassName#method -> link to ClassName.html#method-method_name
+      if see['ref'] =~ /^(.+)#(.+)$/
+        class_name, method_name = $1, $2
+        text = see['text'].to_s.empty? ? '' : " #{h see['text']}"
+        "<a href=\"#{h class_name}.html#method-#{h method_name}\"><code>#{h see['ref']}</code></a>#{text}"
+      else
+        "<code>#{h see['ref']}</code> #{h see['text']}"
+      end
+    when 'reference'
+      # Class or module name -> link to that page
+      text = see['text'].to_s.empty? ? '' : " #{h see['text']}"
+      "<a href=\"#{h see['ref']}.html\"><code>#{h see['ref']}</code></a>#{text}"
+    else
+      "<code>#{h see['ref']}</code> #{h see['text']}"
+    end
+  end
+end
+
+# Main
+if __FILE__ == $0
+  project_root = File.expand_path('../..', __FILE__)
+  json_dir = File.join(project_root, 'doc')
+  output_dir = File.join(project_root, 'docs_site', '_api')
+
+  builder = APIDocBuilder.new(json_dir: json_dir, output_dir: output_dir)
+  builder.build
+end

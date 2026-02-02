@@ -10,9 +10,30 @@ require 'tkextlib/bwidget/messagedlg'
 
 module Tk
   module BWidget
+    # Font selection widget (dialog or toolbar mode).
+    #
+    # SelectFont allows users to choose font family, size, and styles.
+    # Can display as a modal dialog or embedded toolbar.
+    #
+    # @example Font dialog
+    #   require 'tkextlib/bwidget'
+    #   dlg = Tk::BWidget::SelectFont::Dialog.new(root,
+    #     title: 'Choose Font')
+    #   font = dlg.create  # Returns font name or nil
+    #
+    # @example Font toolbar
+    #   toolbar = Tk::BWidget::SelectFont::Toolbar.new(root,
+    #     command: proc { |font| apply_font(font) })
+    #   toolbar.pack
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/SelectFont.html
     class SelectFont < Tk::BWidget::MessageDlg
+      # Font selection as modal dialog.
+      # @see Tk::BWidget::SelectFont
       class Dialog < Tk::BWidget::SelectFont
       end
+      # Font selection as embedded toolbar.
+      # @see Tk::BWidget::SelectFont
       class Toolbar < TkWindow
       end
     end

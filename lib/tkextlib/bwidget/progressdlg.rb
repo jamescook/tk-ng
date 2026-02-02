@@ -12,6 +12,27 @@ require 'tkextlib/bwidget/messagedlg'
 
 module Tk
   module BWidget
+    # Modal dialog with progress bar for lengthy operations.
+    #
+    # ProgressDlg displays a progress indicator with optional cancel
+    # button. The dialog blocks interaction until dismissed.
+    #
+    # @example Progress dialog
+    #   require 'tkextlib/bwidget'
+    #   dlg = Tk::BWidget::ProgressDlg.new(root,
+    #     title: 'Processing',
+    #     maximum: 100)
+    #   dlg.create
+    #
+    #   100.times do |i|
+    #     dlg.value = i
+    #     dlg.text = "Processing item #{i}..."
+    #     # do work
+    #   end
+    #   dlg.destroy
+    #
+    # @see Tk::BWidget::ProgressBar For embedded progress bars
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/ProgressDlg.html
     class ProgressDlg < Tk::BWidget::MessageDlg
     end
   end

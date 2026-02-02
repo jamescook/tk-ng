@@ -16,6 +16,15 @@ TkPackage.require('img::pcx')
 
 module Tk
   module Img
+    # PCX (PC Paintbrush) image format support for TkPhotoImage.
+    #
+    # @example Loading a PCX image
+    #   require 'tkextlib/tkimg/pcx'
+    #   image = TkPhotoImage.new(file: 'image.pcx')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as PCX
+    #   image.write('output.pcx', format: 'pcx')
     module PCX
       PACKAGE_NAME = 'img::pcx'.freeze
       def self.package_name

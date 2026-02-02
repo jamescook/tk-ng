@@ -12,6 +12,25 @@ require 'tkextlib/bwidget/entry'
 
 module Tk
   module BWidget
+    # Entry widget with integrated label.
+    #
+    # LabelEntry combines a Label and Entry into a single widget,
+    # simplifying form layouts. The label position is configurable.
+    #
+    # @example Simple labeled entry
+    #   require 'tkextlib/bwidget'
+    #   le = Tk::BWidget::LabelEntry.new(root,
+    #     label: 'Username:',
+    #     labelwidth: 10)
+    #   le.pack(fill: :x, padx: 5, pady: 5)
+    #
+    # @example With help text
+    #   le = Tk::BWidget::LabelEntry.new(root,
+    #     label: 'Email:',
+    #     helptext: 'Enter your email address')
+    #
+    # @see Tk::BWidget::LabelFrame The underlying labeled container
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/LabelEntry.html
     class LabelEntry < Tk::Entry
     end
   end

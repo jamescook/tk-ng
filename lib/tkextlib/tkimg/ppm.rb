@@ -16,6 +16,17 @@ TkPackage.require('img::ppm')
 
 module Tk
   module Img
+    # PPM/PGM/PBM (Portable Pixmap) image format support for TkPhotoImage.
+    #
+    # Tk has built-in PPM support; this package adds additional options.
+    #
+    # @example Loading a PPM image
+    #   require 'tkextlib/tkimg/ppm'
+    #   image = TkPhotoImage.new(file: 'image.ppm')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as PPM
+    #   image.write('output.ppm', format: 'ppm')
     module PPM
       PACKAGE_NAME = 'img::ppm'.freeze
       def self.package_name

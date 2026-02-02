@@ -279,17 +279,12 @@ module Tk
   end
 end
 
-# ---------------------------------------------------------
-# Deprecated TkVariable constants
-#
+# @api private
+# Internal compatibility shim for TkVariable trace syntax.
 # USE_OLD_TRACE_OPTION_STYLE was used to support Tcl < 8.4 trace syntax.
-# Since we now require Tcl 8.6+, this is always false and the old
-# code paths have been removed.
-#
-# This hook is called when TkVariable is loaded to add the deprecation.
-# ---------------------------------------------------------
+# Since we now require Tcl 8.6+, this is always false.
 module TkVariableCompatExtension
-  # Always false - we require Tcl 8.6+ which uses modern trace syntax
+  # @api private
   USE_OLD_TRACE_OPTION_STYLE = false
 end
 

@@ -10,6 +10,19 @@ require 'tkextlib/bwidget/button'
 
 module Tk
   module BWidget
+    # Container for arranging buttons horizontally or vertically.
+    #
+    # ButtonBox manages a set of buttons with consistent spacing and
+    # alignment. Used internally by Dialog and other widgets.
+    #
+    # @example Horizontal button row
+    #   require 'tkextlib/bwidget'
+    #   bbox = Tk::BWidget::ButtonBox.new(root, orient: :horizontal)
+    #   bbox.add(text: 'OK', command: proc { ok })
+    #   bbox.add(text: 'Cancel', command: proc { cancel })
+    #   bbox.pack(side: :bottom, fill: :x)
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/ButtonBox.html
     class ButtonBox < TkWindow
     end
   end

@@ -27,3 +27,10 @@ ext/trofs/pkgIndex.tcl
 ext/trofs/library/trofs.tcl
 ext/trofs/tests/upstream/load.tcl
 ext/trofs/autom4te.cache/
+
+# Doc build artifacts
+docs_site/_api/
+docs_site/_site/
+docs_site/.jekyll-cache/
+docs_site/assets/js/search-data.json
+docs_site/_includes/nav.html

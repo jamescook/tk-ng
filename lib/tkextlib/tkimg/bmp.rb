@@ -16,6 +16,15 @@ TkPackage.require('img::bmp')
 
 module Tk
   module Img
+    # BMP (Windows Bitmap) image format support for TkPhotoImage.
+    #
+    # @example Loading a BMP image
+    #   require 'tkextlib/tkimg/bmp'
+    #   image = TkPhotoImage.new(file: 'image.bmp')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as BMP
+    #   image.write('output.bmp', format: 'bmp')
     module BMP
       PACKAGE_NAME = 'img::bmp'.freeze
       def self.package_name

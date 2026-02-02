@@ -16,6 +16,15 @@ TkPackage.require('img::sgi')
 
 module Tk
   module Img
+    # SGI (Silicon Graphics) image format support for TkPhotoImage.
+    #
+    # @example Loading an SGI image
+    #   require 'tkextlib/tkimg/sgi'
+    #   image = TkPhotoImage.new(file: 'image.sgi')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as SGI
+    #   image.write('output.sgi', format: 'sgi')
     module SGI
       PACKAGE_NAME = 'img::sgi'.freeze
       def self.package_name

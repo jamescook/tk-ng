@@ -24,7 +24,7 @@ if $tk_version.to_f < 8.0
 
 # label 生成
 TkLabel.new(base_frame,'font'=>$font,'wraplength'=>'4i','justify'=>'left') {
-    text("実行しようとしたスクリプトは Tk8.0 以上で利用できる機能を利用しているため、あなたの Ruby#{VERSION}/Tk#{$tk_version}#{(Tk::JAPANIZED_TK)? 'jp': ''} では正常に実行できません。よってデモの実行を中止しました。ただし、下のコード参照ボタンを押すことで、実行が中止されたスクリプトのソースを参照することは可能です。")
+    text("実行しようとしたスクリプトは Tk8.0 以上で利用できる機能を利用しているため、あなたの Ruby#{VERSION}/Tk#{$tk_version} では正常に実行できません。よってデモの実行を中止しました。ただし、下のコード参照ボタンを押すことで、実行が中止されたスクリプトのソースを参照することは可能です。")
 }.pack('side'=>'top')
 
 # frame 生成

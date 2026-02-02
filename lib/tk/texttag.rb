@@ -171,30 +171,6 @@ class TkTextTag<TkObject
   def cget_strict(key)
     @t.tag_cget_strict @id, key
   end
-=begin
-  def cget(key)
-    case key.to_s
-    when 'text', 'label', 'show', 'data', 'file'
-      _fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget', @id, "-#{key}"))
-    when 'font', 'kanjifont'
-      #fnt = tk_tcl2ruby(tk_call(@t.path, 'tag', 'cget', @id, "-#{key}"))
-      fnt = tk_tcl2ruby(_fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget',
-                                                      @id, '-font')))
-      unless fnt.kind_of?(TkFont)
-        fnt = tagfontobj(@id, fnt)
-      end
-      if key.to_s == 'kanjifont' && JAPANIZED_TK && TK_VERSION =~ /^4\.*/
-        # obsolete; just for compatibility
-        fnt.kanji_font
-      else
-        fnt
-      end
-    else
-      tk_tcl2ruby(_fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget',
-                                                @id, "-#{key}")))
-    end
-  end
-=end
 
   def configure(key, val=None)
     @t.tag_configure @id, key, val

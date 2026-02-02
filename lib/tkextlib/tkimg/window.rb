@@ -16,6 +16,14 @@ TkPackage.require('img::window')
 
 module Tk
   module Img
+    # Window capture format - captures Tk windows as images.
+    #
+    # Allows capturing the contents of a Tk window into a TkPhotoImage.
+    #
+    # @example Capturing a window
+    #   require 'tkextlib/tkimg/window'
+    #   image = TkPhotoImage.new
+    #   image.copy(window, format: 'window')
     module WINDOW
       PACKAGE_NAME = 'img::window'.freeze
       def self.package_name

@@ -9,6 +9,21 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Drop target registration for BWidget drag-and-drop.
+    #
+    # DropSite enables widgets to receive dropped data.
+    # Use with DragSite for complete drag-and-drop functionality.
+    #
+    # @example Register a drop target
+    #   require 'tkextlib/bwidget'
+    #   Tk::BWidget::DropSite.register(label,
+    #     droptypes: ['TEXT'],
+    #     dropcmd: proc { |path, data, op, type, x, y|
+    #       puts "Dropped: #{data}"
+    #     })
+    #
+    # @see Tk::BWidget::DragSite For drag sources
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/DropSite.html
     module DropSite
     end
   end

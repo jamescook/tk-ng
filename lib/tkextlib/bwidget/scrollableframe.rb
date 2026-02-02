@@ -10,6 +10,23 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Scrollable frame container for large content.
+    #
+    # ScrollableFrame provides a frame that can be scrolled when its
+    # content exceeds the visible area. Use with ScrolledWindow.
+    #
+    # @example Scrollable form
+    #   require 'tkextlib/bwidget'
+    #   sw = Tk::BWidget::ScrolledWindow.new(root)
+    #   sf = Tk::BWidget::ScrollableFrame.new(sw)
+    #   sw.set_widget(sf)
+    #   sw.pack(fill: :both, expand: true)
+    #
+    #   frame = sf.get_frame
+    #   10.times { |i| TkLabel.new(frame, text: "Item #{i}").pack }
+    #
+    # @see Tk::BWidget::ScrolledWindow For adding scrollbars
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/ScrollableFrame.html
     class ScrollableFrame < TkWindow
     end
   end

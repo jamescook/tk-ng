@@ -11,6 +11,31 @@ require 'tkextlib/bwidget/buttonbox'
 
 module Tk
   module BWidget
+    # Customizable dialog box with button management.
+    #
+    # Dialog provides a modal dialog with configurable buttons and
+    # content area. Handles keyboard bindings (Return/Escape) and
+    # button focus automatically.
+    #
+    # @example Simple dialog with OK/Cancel
+    #   require 'tkextlib/bwidget'
+    #   dlg = Tk::BWidget::Dialog.new(root, title: 'Confirm')
+    #   dlg.add(text: 'OK', name: 'ok')
+    #   dlg.add(text: 'Cancel', name: 'cancel')
+    #
+    #   frame = dlg.get_frame
+    #   TkLabel.new(frame, text: 'Are you sure?').pack
+    #
+    #   result = dlg.draw  # Returns button index
+    #   dlg.destroy
+    #
+    # @example With default and cancel buttons
+    #   dlg = Tk::BWidget::Dialog.new(root,
+    #     title: 'Save Changes?',
+    #     default: 0,
+    #     cancel: 1)
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/Dialog.html
     class Dialog < TkWindow
     end
   end

@@ -10,6 +10,21 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Application status bar with resize grip.
+    #
+    # StatusBar displays status messages, indicators, and an optional
+    # resize grip. Typically placed at the bottom of a MainFrame.
+    #
+    # @example Simple status bar
+    #   require 'tkextlib/bwidget'
+    #   sb = Tk::BWidget::StatusBar.new(root)
+    #   sb.pack(side: :bottom, fill: :x)
+    #
+    #   frame = sb.get_frame
+    #   TkLabel.new(frame, text: 'Ready').pack(side: :left)
+    #
+    # @see Tk::BWidget::MainFrame For integrated status bar
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/StatusBar.html
     class StatusBar < TkWindow
     end
   end

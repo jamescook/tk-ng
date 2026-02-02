@@ -26,15 +26,16 @@ jobs:
           ruby-version: '3.4'
           bundler-cache: true
 
-      - name: Generate YARD markdown
-        run: YARD_MARKDOWN=1 bundle exec rake yard
+      - name: Install docs_site dependencies
+        run: cd docs_site && bundle install
 
-      - name: Build Jekyll site
-        run: |
-          cd docs_site
-          bundle install
-          ruby ../scripts/build_docs.rb
-          bundle exec jekyll build --baseurl "/tk-ng"
+      - name: Build docs
+        run: bundle exec rake docs:generate
+        env:
+          JEKYLL_ENV: production
+
+      - name: Rebuild with baseurl for GitHub Pages
+        run: cd docs_site && bundle exec jekyll build --baseurl "/tk-ng"
         env:
           JEKYLL_ENV: production
 

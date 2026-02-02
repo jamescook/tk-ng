@@ -10,6 +10,25 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Page container without visible tabs (for custom tab controls).
+    #
+    # PagesManager provides NoteBook-like page management but without
+    # the tab bar, allowing custom navigation controls.
+    #
+    # @example With custom navigation
+    #   require 'tkextlib/bwidget'
+    #   pm = Tk::BWidget::PagesManager.new(root)
+    #   pm.pack(fill: :both, expand: true)
+    #
+    #   page1 = pm.add('page1')
+    #   page2 = pm.add('page2')
+    #   TkLabel.new(page1, text: 'Page 1').pack
+    #   TkLabel.new(page2, text: 'Page 2').pack
+    #
+    #   pm.raise('page1')  # Show page1
+    #
+    # @see Tk::BWidget::NoteBook For tabbed interface
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/PagesManager.html
     class PagesManager < TkWindow
     end
   end

@@ -13,21 +13,43 @@ begin
     require 'yard-markdown'
   end
 
-  YARD::Rake::YardocTask.new(:yard) do |t|
-    t.files = ['lib/**/*.rb']
-    t.options = [
-      '--readme', 'README.md',
-      '--title', 'tk-ng API Documentation',
-      '--markup', 'markdown',
-      '--exclude', 'test/',
-      '--exclude', 'sample/',
-      '--exclude', 'vendor/'
-    ]
-    # Use markdown format when YARD_MARKDOWN=1
-    t.options += ['--format', 'markdown'] if ENV['YARD_MARKDOWN']
+  # Uses .yardopts for configuration
+  YARD::Rake::YardocTask.new(:yard_json)
+
+  desc "Generate API docs (YARD JSON -> HTML)"
+  task yard: :yard_json do
+    ruby "scripts/build_api_docs.rb"
   end
+
+  # Clean artifacts before regenerating
+  task :yard_json => :yard_clean
+  task :yard_clean do
+    FileUtils.rm_rf('doc')
+    FileUtils.rm_rf('docs_site/_api')
+    FileUtils.rm_rf('docs_site/_site')
+    FileUtils.rm_rf('docs_site/.jekyll-cache')
+    FileUtils.rm_f('docs_site/assets/js/search-data.json')
+  end
+
   # Alias for convenience
   task doc: :yard
+
+  namespace :docs do
+    desc "Generate full docs site (clean + YARD + Jekyll)"
+    task :generate => :yard do
+      Dir.chdir('docs_site') do
+        sh 'bundle exec jekyll build'
+      end
+      puts "Docs generated in docs_site/_site/"
+    end
+
+    desc "Serve docs locally"
+    task :serve => :yard do
+      Dir.chdir('docs_site') do
+        sh 'bundle exec jekyll serve'
+      end
+    end
+  end
 rescue LoadError
   desc "Generate YARD documentation (yard gem not installed)"
   task :yard do

@@ -16,6 +16,17 @@ TkPackage.require('img::xbm')
 
 module Tk
   module Img
+    # XBM (X BitMap) image format support for TkPhotoImage.
+    #
+    # XBM is a monochrome bitmap format used in X11.
+    #
+    # @example Loading an XBM image
+    #   require 'tkextlib/tkimg/xbm'
+    #   image = TkPhotoImage.new(file: 'cursor.xbm')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as XBM
+    #   image.write('output.xbm', format: 'xbm')
     module XBM
       PACKAGE_NAME = 'img::xbm'.freeze
       def self.package_name

@@ -16,6 +16,18 @@ TkPackage.require('img::png')
 
 module Tk
   module Img
+    # PNG image format support for TkPhotoImage.
+    #
+    # @note Tk 8.6+ includes native PNG support; this package adds
+    #   additional options like compression level.
+    #
+    # @example Loading a PNG image
+    #   require 'tkextlib/tkimg/png'
+    #   image = TkPhotoImage.new(file: 'icon.png')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as PNG
+    #   image.write('output.png', format: 'png')
     module PNG
       PACKAGE_NAME = 'img::png'.freeze
       def self.package_name

@@ -9,6 +9,13 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Base class utilities for BWidget widget development.
+    #
+    # Widget provides low-level infrastructure for creating custom
+    # BWidget megawidgets. Most users don't need this directly.
+    #
+    # @api private
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/Widget.html
     module Widget
     end
   end
