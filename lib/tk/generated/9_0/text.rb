@@ -51,8 +51,8 @@ module Tk
           option :undo, type: :boolean
           option :width, type: :integer
           option :wrap  # none, char, word
-          option :xscrollcommand
-          option :yscrollcommand
+          option :xscrollcommand, type: :callback
+          option :yscrollcommand, type: :callback
         end
       end
     end

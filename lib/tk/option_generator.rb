@@ -48,9 +48,9 @@ module Tk
         !@alias_target.nil?
       end
 
-      def ruby_type
+      def ruby_type(widget_cmd: nil)
         return nil if alias?
-        TypeRegistry.type_for(@db_class)
+        TypeRegistry.type_for(@db_class, widget_cmd: widget_cmd, option_name: @name)
       end
 
       # Generate the DSL declaration for this option
@@ -67,8 +67,9 @@ module Tk
 
         parts = ["option :#{name}"]
 
-        if ruby_type && ruby_type != :string
-          parts << "type: :#{ruby_type}"
+        type = ruby_type(widget_cmd: widget_cmd)
+        if type && type != :string
+          parts << "type: :#{type}"
         end
 
         if aliases.size == 1

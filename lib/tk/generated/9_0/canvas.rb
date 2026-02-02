@@ -28,7 +28,7 @@ module Tk
           option :insertofftime, type: :integer  # cursor blink off time (ms)
           option :insertontime, type: :integer  # cursor blink on time (ms)
           option :insertwidth, type: :integer
-          option :offset, type: :integer
+          option :offset
           option :relief  # flat, raised, sunken, groove, ridge, solid
           option :scrollregion  # bounding box for scrolling
           option :selectbackground
@@ -37,9 +37,9 @@ module Tk
           option :state  # normal, active, disabled
           option :takefocus  # include in keyboard traversal
           option :width, type: :integer
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
           option :xscrollincrement  # horizontal scroll unit
-          option :yscrollcommand
+          option :yscrollcommand, type: :callback
           option :yscrollincrement  # vertical scroll unit
         end
       end

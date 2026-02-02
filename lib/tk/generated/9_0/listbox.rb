@@ -35,8 +35,8 @@ module Tk
           option :state  # normal, active, disabled
           option :takefocus  # include in keyboard traversal
           option :width, type: :integer
-          option :xscrollcommand
-          option :yscrollcommand
+          option :xscrollcommand, type: :callback
+          option :yscrollcommand, type: :callback
         end
       end
     end

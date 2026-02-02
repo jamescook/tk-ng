@@ -1308,4 +1308,40 @@ namespace :tk do
 
     Tk::ItemOptionGenerationService.new(tcl_version: Tk::TCL_VERSION).call
   end
+
+  # Widgets to generate tests for (start with Button only for validation)
+  TEST_GEN_WIDGETS = %w[Button Canvas Checkbutton Entry Frame Label Labelframe Listbox Menu Menubutton Message Panedwindow Radiobutton Scale Scrollbar Spinbox Text Toplevel].freeze
+
+  desc "Generate minitest files from option metadata (usage: rake tk:generate_option_tests)"
+  task :generate_option_tests do
+    require_relative 'lib/tk/option_test_generator'
+
+    tcl_version = ENV.fetch('TCL_VERSION', '9.0')
+    version_dir = "lib/tk/generated/#{tcl_version.gsub('.', '_')}"
+    output_dir = 'test/generated'
+
+    FileUtils.mkdir_p(output_dir)
+
+    generator = Tk::OptionTestGenerator.new(tcl_version: tcl_version)
+
+    puts "Generating option tests from #{version_dir}..."
+
+    TEST_GEN_WIDGETS.each do |widget_name|
+      generated_file = "#{version_dir}/#{widget_name.downcase}.rb"
+      unless File.exist?(generated_file)
+        puts "  #{widget_name}: SKIP (no generated options file)"
+        next
+      end
+
+      print "  #{widget_name}..."
+      options = generator.parse_generated_file(generated_file)
+      test_content = generator.generate_test_file(widget_name, options)
+
+      output_file = "#{output_dir}/test_#{widget_name.downcase}_options.rb"
+      File.write(output_file, test_content)
+      puts " #{options.size} options -> #{output_file}"
+    end
+
+    puts "\nDone! Run with: rake docker:test TEST=test/generated/test_button_options.rb"
+  end
 end

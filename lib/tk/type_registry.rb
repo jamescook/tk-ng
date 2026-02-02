@@ -39,6 +39,7 @@ module Tk
 
       # Callback options - need to register proc and return callback id
       "Command" => :callback,
+      "ScrollCommand" => :callback,
 
       # Font options - wrap in TkFont for backwards compatibility
       "Font" => :font,
@@ -100,7 +101,25 @@ module Tk
       "Values" => :list,
     }.freeze
 
-    def self.type_for(db_class)
+    # Widget-specific type overrides.
+    # When introspection infers the wrong type for a specific widget,
+    # add an override here rather than changing the global MAPPINGS.
+    # Format: { 'widget_cmd' => { 'option_name' => :type } }
+    WIDGET_TYPE_OVERRIDES = {
+      # Canvas -offset: dbClass is "Offset" which maps to :integer globally,
+      # but canvas offset accepts "x,y" coords or compass directions (n, ne, center, etc.)
+      # Default is "0,0". See: https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm
+      'canvas' => {
+        'offset' => :string,
+      },
+    }.freeze
+
+    def self.type_for(db_class, widget_cmd: nil, option_name: nil)
+      # Check widget-specific override first
+      if widget_cmd && option_name && WIDGET_TYPE_OVERRIDES[widget_cmd]
+        override = WIDGET_TYPE_OVERRIDES[widget_cmd][option_name.to_s]
+        return override if override
+      end
       MAPPINGS[db_class] || :string
     end
 

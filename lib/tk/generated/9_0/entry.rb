@@ -44,7 +44,7 @@ module Tk
           option :validate  # none, focus, focusin, focusout, key, all
           option :validatecommand, alias: :vcmd
           option :width, type: :integer
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
         end
       end
     end

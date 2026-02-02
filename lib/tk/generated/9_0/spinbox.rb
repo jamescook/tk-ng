@@ -57,7 +57,7 @@ module Tk
           option :values, type: :list
           option :width, type: :integer
           option :wrap  # none, char, word
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
         end
       end
     end
