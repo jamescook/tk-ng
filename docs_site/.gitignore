@@ -9,4 +9,5 @@ _site/
 # Bundle
 .bundle/
 vendor/
+!assets/vendor/
 Gemfile.lock
