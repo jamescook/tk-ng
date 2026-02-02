@@ -222,6 +222,13 @@ class TestSamples < Minitest::Test
     assert_includes stdout, 'UI loaded'
   end
 
+  def test_tkcomposite_demo
+    success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/tkcomposite_demo.rb")
+
+    assert success, "Sample failed\nSTDERR: #{stderr}"
+    assert_includes stdout, 'UI loaded'
+  end
+
   def test_tkline
     success, stdout, stderr = smoke_test_sample("#{SAMPLE_DIR}/tkline.rb")
 

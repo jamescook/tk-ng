@@ -105,6 +105,33 @@ main {
   color: #1a7f37;
 }
 
+/* Coverage badges */
+.coverage-badge {
+  display: inline-block;
+  font-size: 0.5em;
+  font-weight: 500;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 0.5em;
+}
+
+.coverage-high {
+  background: #dafbe1;
+  color: #1a7f37;
+}
+
+.coverage-medium {
+  background: #fff8c5;
+  color: #9a6700;
+}
+
+.coverage-low {
+  background: #ffebe9;
+  color: #cf222e;
+}
+
+
 /* Method cards */
 .method-card {
   background: #fff;
@@ -433,4 +460,50 @@ pre {
 
 code {
   font-size: 0.9em;
+}
+
+/* Method source view */
+.method-source {
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.method-source summary {
+  cursor: pointer;
+  color: var(--bs-secondary);
+  user-select: none;
+  font-size: 0.75rem;
+  display: inline-block;
+  list-style: none;
+}
+
+.method-source summary::-webkit-details-marker {
+  display: none;
+}
+
+.method-source summary:hover {
+  color: var(--bs-primary);
+}
+
+.method-source .source-chevron {
+  visibility: hidden;
+  font-size: 0.65em;
+}
+
+.method-source[open] .source-chevron {
+  visibility: visible;
+}
+
+.method-source .source-content {
+  text-align: left;
+  margin-top: 0.5rem;
+}
+
+.method-source .source-coverage {
+  margin-bottom: 0.5rem;
+}
+
+.method-source pre {
+  margin-bottom: 0;
+  font-size: 0.8rem;
 }

@@ -74,6 +74,31 @@ class APIDocBuilder
     @included_by = Hash.new { |h, k| h[k] = [] }
     @extended_by = Hash.new { |h, k| h[k] = [] }
     @inherited_by = Hash.new { |h, k| h[k] = [] }
+    # Method coverage data (nil if unavailable)
+    @method_coverage = load_method_coverage
+  end
+
+  def load_method_coverage
+    coverage_path = File.join(File.dirname(@output_dir), '..', 'coverage', 'method_coverage.json')
+    return nil unless File.exist?(coverage_path)
+
+    puts "Loading method coverage data"
+    JSON.parse(File.read(coverage_path))
+  rescue => e
+    warn "Failed to load method coverage: #{e.message}"
+    nil
+  end
+
+  # Returns coverage level: :high (>=80), :medium (50-79.9), :low (<50), or nil
+  def coverage_level(percent)
+    return nil if percent.nil?
+    if percent >= 80
+      :high
+    elsif percent >= 50
+      :medium
+    else
+      :low
+    end
   end
 
   def template(name)
@@ -285,6 +310,11 @@ has_children: true
     extended_by = @extended_by[doc['path']].sort
     inherited_by = @inherited_by[doc['path']].sort
 
+    # Coverage data for this class/module
+    class_coverage = @method_coverage&.dig(doc['path'])
+    class_coverage_total = class_coverage&.dig('total')
+    class_coverage_level = coverage_level(class_coverage_total)
+
     @nav_order += 1
     nav_order = @nav_order
 
@@ -294,7 +324,15 @@ has_children: true
     File.write(output_path, content)
   end
 
-  def render_method(method)
+  def render_method(method, class_coverage: nil)
+    # Look up method coverage
+    method_cov = nil
+    if class_coverage
+      scope_key = method['scope'] == 'class' ? 'class_methods' : 'instance_methods'
+      method_cov = class_coverage.dig(scope_key, method['name'])
+    end
+    method_coverage_level = coverage_level(method_cov)
+
     template('method').result(binding)
   end
 

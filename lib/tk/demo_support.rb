@@ -27,6 +27,11 @@ module TkDemo
     require 'tkextlib/tile'
     Tk.default_widget_set = :Ttk
     Tk.root.configure(:cursor => 'none')
+
+    # Force light appearance on macOS to avoid dark mode variations in recordings
+    if RUBY_PLATFORM =~ /darwin/
+      Tk.tk_call('tk::unsupported::MacWindowStyle', 'appearance', Tk.root, 'aqua')
+    end
   end
 
   class << self

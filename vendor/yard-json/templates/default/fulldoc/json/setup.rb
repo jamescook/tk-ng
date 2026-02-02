@@ -75,6 +75,9 @@ def serialize(object)
 end
 
 def serialize_method(method)
+  source = method.source rescue nil
+  source_lines = source ? source.lines.count : nil
+
   {
     name: method.name.to_s,
     signature: method_signature(method),
@@ -83,7 +86,11 @@ def serialize_method(method)
     docstring: method.docstring.to_s,
     tags: serialize_tags(method.tags),
     parameters: method.parameters.map { |p| { name: p[0].to_s, default: p[1] } },
-    has_content: !method.docstring.empty? || method.tags.any?
+    has_content: !method.docstring.empty? || method.tags.any?,
+    source_file: method.file,
+    source_line: method.line,
+    source_lines: source_lines,
+    source: source
   }
 end
 

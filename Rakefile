@@ -128,6 +128,20 @@ namespace :coverage do
 
     puts "Coverage report generated: coverage/index.html, coverage/coverage.json"
   end
+
+  desc "Generate per-method coverage from SimpleCov data"
+  task :methods do
+    require_relative 'lib/tk/method_coverage_service'
+
+    service = Tk::MethodCoverageService.new(
+      coverage_dir: 'coverage',
+      source_dirs: ['lib']
+    )
+    service.call
+  end
+
+  desc "Full coverage pipeline: collate results then generate method coverage"
+  task :full => [:collate, :methods]
 end
 
 Rake::TestTask.new(:test) do |t|
@@ -788,6 +802,10 @@ namespace :docker do
         cmd += " bundle exec rake coverage:collate"
 
         sh cmd
+
+        # Generate per-method coverage (runs locally, just needs Prism)
+        puts "Generating per-method coverage..."
+        Rake::Task['coverage:methods'].invoke
       end
     end
   end

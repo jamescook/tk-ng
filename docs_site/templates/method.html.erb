@@ -4,4 +4,13 @@
   <%= md(method['docstring']) %>
   <% end %>
   <%= render_tags(method['tags']) %>
+  <% if method['source'] %>
+  <details class="method-source">
+    <summary>View source <span class="source-chevron">▼</span></summary>
+    <div class="source-content">
+      <% if method_cov %><div class="source-coverage"><span class="coverage-badge coverage-<%= method_coverage_level %>"><%= method_cov == method_cov.to_i ? method_cov.to_i : method_cov %>% covered</span></div><% end %>
+      <pre><code class="language-ruby"><%= h method['source'] %></code></pre>
+    </div>
+  </details>
+  <% end %>
 </div>

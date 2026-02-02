@@ -15,7 +15,8 @@ module SimpleCovConfig
     %r{^/ext/},
     '/benchmark/',
     '/lib/tk/demo_support.rb',
-    '/lib/tcltk.rb'  # Deprecated stub, no code to cover
+    '/lib/tcltk.rb',  # Deprecated stub, no code to cover
+    '/lib/tk/method_coverage_service.rb'
   ].freeze
 
   # Platform-specific filters
