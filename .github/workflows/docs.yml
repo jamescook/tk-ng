@@ -22,9 +22,19 @@ jobs:
 
       - name: Fetch coverage data
         run: |
+          echo "Finding latest successful test run on main..."
           RUN_ID=$(gh run list --workflow=test.yml --branch=main --status=success --limit=1 --json databaseId -q '.[0].databaseId')
           if [ -n "$RUN_ID" ]; then
-            gh run download "$RUN_ID" --name coverage-ruby3.4-tcl9 --dir coverage/ || echo "No coverage artifact"
+            echo "Found run: $RUN_ID"
+            echo "Downloading coverage artifact..."
+            if gh run download "$RUN_ID" --name coverage-ruby3.4-tcl9 --dir coverage/; then
+              echo "Coverage downloaded successfully"
+              ls -la coverage/
+            else
+              echo "Warning: Could not download coverage artifact"
+            fi
+          else
+            echo "Warning: No successful test run found on main"
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

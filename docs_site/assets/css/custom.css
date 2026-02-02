@@ -1,5 +1,9 @@
 /* Custom styles for tk-ng docs */
 
+html {
+  font-size: 18px;
+}
+
 /* Sidebar */
 .sidebar {
   height: 100vh;
@@ -502,9 +506,14 @@ code {
 .method-source .source-meta {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 1rem;
-  margin-bottom: 0.5rem;
+  margin-top: 0.5rem;
   font-size: 0.8rem;
+}
+
+.method-source .coverage-badge {
+  font-size: 0.75rem;
 }
 
 .method-source .github-link {

@@ -8,11 +8,11 @@
   <details class="method-source">
     <summary>View source <span class="source-chevron">▼</span></summary>
     <div class="source-content">
+      <pre><code class="language-ruby"><%= h method['source'] %></code></pre>
       <div class="source-meta">
         <% if method_cov %><span class="coverage-badge coverage-<%= method_coverage_level %>"><%= method_cov == method_cov.to_i ? method_cov.to_i : method_cov %>% covered</span><% end %>
         <% if github_url %><a href="<%= github_url %>" target="_blank" rel="noopener" class="github-link" title="View method on GitHub"><img src="{{ '/assets/images/github-mark.svg' | relative_url }}" alt="GitHub" class="github-icon-sm"></a><% end %>
       </div>
-      <pre><code class="language-ruby"><%= h method['source'] %></code></pre>
     </div>
   </details>
   <% end %>
