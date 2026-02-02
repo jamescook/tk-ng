@@ -323,7 +323,7 @@ class TestTkComposite < Minitest::Test
     raise "TkComposite hash configure test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 
-  # Tests for _choice_classname_of_baseframe branches
+  # Tests for choice_classname_of_baseframe branches
 
   def test_composite_named_class
     assert_tk_app("TkComposite named class", method(:composite_named_class_app))

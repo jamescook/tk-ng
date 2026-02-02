@@ -140,6 +140,31 @@ class TestOptionAccessors < Minitest::Test
     raise errors.join("\n") unless errors.empty?
   end
 
+  def test_method_call_setter_style
+    assert_tk_app("Method call setter style", method(:method_call_setter_app))
+  end
+
+  def method_call_setter_app
+    require 'tk'
+    require 'tk/button'
+
+    errors = []
+
+    btn = TkButton.new(root)
+
+    # widget.text("value") style - sets and returns self for chaining
+    result = btn.text("Hello")
+    errors << "method call setter should return self" unless result == btn
+    errors << "method call setter failed: got #{btn.text.inspect}" unless btn.text == "Hello"
+
+    # Chaining: btn.text("A").width(10).state("disabled")
+    btn.text("Chained").width(20)
+    errors << "chaining failed for text" unless btn.text == "Chained"
+    errors << "chaining failed for width" unless btn.width == 20
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
   # Test method_missing fallback for options that can't have Ruby accessors
   # (reserved names like 'class', 'type', 'format')
   def test_method_missing_fallback_for_reserved_options

@@ -70,90 +70,6 @@ module TkComposite
   include Tk
   extend Tk
 
-=begin
-  def initialize(parent=nil, *args)
-    @delegates = {}
-    @option_methods = {}
-    @option_setting = {}
-
-    if parent.kind_of? Hash
-      keys = _symbolkey2str(parent)
-      parent = keys.delete('parent')
-      @frame = TkFrame.new(parent)
-      @path = @epath = @frame.path
-      initialize_composite(keys)
-    else
-      @frame = TkFrame.new(parent)
-      @path = @epath = @frame.path
-      initialize_composite(*args)
-    end
-  end
-=end
-
-  # @!visibility private
-  # Determine the Tk class name for the base frame.
-  def _choice_classname_of_baseframe
-    base_class_name = nil
-
-    klass = WidgetClassNames[self.class::WidgetClassName]
-
-    if klass
-      # WidgetClassName is a known class
-      #if klass <= TkFrame || klass < TkComposite
-      if klass <= TkFrame || klass < Tk::Frame || klass < TkComposite
-        # klass is valid for the base frame
-        if self.class <= klass
-          # use my classname
-          base_class_name = self.class.name
-          if base_class_name == ''
-            # anonymous class -> use ancestor's name
-            base_class_name = klass.name
-          end
-        else
-          # not subclass -> use WidgetClassName
-          base_class_name = klass.name
-        end
-
-      else
-        # klass is invalid for the base frame
-        #if self.class < TkFrame || self.class.superclass < TkComposite
-        if self.class < TkFrame || self.class.superclass < Tk::Frame || self.class.superclass < TkComposite
-          # my class name is valid for the base frame -> use my classname
-          base_class_name = self.class.name
-          if base_class_name == ''
-            # anonymous class -> use TkFrame
-            base_class_name = nil
-          end
-        else
-          # no idea for the base frame -> use TkFrame
-          base_class_name = nil
-        end
-      end
-
-    elsif self.class::WidgetClassName && ! self.class::WidgetClassName.empty?
-      # unknown WidgetClassName is defined -> use it for the base frame
-      base_class_name = self.class::WidgetClassName
-
-    else
-      # no valid WidgetClassName
-      #if self.class < TkFrame || self.class.superclass < TkComposite
-      if self.class < TkFrame || self.class.superclass < Tk::Frame || self.class.superclass < TkComposite
-        # my class name is valid for the base frame -> use my classname
-        base_class_name = self.class.name
-        if base_class_name == ''
-          # anonymous class -> use TkFrame
-          base_class_name = nil
-        end
-      else
-        # no idea for the base frame -> use TkFrame
-        base_class_name = nil
-      end
-    end
-
-    base_class_name
-  end
-  private :_choice_classname_of_baseframe
-
   # Create a new composite widget.
   #
   # Creates a TkFrame as the container, then calls {#initialize_composite}
@@ -184,7 +100,7 @@ module TkComposite
       keys['class'] = keys.delete('classname')
     end
     if (base_class_name = (keys.delete('class')).to_s).empty?
-      base_class_name = _choice_classname_of_baseframe
+      base_class_name = choice_classname_of_baseframe
     end
 
     if base_class_name
@@ -247,17 +163,6 @@ module TkComposite
     str.chop << ' @epath=' << @epath.inspect << '>'
   end
 
-  # @!visibility private
-  def _get_opt_method_list(arg)
-    m_set, m_cget, m_info = arg
-    m_set  = m_set.to_s
-    m_cget = m_set if !m_cget && self.method(m_set).arity == -1
-    m_cget = m_cget.to_s if m_cget
-    m_info = m_info.to_s if m_info
-    [m_set, m_cget, m_info]
-  end
-  private :_get_opt_method_list
-
   # Register custom methods to handle configuration options.
   #
   # Use this when you need custom logic for getting/setting an option,
@@ -291,7 +196,7 @@ module TkComposite
         "TkComposite#option_methods hash style is deprecated and untested. " \
         "Prefer array style: option_methods(:setter) or option_methods([:setter, :getter])")
       opts[0].each{|name, arg|
-        m_set, m_cget, m_info = _get_opt_method_list(arg)
+        m_set, m_cget, m_info = get_opt_method_list(arg)
         @option_methods[name.to_s] = {
           :set => m_set, :cget => m_cget, :info => m_info
         }
@@ -299,7 +204,7 @@ module TkComposite
     else
       # [m_set, m_cget, m_info] or method style (preferred)
       opts.each{|arg|
-        m_set, m_cget, m_info = _get_opt_method_list(arg)
+        m_set, m_cget, m_info = get_opt_method_list(arg)
         @option_methods[m_set] = {
           :set => m_set, :cget => m_cget, :info => m_info
         }
@@ -366,47 +271,12 @@ module TkComposite
     delegate_alias(option, option, *wins)
   end
 
-  # @!visibility private
-  def __cget_delegates(slot)
-    slot = slot.to_s
-
-    if @option_methods.include?(slot)
-      if @option_methods[slot][:cget]
-        return self.__send__(@option_methods[slot][:cget])
-      else
-        if @option_setting[slot]
-          return @option_setting[slot]
-        else
-          return ''
-        end
-      end
-    end
-
-    tbl = @delegates[slot]
-    tbl = @delegates['DEFAULT'] unless tbl
-
-    begin
-      if tbl
-        opt, wins = tbl[-1]
-        opt = slot if opt == 'DEFAULT'
-        if wins && wins[-1]
-          # return wins[-1].cget(opt)
-          return wins[-1].cget_strict(opt)
-        end
-      end
-    rescue
-    end
-
-    return None
-  end
-  private :__cget_delegates
-
   # Get option value as a Tk string.
   #
   # Checks option_methods and delegates before falling back to frame.
   # (see TkConfigMethod#cget_tkstring)
   def cget_tkstring(slot)
-    if (ret = __cget_delegates(slot)) == None
+    if (ret = cget_delegates(slot)) == None
       super(slot)
     else
       _get_eval_string(ret)
@@ -424,7 +294,7 @@ module TkComposite
   #   widget.cget(:text)   # => "Hello"
   #   widget.cget(:width)  # => 100
   def cget(slot)
-    if (ret = __cget_delegates(slot)) == None
+    if (ret = cget_delegates(slot)) == None
       super(slot)
     else
       ret
@@ -433,46 +303,12 @@ module TkComposite
 
   # (see #cget)
   def cget_strict(slot)
-    if (ret = __cget_delegates(slot)) == None
+    if (ret = cget_delegates(slot)) == None
       super(slot)
     else
       ret
     end
   end
-
-=begin
-  def cget(slot)
-    slot = slot.to_s
-
-    if @option_methods.include?(slot)
-      if @option_methods[slot][:cget]
-        return self.__send__(@option_methods[slot][:cget])
-      else
-        if @option_setting[slot]
-          return @option_setting[slot]
-        else
-          return ''
-        end
-      end
-    end
-
-    tbl = @delegates[slot]
-    tbl = @delegates['DEFAULT'] unless tbl
-
-    begin
-      if tbl
-        opt, wins = tbl[-1]
-        opt = slot if opt == 'DEFAULT'
-        if wins && wins[-1]
-          return wins[-1].cget(opt)
-        end
-      end
-    rescue
-    end
-
-    super(slot)
-  end
-=end
 
   # Set one or more options.
   #
@@ -518,7 +354,9 @@ module TkComposite
         }
         return last
       end
-    rescue
+    rescue => e
+      Tk::Warnings.warn_once(:"composite_configure_#{slot}",
+        "TkComposite#configure failed for '#{slot}' on delegate: #{e.message}")
     end
 
     super(slot, value)
@@ -569,7 +407,9 @@ module TkComposite
             return [slot, '', '', '', wins[-1].cget(opt)]
           end
         end
-      rescue
+      rescue => e
+        Tk::Warnings.warn_once(:"composite_configinfo_#{slot}",
+          "TkComposite#configinfo failed for '#{slot}' on delegate: #{e.message}")
       end
 
       super(slot)
@@ -617,5 +457,118 @@ module TkComposite
 
       info_list
     end
+  end
+
+  private
+
+  # Determine the Tk class name for the base frame.
+  def choice_classname_of_baseframe
+    base_class_name = nil
+
+    klass = WidgetClassNames[self.class::WidgetClassName]
+
+    if klass
+      # WidgetClassName is a known class
+      if klass <= TkFrame || klass < Tk::Frame || klass < TkComposite
+        # klass is valid for the base frame
+        if self.class <= klass
+          # use my classname
+          base_class_name = self.class.name
+          if base_class_name == ''
+            # anonymous class -> use ancestor's name
+            base_class_name = klass.name
+          end
+        else
+          # not subclass -> use WidgetClassName
+          base_class_name = klass.name
+        end
+
+      else
+        # klass is invalid for the base frame
+        if valid_baseframe_class?
+          # my class name is valid for the base frame -> use my classname
+          base_class_name = self.class.name
+          base_class_name = nil if base_class_name == ''
+        else
+          # no idea for the base frame -> use TkFrame
+          base_class_name = nil
+        end
+      end
+
+    elsif self.class::WidgetClassName && ! self.class::WidgetClassName.empty?
+      # unknown WidgetClassName is defined -> use it for the base frame
+      base_class_name = self.class::WidgetClassName
+
+    else
+      # no valid WidgetClassName
+      if valid_baseframe_class?
+        # my class name is valid for the base frame -> use my classname
+        base_class_name = self.class.name
+        base_class_name = nil if base_class_name == ''
+      else
+        # no idea for the base frame -> use TkFrame
+        base_class_name = nil
+      end
+    end
+
+    base_class_name
+  end
+
+  # Check if this class is valid for use as a base frame class.
+  def valid_baseframe_class?
+    self.class < TkFrame ||
+      self.class.superclass < Tk::Frame ||
+      self.class.superclass < TkComposite
+  end
+
+  # Parse option method specification into [setter, getter, info] tuple.
+  def get_opt_method_list(arg)
+    m_set, m_cget, m_info = arg
+    m_set  = m_set.to_s
+    m_cget = m_set if !m_cget && self.method(m_set).arity == -1
+    m_cget = m_cget.to_s if m_cget
+    m_info = m_info.to_s if m_info
+    [m_set, m_cget, m_info]
+  end
+
+  # Query delegates for an option value.
+  # Returns None if option not found in delegates.
+  def cget_delegates(slot)
+    slot = slot.to_s
+
+    if @option_methods.include?(slot)
+      if @option_methods[slot][:cget]
+        return self.__send__(@option_methods[slot][:cget])
+      else
+        if @option_setting[slot]
+          return @option_setting[slot]
+        else
+          return ''
+        end
+      end
+    end
+
+    explicit = @delegates.key?(slot)
+    tbl = @delegates[slot] || @delegates['DEFAULT']
+
+    begin
+      if tbl
+        opt, wins = tbl[-1]
+        opt = slot if opt == 'DEFAULT'
+        if wins && wins[-1]
+          return wins[-1].cget_strict(opt)
+        end
+      end
+    rescue => e
+      # Only warn for explicit delegations. DEFAULT is a catch-all that's
+      # expected to fail for non-Tk options (e.g. Ruby's to_ary coercion
+      # hitting method_missing -> cget)
+      if explicit
+        Tk::Warnings.warn_once(:"composite_cget_#{slot}",
+          "TkComposite#cget failed for '#{slot}' on delegate: #{e.message}")
+      end
+    end
+
+    return None
   end
 end

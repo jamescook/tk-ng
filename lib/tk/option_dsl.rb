@@ -90,6 +90,10 @@ module Tk
   # @see OptionType Type converters
   # @see ItemOptionDSL For item options (canvas items, menu entries)
   module OptionDSL
+    # Method names that conflict with Ruby builtins - can't generate accessors.
+    # These options must use cget/configure or [] syntax instead.
+    RESERVED_METHODS = %i[class type method send id].to_set.freeze
+
     # Called when module is extended into a class
     # Merge with existing options (from parent) instead of resetting
     def self.extended(base)
@@ -139,6 +143,25 @@ module Tk
                        min_version: min_version, from_tcl: from_tcl, to_tcl: to_tcl)
       @options[opt.name] = opt
       all_aliases.each { |a| @options[a.to_sym] = opt }
+
+      # Generate accessor methods for this option and its aliases
+      [name, *all_aliases].each do |method_name|
+        next if RESERVED_METHODS.include?(method_name.to_sym)
+
+        # Skip if method already defined (e.g., custom implementation)
+        next if method_defined?(method_name) || private_method_defined?(method_name)
+
+        # Getter that also works as setter: widget.text or widget.text("value")
+        define_method(method_name) do |*args|
+          if args.empty?
+            cget(method_name)
+          else
+            configure(method_name, args[0])
+            self
+          end
+        end
+        define_method(:"#{method_name}=") { |v| configure(method_name, v); v }
+      end
     end
 
     # All declared options (including aliases pointing to same Option)

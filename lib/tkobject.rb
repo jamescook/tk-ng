@@ -140,6 +140,10 @@ class TkObject<TkKernel
     name = id.id2name
     case args.length
     when 1
+      opt_name = name[-1] == ?= ? name[0..-2] : name
+      Tk::Warnings.warn_once(:"method_missing_#{self.class}_#{opt_name}",
+        "TkObject#method_missing handling '#{opt_name}' on #{self.class}. " \
+        "Consider adding to Tk::Generated or defining explicit accessor.")
       if name[-1] == ?=
         configure name[0..-2], args[0]
         args[0]
@@ -149,7 +153,14 @@ class TkObject<TkKernel
       end
     when 0
       begin
-        cget(name)
+        result = cget(name)
+        # Warn on success - this option should have an explicit accessor
+        unless name == "to_ary" || name == "to_str"
+          Tk::Warnings.warn_once(:"method_missing_#{self.class}_#{name}",
+            "TkObject#method_missing handling '#{name}' on #{self.class}. " \
+            "Consider adding to Tk::Generated or defining explicit accessor.")
+        end
+        result
       rescue => e
         if self.kind_of?(TkWindow) && name != "to_ary" && name != "to_str"
           fail NameError,
