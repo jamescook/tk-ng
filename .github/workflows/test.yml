@@ -101,7 +101,11 @@ jobs:
           xvfb-run -a bundle exec rake tkdnd:test
 
     - name: Generate method coverage
-      run: bundle exec rake coverage:methods
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}/coverage:/app/coverage \
+          tk-ci-test-9:latest \
+          bundle exec rake coverage:methods
 
     - name: Upload coverage report
       if: always()
