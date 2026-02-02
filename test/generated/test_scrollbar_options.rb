@@ -20,12 +20,14 @@ class TestGeneratedScrollbarOptions < Minitest::Test
 
   def scrollbar_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/scrollbar'
 
     errors = []
     w = TkScrollbar.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activerelief (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'activerelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activerelief)
@@ -54,8 +58,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":activerelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -69,8 +75,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bd (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'bd')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bd)
@@ -84,8 +92,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":bd accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bg (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'bg')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bg)
@@ -99,8 +109,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":bg accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -114,8 +126,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :command (callback)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'command')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -126,8 +140,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":command accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -141,8 +157,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :elementborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'elementborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:elementborderwidth)
@@ -156,8 +174,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":elementborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -171,8 +191,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -186,8 +208,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -201,8 +225,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :jump (boolean)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'jump')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:jump)
@@ -216,8 +242,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":jump accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :orient (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'orient')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:orient)
@@ -231,8 +259,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":orient accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -246,8 +276,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatdelay (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'repeatdelay')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatdelay)
@@ -261,8 +293,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":repeatdelay accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatinterval (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'repeatinterval')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatinterval)
@@ -276,8 +310,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":repeatinterval accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -291,8 +327,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :troughcolor (string)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'troughcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:troughcolor)
@@ -306,8 +344,10 @@ class TestGeneratedScrollbarOptions < Minitest::Test
     rescue => e
       errors << ":troughcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('scrollbar', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -320,6 +360,7 @@ class TestGeneratedScrollbarOptions < Minitest::Test
       errors << ":width accessor missing: #{e.message}"
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

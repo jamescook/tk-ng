@@ -20,12 +20,14 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
 
   def panedwindow_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/panedwindow'
 
     errors = []
     w = TkPanedwindow.new(root)
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -39,8 +41,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -54,8 +58,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -69,8 +75,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :handlepad (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'handlepad')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:handlepad)
@@ -84,8 +92,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":handlepad accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :handlesize (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'handlesize')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:handlesize)
@@ -99,8 +109,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":handlesize accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -114,8 +126,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :opaqueresize (boolean)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'opaqueresize')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:opaqueresize)
@@ -129,8 +143,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":opaqueresize accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :orient (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'orient')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:orient)
@@ -144,8 +160,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":orient accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :proxybackground (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'proxybackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:proxybackground)
@@ -159,8 +177,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":proxybackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :proxyborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'proxyborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:proxyborderwidth)
@@ -174,8 +194,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":proxyborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :proxyrelief (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'proxyrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:proxyrelief)
@@ -189,8 +211,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":proxyrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -204,8 +228,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sashcursor (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'sashcursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sashcursor)
@@ -219,8 +245,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":sashcursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sashpad (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'sashpad')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sashpad)
@@ -234,8 +262,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":sashpad accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sashrelief (string)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'sashrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sashrelief)
@@ -249,8 +279,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":sashrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sashwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'sashwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sashwidth)
@@ -264,8 +296,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":sashwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :showhandle (boolean)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'showhandle')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:showhandle)
@@ -279,8 +313,10 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
     rescue => e
       errors << ":showhandle accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('panedwindow', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -293,6 +329,7 @@ class TestGeneratedPanedwindowOptions < Minitest::Test
       errors << ":width accessor missing: #{e.message}"
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

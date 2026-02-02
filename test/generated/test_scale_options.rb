@@ -20,12 +20,14 @@ class TestGeneratedScaleOptions < Minitest::Test
 
   def scale_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/scale'
 
     errors = []
     w = TkScale.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -54,8 +58,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bigincrement (float)
+    if Tk::OptionTestSupport.option_testable?('scale', 'bigincrement')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bigincrement)
@@ -69,8 +75,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":bigincrement accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -84,8 +92,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :command (callback)
+    if Tk::OptionTestSupport.option_testable?('scale', 'command')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -96,8 +106,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":command accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -111,8 +123,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :digits (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'digits')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:digits)
@@ -126,8 +140,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":digits accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('scale', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -141,8 +157,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -156,8 +174,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :from (float)
+    if Tk::OptionTestSupport.option_testable?('scale', 'from')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:from)
@@ -171,8 +191,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":from accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -186,8 +208,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -201,8 +225,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -216,8 +242,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :label (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'label')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:label)
@@ -231,8 +259,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":label accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :length (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'length')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:length)
@@ -246,8 +276,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":length accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :orient (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'orient')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:orient)
@@ -261,8 +293,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":orient accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -276,8 +310,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatdelay (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'repeatdelay')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatdelay)
@@ -291,8 +327,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":repeatdelay accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatinterval (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'repeatinterval')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatinterval)
@@ -306,8 +344,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":repeatinterval accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :resolution (float)
+    if Tk::OptionTestSupport.option_testable?('scale', 'resolution')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:resolution)
@@ -321,8 +361,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":resolution accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :showvalue (boolean)
+    if Tk::OptionTestSupport.option_testable?('scale', 'showvalue')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:showvalue)
@@ -336,8 +378,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":showvalue accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sliderlength (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'sliderlength')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sliderlength)
@@ -351,8 +395,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":sliderlength accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :sliderrelief (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'sliderrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:sliderrelief)
@@ -366,8 +412,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":sliderrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -381,8 +429,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -396,8 +446,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tickinterval (float)
+    if Tk::OptionTestSupport.option_testable?('scale', 'tickinterval')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tickinterval)
@@ -411,8 +463,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":tickinterval accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :to (float)
+    if Tk::OptionTestSupport.option_testable?('scale', 'to')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:to)
@@ -426,8 +480,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":to accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :troughcolor (string)
+    if Tk::OptionTestSupport.option_testable?('scale', 'troughcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:troughcolor)
@@ -441,8 +497,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":troughcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :variable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('scale', 'variable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -453,8 +511,10 @@ class TestGeneratedScaleOptions < Minitest::Test
     rescue => e
       errors << ":variable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('scale', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -467,6 +527,7 @@ class TestGeneratedScaleOptions < Minitest::Test
       errors << ":width accessor missing: #{e.message}"
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

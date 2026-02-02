@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'erb'
+require_relative 'version_options'
 
 module Tk
   # Generates minitest files from option declarations.
@@ -83,10 +84,12 @@ module Tk
 
     # Generate test file content for a widget
     def generate_test_file(widget_name, options)
-      widget_skips = WIDGET_SKIPS[widget_name.downcase] || []
+      widget_cmd = widget_name.downcase
+      widget_skips = WIDGET_SKIPS[widget_cmd] || []
       all_skips = SKIP_OPTIONS + widget_skips
-      readonly_opts = WIDGET_READONLY[widget_name.downcase] || []
+      readonly_opts = WIDGET_READONLY[widget_cmd] || []
 
+      # Filter unconditional skips only - version checks happen at runtime
       testable_options = options.reject do |opt|
         all_skips.include?(opt[:name])
       end
@@ -128,6 +131,7 @@ module Tk
 
         def <%= widget_name.downcase %>_accessors_app
           require 'tk'
+          require 'tk/option_test_support'
           require '<%= require_path %>'
 
           errors = []
@@ -135,6 +139,7 @@ module Tk
 
       <%- options.each do |opt| -%>
           # :<%= opt[:name] %> (<%= opt[:type] %>)
+          if Tk::OptionTestSupport.option_testable?('<%= widget_name.downcase %>', '<%= opt[:name] %>')
           begin
       <%- if readonly_options.include?(opt[:name]) -%>
             # Read-only after creation: verify getter works
@@ -162,6 +167,7 @@ module Tk
             errors << ":<%= opt[:name] %> accessor missing: #{e.message}"
           rescue => e
             errors << ":<%= opt[:name] %> accessor raised: #{e.class}: #{e.message}"
+          end
           end
 
       <%- end -%>

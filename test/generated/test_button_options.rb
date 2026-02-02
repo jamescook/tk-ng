@@ -20,12 +20,14 @@ class TestGeneratedButtonOptions < Minitest::Test
 
   def button_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/button'
 
     errors = []
     w = TkButton.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activeforeground (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'activeforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activeforeground)
@@ -54,8 +58,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":activeforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :anchor (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'anchor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:anchor)
@@ -69,8 +75,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":anchor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -84,8 +92,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bitmap (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'bitmap')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bitmap)
@@ -99,8 +109,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":bitmap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -114,8 +126,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :command (callback)
+    if Tk::OptionTestSupport.option_testable?('button', 'command')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -126,8 +140,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":command accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :compound (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'compound')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:compound)
@@ -141,8 +157,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":compound accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -156,8 +174,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :default (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'default')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:default)
@@ -171,8 +191,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":default accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -186,8 +208,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('button', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -201,8 +225,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -216,8 +242,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -231,8 +259,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -246,8 +276,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -261,8 +293,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -276,8 +310,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :image (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'image')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:image)
@@ -291,8 +327,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":image accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :justify (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'justify')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:justify)
@@ -306,8 +344,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":justify accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :overrelief (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'overrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:overrelief)
@@ -321,8 +361,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":overrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -336,8 +378,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -351,8 +395,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -366,8 +412,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatdelay (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'repeatdelay')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatdelay)
@@ -381,8 +429,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":repeatdelay accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatinterval (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'repeatinterval')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatinterval)
@@ -396,8 +446,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":repeatinterval accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -411,8 +463,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -426,8 +480,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :text (string)
+    if Tk::OptionTestSupport.option_testable?('button', 'text')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:text)
@@ -441,8 +497,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":text accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :textvariable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('button', 'textvariable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -453,8 +511,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":textvariable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :underline (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'underline')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:underline)
@@ -468,8 +528,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":underline accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -483,8 +545,10 @@ class TestGeneratedButtonOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :wraplength (integer)
+    if Tk::OptionTestSupport.option_testable?('button', 'wraplength')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:wraplength)
@@ -497,6 +561,7 @@ class TestGeneratedButtonOptions < Minitest::Test
       errors << ":wraplength accessor missing: #{e.message}"
     rescue => e
       errors << ":wraplength accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

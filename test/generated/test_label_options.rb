@@ -20,12 +20,14 @@ class TestGeneratedLabelOptions < Minitest::Test
 
   def label_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/label'
 
     errors = []
     w = TkLabel.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activeforeground (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'activeforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activeforeground)
@@ -54,8 +58,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":activeforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :anchor (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'anchor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:anchor)
@@ -69,8 +75,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":anchor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -84,8 +92,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bitmap (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'bitmap')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bitmap)
@@ -99,8 +109,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":bitmap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -114,8 +126,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :compound (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'compound')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:compound)
@@ -129,8 +143,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":compound accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -144,8 +160,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -159,8 +177,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('label', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -174,8 +194,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -189,8 +211,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -204,8 +228,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -219,8 +245,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -234,8 +262,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -249,8 +279,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :image (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'image')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:image)
@@ -264,8 +296,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":image accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :justify (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'justify')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:justify)
@@ -279,8 +313,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":justify accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -294,8 +330,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -309,8 +347,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -324,8 +364,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -339,8 +381,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -354,8 +398,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :text (string)
+    if Tk::OptionTestSupport.option_testable?('label', 'text')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:text)
@@ -369,8 +415,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":text accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :textvariable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('label', 'textvariable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -381,8 +429,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":textvariable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :underline (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'underline')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:underline)
@@ -396,8 +446,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":underline accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -411,8 +463,10 @@ class TestGeneratedLabelOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :wraplength (integer)
+    if Tk::OptionTestSupport.option_testable?('label', 'wraplength')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:wraplength)
@@ -425,6 +479,7 @@ class TestGeneratedLabelOptions < Minitest::Test
       errors << ":wraplength accessor missing: #{e.message}"
     rescue => e
       errors << ":wraplength accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

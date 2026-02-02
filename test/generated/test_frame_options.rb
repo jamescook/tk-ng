@@ -20,12 +20,14 @@ class TestGeneratedFrameOptions < Minitest::Test
 
   def frame_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/frame'
 
     errors = []
     w = TkFrame.new(root)
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -39,8 +41,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :backgroundimage (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'backgroundimage')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:backgroundimage)
@@ -54,8 +58,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":backgroundimage accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -69,8 +75,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :colormap (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'colormap')
     begin
       # Read-only after creation: verify getter works
       w.colormap  # should not raise
@@ -79,8 +87,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":colormap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :container (boolean)
+    if Tk::OptionTestSupport.option_testable?('frame', 'container')
     begin
       # Read-only after creation: verify getter works
       w.container  # should not raise
@@ -89,8 +99,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":container accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -104,8 +116,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -119,8 +133,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -134,8 +150,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -149,8 +167,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -164,8 +184,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -179,8 +201,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -194,8 +218,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -209,8 +235,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -224,8 +252,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tile (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'tile')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tile)
@@ -239,8 +269,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":tile accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :visual (string)
+    if Tk::OptionTestSupport.option_testable?('frame', 'visual')
     begin
       # Read-only after creation: verify getter works
       w.visual  # should not raise
@@ -249,8 +281,10 @@ class TestGeneratedFrameOptions < Minitest::Test
     rescue => e
       errors << ":visual accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('frame', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -263,6 +297,7 @@ class TestGeneratedFrameOptions < Minitest::Test
       errors << ":width accessor missing: #{e.message}"
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

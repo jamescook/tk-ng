@@ -20,12 +20,14 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
 
   def radiobutton_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/radiobutton'
 
     errors = []
     w = TkRadiobutton.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activeforeground (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'activeforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activeforeground)
@@ -54,8 +58,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":activeforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :anchor (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'anchor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:anchor)
@@ -69,8 +75,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":anchor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -84,8 +92,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bitmap (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'bitmap')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bitmap)
@@ -99,8 +109,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":bitmap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -114,8 +126,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :command (callback)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'command')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -126,8 +140,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":command accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :compound (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'compound')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:compound)
@@ -141,8 +157,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":compound accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -156,8 +174,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -171,8 +191,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -186,8 +208,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -201,8 +225,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -216,8 +242,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -231,8 +259,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -246,8 +276,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -261,8 +293,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :image (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'image')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:image)
@@ -276,8 +310,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":image accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :indicatoron (boolean)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'indicatoron')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:indicatoron)
@@ -291,8 +327,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":indicatoron accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :justify (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'justify')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:justify)
@@ -306,8 +344,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":justify accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :offrelief (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'offrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:offrelief)
@@ -321,8 +361,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":offrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :overrelief (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'overrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:overrelief)
@@ -336,8 +378,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":overrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -351,8 +395,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -366,8 +412,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -381,8 +429,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectcolor (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'selectcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectcolor)
@@ -396,8 +446,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":selectcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectimage (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'selectimage')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectimage)
@@ -411,8 +463,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":selectimage accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -426,8 +480,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -441,8 +497,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :text (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'text')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:text)
@@ -456,8 +514,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":text accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :textvariable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'textvariable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -468,8 +528,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":textvariable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tristateimage (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'tristateimage')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tristateimage)
@@ -483,8 +545,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":tristateimage accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tristatevalue (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'tristatevalue')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tristatevalue)
@@ -498,8 +562,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":tristatevalue accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :underline (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'underline')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:underline)
@@ -513,8 +579,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":underline accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :value (string)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'value')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:value)
@@ -528,8 +596,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":value accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :variable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'variable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -540,8 +610,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":variable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -555,8 +627,10 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :wraplength (integer)
+    if Tk::OptionTestSupport.option_testable?('radiobutton', 'wraplength')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:wraplength)
@@ -569,6 +643,7 @@ class TestGeneratedRadiobuttonOptions < Minitest::Test
       errors << ":wraplength accessor missing: #{e.message}"
     rescue => e
       errors << ":wraplength accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

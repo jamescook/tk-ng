@@ -20,12 +20,14 @@ class TestGeneratedTextOptions < Minitest::Test
 
   def text_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/text'
 
     errors = []
     w = TkText.new(root)
 
     # :autoseparators (boolean)
+    if Tk::OptionTestSupport.option_testable?('text', 'autoseparators')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:autoseparators)
@@ -39,8 +41,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":autoseparators accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -54,8 +58,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :blockcursor (boolean)
+    if Tk::OptionTestSupport.option_testable?('text', 'blockcursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:blockcursor)
@@ -69,8 +75,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":blockcursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -84,8 +92,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -99,8 +109,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :endline (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'endline')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:endline)
@@ -114,8 +126,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":endline accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :exportselection (boolean)
+    if Tk::OptionTestSupport.option_testable?('text', 'exportselection')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:exportselection)
@@ -129,8 +143,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":exportselection accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('text', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -144,8 +160,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -159,8 +177,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -174,8 +194,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -189,8 +211,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -204,8 +228,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -219,8 +245,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :inactiveselectbackground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'inactiveselectbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:inactiveselectbackground)
@@ -234,8 +262,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":inactiveselectbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertbackground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertbackground)
@@ -249,8 +279,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertborderwidth)
@@ -264,8 +296,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertofftime (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertofftime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertofftime)
@@ -279,8 +313,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertofftime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertontime (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertontime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertontime)
@@ -294,8 +330,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertontime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertunfocussed (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertunfocussed')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertunfocussed)
@@ -309,8 +347,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertunfocussed accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'insertwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertwidth)
@@ -324,8 +364,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":insertwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :maxundo (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'maxundo')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:maxundo)
@@ -339,8 +381,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":maxundo accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -354,8 +398,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -369,8 +415,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -384,8 +432,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectbackground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'selectbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectbackground)
@@ -399,8 +449,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":selectbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'selectborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectborderwidth)
@@ -414,8 +466,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":selectborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectforeground (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'selectforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectforeground)
@@ -429,8 +483,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":selectforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :setgrid (boolean)
+    if Tk::OptionTestSupport.option_testable?('text', 'setgrid')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:setgrid)
@@ -444,8 +500,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":setgrid accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :spacing1 (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'spacing1')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:spacing1)
@@ -459,8 +517,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":spacing1 accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :spacing2 (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'spacing2')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:spacing2)
@@ -474,8 +534,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":spacing2 accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :spacing3 (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'spacing3')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:spacing3)
@@ -489,8 +551,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":spacing3 accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :startline (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'startline')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:startline)
@@ -504,8 +568,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":startline accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -519,8 +585,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tabs (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'tabs')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tabs)
@@ -534,8 +602,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":tabs accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tabstyle (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'tabstyle')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tabstyle)
@@ -549,8 +619,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":tabstyle accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -564,8 +636,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :undo (boolean)
+    if Tk::OptionTestSupport.option_testable?('text', 'undo')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:undo)
@@ -579,8 +653,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":undo accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('text', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -594,8 +670,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :wrap (string)
+    if Tk::OptionTestSupport.option_testable?('text', 'wrap')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:wrap)
@@ -609,8 +687,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":wrap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :xscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('text', 'xscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -621,8 +701,10 @@ class TestGeneratedTextOptions < Minitest::Test
     rescue => e
       errors << ":xscrollcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :yscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('text', 'yscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -632,6 +714,7 @@ class TestGeneratedTextOptions < Minitest::Test
       errors << ":yscrollcommand accessor missing: #{e.message}"
     rescue => e
       errors << ":yscrollcommand accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

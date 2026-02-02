@@ -20,12 +20,14 @@ class TestGeneratedSpinboxOptions < Minitest::Test
 
   def spinbox_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/spinbox'
 
     errors = []
     w = TkSpinbox.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -54,8 +58,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -69,8 +75,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :buttonbackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'buttonbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:buttonbackground)
@@ -84,8 +92,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":buttonbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :buttoncursor (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'buttoncursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:buttoncursor)
@@ -99,8 +109,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":buttoncursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :buttondownrelief (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'buttondownrelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:buttondownrelief)
@@ -114,8 +126,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":buttondownrelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :buttonuprelief (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'buttonuprelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:buttonuprelief)
@@ -129,8 +143,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":buttonuprelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :command (callback)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'command')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -141,8 +157,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":command accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledbackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'disabledbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledbackground)
@@ -156,8 +174,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":disabledbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -171,8 +191,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :exportselection (boolean)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'exportselection')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:exportselection)
@@ -186,8 +208,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":exportselection accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -201,8 +225,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -216,8 +242,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :format (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'format')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:format)
@@ -231,8 +259,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":format accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :from (float)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'from')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:from)
@@ -246,8 +276,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":from accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -261,8 +293,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -276,8 +310,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -291,8 +327,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :increment (float)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'increment')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:increment)
@@ -306,8 +344,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":increment accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertbackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'insertbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertbackground)
@@ -321,8 +361,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":insertbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'insertborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertborderwidth)
@@ -336,8 +378,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":insertborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertofftime (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'insertofftime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertofftime)
@@ -351,8 +395,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":insertofftime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertontime (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'insertontime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertontime)
@@ -366,8 +412,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":insertontime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'insertwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertwidth)
@@ -381,8 +429,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":insertwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :invalidcommand (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'invalidcommand')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:invalidcommand)
@@ -396,8 +446,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":invalidcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :justify (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'justify')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:justify)
@@ -411,8 +463,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":justify accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :placeholder (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'placeholder')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:placeholder)
@@ -426,8 +480,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":placeholder accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :placeholderforeground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'placeholderforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:placeholderforeground)
@@ -441,8 +497,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":placeholderforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :readonlybackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'readonlybackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:readonlybackground)
@@ -456,8 +514,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":readonlybackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -471,8 +531,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatdelay (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'repeatdelay')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatdelay)
@@ -486,8 +548,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":repeatdelay accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :repeatinterval (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'repeatinterval')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:repeatinterval)
@@ -501,8 +565,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":repeatinterval accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectbackground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'selectbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectbackground)
@@ -516,8 +582,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":selectbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'selectborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectborderwidth)
@@ -531,8 +599,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":selectborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectforeground (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'selectforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectforeground)
@@ -546,8 +616,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":selectforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -561,8 +633,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -576,8 +650,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :textvariable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'textvariable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -588,8 +664,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":textvariable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :to (float)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'to')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:to)
@@ -603,8 +681,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":to accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :validatecommand (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'validatecommand')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:validatecommand)
@@ -618,8 +698,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":validatecommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :values (list)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'values')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:values)
@@ -633,8 +715,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":values accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -648,8 +732,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :wrap (string)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'wrap')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:wrap)
@@ -663,8 +749,10 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     rescue => e
       errors << ":wrap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :xscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('spinbox', 'xscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -674,6 +762,7 @@ class TestGeneratedSpinboxOptions < Minitest::Test
       errors << ":xscrollcommand accessor missing: #{e.message}"
     rescue => e
       errors << ":xscrollcommand accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

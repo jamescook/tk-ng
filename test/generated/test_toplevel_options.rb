@@ -20,12 +20,14 @@ class TestGeneratedToplevelOptions < Minitest::Test
 
   def toplevel_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/toplevel'
 
     errors = []
     w = TkToplevel.new(root)
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -39,8 +41,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :backgroundimage (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'backgroundimage')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:backgroundimage)
@@ -54,8 +58,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":backgroundimage accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -69,8 +75,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :colormap (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'colormap')
     begin
       # Read-only after creation: verify getter works
       w.colormap  # should not raise
@@ -79,8 +87,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":colormap accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :container (boolean)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'container')
     begin
       # Read-only after creation: verify getter works
       w.container  # should not raise
@@ -89,8 +99,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":container accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -104,8 +116,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -119,8 +133,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -134,8 +150,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -149,8 +167,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -164,8 +184,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :menu (widget)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'menu')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:menu)
@@ -179,8 +201,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":menu accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :padx (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'padx')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:padx)
@@ -194,8 +218,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":padx accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :pady (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'pady')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:pady)
@@ -209,8 +235,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":pady accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -224,8 +252,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :screen (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'screen')
     begin
       # Read-only after creation: verify getter works
       w.screen  # should not raise
@@ -234,8 +264,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":screen accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -249,8 +281,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tile (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'tile')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tile)
@@ -264,8 +298,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":tile accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :use (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'use')
     begin
       # Read-only after creation: verify getter works
       w.use  # should not raise
@@ -274,8 +310,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":use accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :visual (string)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'visual')
     begin
       # Read-only after creation: verify getter works
       w.visual  # should not raise
@@ -284,8 +322,10 @@ class TestGeneratedToplevelOptions < Minitest::Test
     rescue => e
       errors << ":visual accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('toplevel', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -298,6 +338,7 @@ class TestGeneratedToplevelOptions < Minitest::Test
       errors << ":width accessor missing: #{e.message}"
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

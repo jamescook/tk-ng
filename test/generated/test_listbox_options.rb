@@ -20,12 +20,14 @@ class TestGeneratedListboxOptions < Minitest::Test
 
   def listbox_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/listbox'
 
     errors = []
     w = TkListbox.new(root)
 
     # :activestyle (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'activestyle')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activestyle)
@@ -39,8 +41,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":activestyle accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -54,8 +58,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -69,8 +75,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -84,8 +92,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -99,8 +109,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :exportselection (boolean)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'exportselection')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:exportselection)
@@ -114,8 +126,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":exportselection accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -129,8 +143,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -144,8 +160,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -159,8 +177,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -174,8 +194,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -189,8 +211,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -204,8 +228,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :justify (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'justify')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:justify)
@@ -219,8 +245,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":justify accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :listvariable (tkvariable)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'listvariable')
     begin
       # TkVariable: set a variable, verify getter works
       test_var = TkVariable.new
@@ -231,8 +259,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":listvariable accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -246,8 +276,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectbackground (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'selectbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectbackground)
@@ -261,8 +293,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":selectbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'selectborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectborderwidth)
@@ -276,8 +310,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":selectborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectforeground (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'selectforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectforeground)
@@ -291,8 +327,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":selectforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectmode (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'selectmode')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectmode)
@@ -306,8 +344,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":selectmode accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :setgrid (boolean)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'setgrid')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:setgrid)
@@ -321,8 +361,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":setgrid accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -336,8 +378,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -351,8 +395,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -366,8 +412,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :xscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'xscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -378,8 +426,10 @@ class TestGeneratedListboxOptions < Minitest::Test
     rescue => e
       errors << ":xscrollcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :yscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('listbox', 'yscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -389,6 +439,7 @@ class TestGeneratedListboxOptions < Minitest::Test
       errors << ":yscrollcommand accessor missing: #{e.message}"
     rescue => e
       errors << ":yscrollcommand accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

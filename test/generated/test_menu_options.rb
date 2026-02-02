@@ -20,12 +20,14 @@ class TestGeneratedMenuOptions < Minitest::Test
 
   def menu_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/menu'
 
     errors = []
     w = TkMenu.new(root)
 
     # :activebackground (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'activebackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activebackground)
@@ -39,8 +41,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":activebackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activeborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('menu', 'activeborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activeborderwidth)
@@ -54,8 +58,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":activeborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activeforeground (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'activeforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activeforeground)
@@ -69,8 +75,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":activeforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :activerelief (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'activerelief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:activerelief)
@@ -84,8 +92,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":activerelief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -99,8 +109,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('menu', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -114,8 +126,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -129,8 +143,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :disabledforeground (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'disabledforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:disabledforeground)
@@ -144,8 +160,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":disabledforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :font (font)
+    if Tk::OptionTestSupport.option_testable?('menu', 'font')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:font)
@@ -159,8 +177,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":font accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :foreground (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'foreground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:foreground)
@@ -174,8 +194,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":foreground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :postcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('menu', 'postcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -186,8 +208,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":postcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -201,8 +225,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectcolor (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'selectcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectcolor)
@@ -216,8 +242,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":selectcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -231,8 +259,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :tearoff (boolean)
+    if Tk::OptionTestSupport.option_testable?('menu', 'tearoff')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:tearoff)
@@ -246,8 +276,10 @@ class TestGeneratedMenuOptions < Minitest::Test
     rescue => e
       errors << ":tearoff accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :type (string)
+    if Tk::OptionTestSupport.option_testable?('menu', 'type')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:type)
@@ -260,6 +292,7 @@ class TestGeneratedMenuOptions < Minitest::Test
       errors << ":type accessor missing: #{e.message}"
     rescue => e
       errors << ":type accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy

@@ -20,12 +20,14 @@ class TestGeneratedCanvasOptions < Minitest::Test
 
   def canvas_accessors_app
     require 'tk'
+    require 'tk/option_test_support'
     require 'tk/canvas'
 
     errors = []
     w = TkCanvas.new(root)
 
     # :background (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'background')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:background)
@@ -39,8 +41,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":background accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bd (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'bd')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bd)
@@ -54,8 +58,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":bd accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :bg (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'bg')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:bg)
@@ -69,8 +75,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":bg accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :borderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'borderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:borderwidth)
@@ -84,8 +92,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":borderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :closeenough (float)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'closeenough')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:closeenough)
@@ -99,8 +109,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":closeenough accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :confine (boolean)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'confine')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:confine)
@@ -114,8 +126,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":confine accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :cursor (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'cursor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:cursor)
@@ -129,8 +143,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":cursor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :height (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'height')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:height)
@@ -144,8 +160,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":height accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightbackground (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'highlightbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightbackground)
@@ -159,8 +177,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":highlightbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightcolor (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'highlightcolor')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightcolor)
@@ -174,8 +194,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":highlightcolor accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :highlightthickness (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'highlightthickness')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:highlightthickness)
@@ -189,8 +211,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":highlightthickness accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertbackground (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'insertbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertbackground)
@@ -204,8 +228,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":insertbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'insertborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertborderwidth)
@@ -219,8 +245,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":insertborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertofftime (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'insertofftime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertofftime)
@@ -234,8 +262,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":insertofftime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertontime (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'insertontime')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertontime)
@@ -249,8 +279,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":insertontime accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :insertwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'insertwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:insertwidth)
@@ -264,8 +296,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":insertwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :offset (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'offset')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:offset)
@@ -279,8 +313,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":offset accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :relief (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'relief')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:relief)
@@ -294,8 +330,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":relief accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :scrollregion (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'scrollregion')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:scrollregion)
@@ -309,8 +347,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":scrollregion accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectbackground (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'selectbackground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectbackground)
@@ -324,8 +364,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":selectbackground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectborderwidth (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'selectborderwidth')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectborderwidth)
@@ -339,8 +381,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":selectborderwidth accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :selectforeground (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'selectforeground')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:selectforeground)
@@ -354,8 +398,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":selectforeground accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :state (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'state')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:state)
@@ -369,8 +415,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":state accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :takefocus (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'takefocus')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:takefocus)
@@ -384,8 +432,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":takefocus accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :width (integer)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'width')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:width)
@@ -399,8 +449,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":width accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :xscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'xscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -411,8 +463,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":xscrollcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :xscrollincrement (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'xscrollincrement')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:xscrollincrement)
@@ -426,8 +480,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":xscrollincrement accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :yscrollcommand (callback)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'yscrollcommand')
     begin
       # Callback: set a proc, verify getter works
       test_proc = proc { }
@@ -438,8 +494,10 @@ class TestGeneratedCanvasOptions < Minitest::Test
     rescue => e
       errors << ":yscrollcommand accessor raised: #{e.class}: #{e.message}"
     end
+    end
 
     # :yscrollincrement (string)
+    if Tk::OptionTestSupport.option_testable?('canvas', 'yscrollincrement')
     begin
       # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:yscrollincrement)
@@ -452,6 +510,7 @@ class TestGeneratedCanvasOptions < Minitest::Test
       errors << ":yscrollincrement accessor missing: #{e.message}"
     rescue => e
       errors << ":yscrollincrement accessor raised: #{e.class}: #{e.message}"
+    end
     end
 
     w.destroy
