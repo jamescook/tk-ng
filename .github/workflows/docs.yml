@@ -30,7 +30,7 @@ jobs:
         run: cd docs_site && bundle install
 
       - name: Build docs
-        run: rake docs:generate
+        run: bundle exec rake docs:generate
         env:
           JEKYLL_ENV: production
 

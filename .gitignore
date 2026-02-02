@@ -34,3 +34,4 @@ docs_site/_site/
 docs_site/.jekyll-cache/
 docs_site/assets/js/search-data.json
 docs_site/_includes/nav.html
+docs_site/_includes/stats.html
