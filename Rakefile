@@ -1,5 +1,4 @@
 require "bundler/gem_tasks"
-require 'rake/extensiontask'
 require 'rake/testtask'
 require 'rake/clean'
 
@@ -80,10 +79,15 @@ CLOBBER.include('tmp', 'lib/*.bundle', 'lib/*.so', 'ext/**/*.o', 'ext/**/*.bundl
 # Clean coverage artifacts before test runs to prevent accumulation
 CLEAN.include('coverage/.resultset.json', 'coverage/results')
 
-Rake::ExtensionTask.new do |ext|
-  ext.name = 'tcltklib'
-  ext.ext_dir = 'ext/tk'
-  ext.lib_dir = 'lib'
+# Conditionally load rake-compiler to make CI doc build dependency
+# easier
+if Gem::Specification.find_all_by_name('rake-compiler').any?
+  require 'rake/extensiontask'
+  Rake::ExtensionTask.new do |ext|
+    ext.name = 'tcltklib'
+    ext.ext_dir = 'ext/tk'
+    ext.lib_dir = 'lib'
+  end
 end
 
 # NOTE: tkutil C extension eliminated - now pure Ruby in lib/tk/util.rb
