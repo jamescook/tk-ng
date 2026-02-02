@@ -5,7 +5,8 @@
   var searchIndex = null;
 
   // Load search data once
-  fetch('/assets/js/search-data.json')
+  var baseUrl = document.body.dataset.baseurl || '';
+  fetch(baseUrl + '/assets/js/search-data.json')
     .then(function(response) { return response.json(); })
     .then(function(data) {
       searchData = data;
