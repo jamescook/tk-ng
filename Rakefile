@@ -3,6 +3,60 @@ require 'rake/extensiontask'
 require 'rake/testtask'
 require 'rake/clean'
 
+# YARD documentation generation
+begin
+  require 'yard'
+
+  # Load vendored yard-markdown template if YARD_MARKDOWN=1
+  if ENV['YARD_MARKDOWN']
+    $LOAD_PATH.unshift(File.expand_path('vendor/yard-markdown/lib', __dir__))
+    require 'yard-markdown'
+  end
+
+  # Uses .yardopts for configuration
+  YARD::Rake::YardocTask.new(:yard_json)
+
+  desc "Generate API docs (YARD JSON -> HTML)"
+  task yard: :yard_json do
+    ruby "scripts/build_api_docs.rb"
+  end
+
+  # Clean artifacts before regenerating
+  task :yard_json => :yard_clean
+  task :yard_clean do
+    FileUtils.rm_rf('doc')
+    FileUtils.rm_rf('docs_site/_api')
+    FileUtils.rm_rf('docs_site/_site')
+    FileUtils.rm_rf('docs_site/.jekyll-cache')
+    FileUtils.rm_f('docs_site/assets/js/search-data.json')
+  end
+
+  # Alias for convenience
+  task doc: :yard
+
+  namespace :docs do
+    desc "Generate full docs site (clean + YARD + Jekyll)"
+    task :generate => :yard do
+      Dir.chdir('docs_site') do
+        sh 'bundle exec jekyll build'
+      end
+      puts "Docs generated in docs_site/_site/"
+    end
+
+    desc "Serve docs locally"
+    task :serve => :yard do
+      Dir.chdir('docs_site') do
+        sh 'bundle exec jekyll serve'
+      end
+    end
+  end
+rescue LoadError
+  desc "Generate YARD documentation (yard gem not installed)"
+  task :yard do
+    abort "YARD is not available. Run: bundle install"
+  end
+end
+
 # Compiling on macOS with Homebrew:
 #
 # Tcl/Tk 9.0:

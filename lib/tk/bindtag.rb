@@ -86,6 +86,7 @@ class TkBindTag
 end
 
 
+# @deprecated Use {TkBindTag::ALL} instead.
 class TkBindTagAll<TkBindTag
   def TkBindTagAll.new(*args, &b)
     $stderr.puts "Warning: TkBindTagALL is obsolete. Use TkBindTag::ALL\n"

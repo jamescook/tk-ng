@@ -16,6 +16,15 @@ TkPackage.require('img::jpeg')
 
 module Tk
   module Img
+    # JPEG image format support for TkPhotoImage.
+    #
+    # @example Loading a JPEG image
+    #   require 'tkextlib/tkimg/jpeg'
+    #   image = TkPhotoImage.new(file: 'photo.jpg')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as JPEG
+    #   image.write('output.jpg', format: 'jpeg')
     module JPEG
       PACKAGE_NAME = 'img::jpeg'.freeze
       def self.package_name

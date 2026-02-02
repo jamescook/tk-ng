@@ -3,6 +3,68 @@
 #  tk/event.rb - module for event
 #
 
+# Event handling for Tk widgets.
+#
+# TkEvent provides the infrastructure for handling X11/Tk events in Ruby.
+# Events are bound to widgets using {TkBindCore#bind} and callback procs
+# receive event information via {TkEvent::Event} objects.
+#
+# ## Event Sequences
+#
+# Events are specified as pattern strings:
+#
+# | Pattern | Description |
+# |---------|-------------|
+# | `<Button-1>` | Left mouse button press |
+# | `<Double-Button-1>` | Double-click |
+# | `<Control-c>` | Ctrl+C key |
+# | `<KeyPress-Return>` | Enter key |
+# | `<Motion>` | Mouse movement |
+# | `<Enter>`, `<Leave>` | Mouse enters/leaves widget |
+# | `<FocusIn>`, `<FocusOut>` | Keyboard focus changes |
+# | `<<MyEvent>>` | Virtual (custom) event |
+#
+# ## Modifiers
+#
+# - `Control`, `Shift`, `Alt`, `Meta` - Keyboard modifiers
+# - `Button1`-`Button5` (or `B1`-`B5`) - Mouse button held
+# - `Double`, `Triple`, `Quadruple` - Multi-click
+# - `Command`, `Option` - macOS-specific
+#
+# ## Event Object Fields
+#
+# Callbacks receive event info via substitution or Event object:
+#
+# | Field | Description |
+# |-------|-------------|
+# | `x`, `y` | Mouse position relative to widget |
+# | `x_root`, `y_root` | Mouse position on screen |
+# | `widget` | Widget that received the event |
+# | `keysym` | Key name (e.g., "Return", "a") |
+# | `keycode` | Numeric key code |
+# | `char` | Character produced by key |
+# | `num` / `button` | Mouse button number |
+# | `state` | Modifier state bitmask |
+# | `wheel_delta` | MouseWheel scroll amount |
+# | `type` | Event type number |
+# | `time` | Event timestamp |
+#
+# @example Binding with block (receives Event object)
+#   button.bind('<Button-1>') do |event|
+#     puts "Clicked at #{event.x}, #{event.y}"
+#   end
+#
+# @example Binding with specific fields
+#   canvas.bind('<Motion>', :x, :y) do |x, y|
+#     puts "Mouse at #{x}, #{y}"
+#   end
+#
+# @example Key bindings
+#   entry.bind('<Return>') { submit_form }
+#   entry.bind('<Control-a>') { select_all }
+#
+# @see TkBindCore#bind For binding events to widgets
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/bind.htm Tcl/Tk bind manual
 module TkEvent
 end
 
@@ -13,7 +75,31 @@ end
 ########################
 
 module TkEvent
+  # Event information passed to callbacks.
+  #
+  # When you bind an event without specifying fields, the callback
+  # receives an Event object with all available information:
+  #
+  #     widget.bind('<Button-1>') do |event|
+  #       puts event.x        # x coordinate
+  #       puts event.keysym   # key name (for key events)
+  #       puts event.widget   # the widget
+  #     end
+  #
+  # ## Field Availability
+  #
+  # Not all fields are valid for all event types:
+  # - Key events: `keysym`, `keycode`, `char`, `state`
+  # - Mouse events: `x`, `y`, `num`/`button`, `state`
+  # - MouseWheel: `wheel_delta`
+  # - Focus/Crossing: `focus`, `mode`, `detail`
+  #
+  # Invalid fields return nil or "??".
+  #
+  # @see TkEvent Module documentation for field list
   class Event < TkUtil::CallbackSubst
+    # @!visibility private
+    # Event group flags for determining which fields are valid.
     module Grp
       KEY         =           0x1
       BUTTON      =           0x2
@@ -124,18 +210,35 @@ module TkEvent
 
     #############################################
 
+    # Bitmask constants for modifier key state.
+    #
+    # The `state` field of an Event is a bitmask indicating which
+    # modifier keys and mouse buttons were held during the event.
+    #
+    # @example Checking for Shift key
+    #   widget.bind('<Button-1>') do |event|
+    #     if (event.state & TkEvent::Event::StateMask::ShiftMask) != 0
+    #       puts "Shift-click!"
+    #     end
+    #   end
+    #
+    # @example Checking for Control+Button1
+    #   if (event.state & StateMask::ControlMask) != 0 &&
+    #      (event.state & StateMask::Button1Mask) != 0
+    #     # Control key held while dragging with button 1
+    #   end
     module StateMask
-      ShiftMask      =        (1<<0)
-      LockMask       =        (1<<1)
-      ControlMask    =        (1<<2)
-      Mod1Mask       =        (1<<3)
-      Mod2Mask       =        (1<<4)
+      ShiftMask      =        (1<<0)   # Shift key
+      LockMask       =        (1<<1)   # Caps Lock
+      ControlMask    =        (1<<2)   # Control key
+      Mod1Mask       =        (1<<3)   # Alt/Meta (platform-dependent)
+      Mod2Mask       =        (1<<4)   # Num Lock (platform-dependent)
       Mod3Mask       =        (1<<5)
       Mod4Mask       =        (1<<6)
       Mod5Mask       =        (1<<7)
-      Button1Mask    =        (1<<8)
-      Button2Mask    =        (1<<9)
-      Button3Mask    =        (1<<10)
+      Button1Mask    =        (1<<8)   # Left mouse button
+      Button2Mask    =        (1<<9)   # Middle mouse button
+      Button3Mask    =        (1<<10)  # Right mouse button
       Button4Mask    =        (1<<11)
       Button5Mask    =        (1<<12)
 
@@ -145,8 +248,8 @@ module TkEvent
       ALT_MASK       =  (AnyModifier<<2)
       EXTENDED_MASK  =  (AnyModifier<<3)
 
-      CommandMask    =  Mod1Mask
-      OptionMask     =  Mod2Mask
+      CommandMask    =  Mod1Mask   # macOS Command key
+      OptionMask     =  Mod2Mask   # macOS Option key
     end
 
     #############################################

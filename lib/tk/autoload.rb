@@ -1,9 +1,5 @@
 # frozen_string_literal: false
-#
-#  autoload
-#
-############################################
-#  geometry manager
+
 module Tk
   autoload :Grid,             'tk/grid'
   def Grid(*args); TkGrid.configure(*args); end
@@ -25,9 +21,8 @@ autoload :TkPlace,            'tk/place'
 def TkPlace(*args); TkPlace.configure(*args); end
 
 
-############################################
-# classes on Tk module
 module Tk
+  # classes on Tk module
   autoload :Busy,             'tk/busy'
 
   autoload :Button,           'tk/button'
@@ -84,9 +79,8 @@ module Tk
 end
 
 
-############################################
-# sub-module of Tk
 module Tk
+  # sub-module of Tk autoloads
   autoload :Clock,            'tk/clock'
 
   autoload :OptionObj,        'tk/optionobj'
@@ -238,9 +232,8 @@ autoload :TkWinfo,            'tk/winfo'
 autoload :TkXIM,              'tk/xim'
 
 
-############################################
-#  toplevel classes/modules (switchable)
 module Tk
+  # toplevel classes/modules (switchable)
   @TOPLEVEL_ALIAS_TABLE = {}
   @TOPLEVEL_ALIAS_TABLE[:Tk] = {
     :TkButton             => 'tk/button',

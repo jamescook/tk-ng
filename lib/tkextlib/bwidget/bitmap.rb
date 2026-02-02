@@ -9,6 +9,14 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Access BWidget's built-in bitmap images.
+    #
+    # Bitmap retrieves predefined bitmap images included with BWidget.
+    #
+    # @example Using a BWidget bitmap
+    #   require 'tkextlib/bwidget'
+    #   bmp = Tk::BWidget::Bitmap.new('folder')
+    #   TkLabel.new(root, image: bmp).pack
     class Bitmap < TkPhotoImage
     end
   end

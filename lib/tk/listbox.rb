@@ -1,14 +1,39 @@
 # frozen_string_literal: false
-#
-# tk/listbox.rb : treat listbox widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html
-#
 require 'tk/scrollable'
 require 'tk/txtwin_abst'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
+# A scrollable list of selectable text items.
+#
+# == Selection Modes
+# - `:single` / `:browse` - one item at a time (browse allows drag)
+# - `:multiple` - toggle individual items
+# - `:extended` - multiple with shift/ctrl and drag support
+#
+# @example Basic listbox
+#   listbox = Tk::Listbox.new(height: 10, selectmode: :browse)
+#   listbox.insert('end', 'Apple', 'Banana', 'Cherry')
+#   listbox.pack
+#
+# @example Get selection
+#   listbox.bind('<<ListboxSelect>>') do
+#     indices = listbox.curselection  # array of selected indices
+#     values = indices.map { |i| listbox.get(i) }
+#     puts "Selected: #{values}"
+#   end
+#
+# @example With scrollbar
+#   frame = Tk::Frame.new.pack(fill: :both, expand: true)
+#   listbox = Tk::Listbox.new(frame).pack(side: :left, fill: :both, expand: true)
+#   scrollbar = Tk::Scrollbar.new(frame).pack(side: :right, fill: :y)
+#   listbox.yscrollbar(scrollbar)
+#
+# @note `<<ListboxSelect>>` fires only for mouse/keyboard selection,
+#   not programmatic `selection set` calls.
+#
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html Tcl/Tk listbox manual
+#
 class Tk::Listbox<TkTextWin
   extend Tk::ItemOptionDSL
   include Scrollable

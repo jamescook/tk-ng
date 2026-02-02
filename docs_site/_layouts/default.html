@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title }} | {{ site.title }}</title>
+  <link rel="stylesheet" href="{{ '/assets/vendor/bootstrap/bootstrap.min.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/vendor/highlight-github.min.css' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/css/custom.css' | relative_url }}">
+  <script src="{{ '/assets/vendor/turbo.min.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/vendor/bootstrap/bootstrap.bundle.min.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/vendor/lunr.min.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/vendor/highlight.min.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/search.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/nav-breadcrumb.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/highlight-lazy.js' | relative_url }}" defer></script>
+</head>
+<body>
+
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <nav id="sidebar" class="col-md-4 col-lg-3 d-md-block bg-light sidebar">
+        <div class="position-sticky pt-3">
+          <div class="sidebar-header mb-3">
+            <a href="{{ '/' | relative_url }}" class="text-decoration-none">
+              <h5>{{ site.title }}</h5>
+            </a>
+          </div>
+
+          <div class="search-container mb-3">
+            <input type="text" id="search-input" class="form-control form-control-sm" placeholder="Search...">
+            <div id="search-results" class="search-results"></div>
+          </div>
+
+          {% include nav.html %}
+        </div>
+      </nav>
+
+      <!-- Main content -->
+      <main class="col-md-8 ms-sm-auto col-lg-9 px-md-4">
+        <div class="pt-3 pb-2 mb-3">
+          {{ content }}
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer d-flex align-items-center">
+    <div class="d-flex gap-4">{% include stats.html %}</div>
+    <a href="https://github.com/jamescook/tk-ng" target="_blank" rel="noopener" class="ms-auto"><img src="{{ '/assets/images/github-mark.svg' | relative_url }}" alt="GitHub" class="github-icon"></a>
+  </footer>
+
+</body>
+</html>

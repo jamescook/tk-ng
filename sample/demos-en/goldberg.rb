@@ -1761,7 +1761,8 @@ class TkGoldberg_Demo
                      :outline=>@C['24a'], :width=>10, :smooth=>true)
       msg = Tk.subst(@S['message'].value)
       TkcText.new(@canvas, centroid('I24'), :text=>msg, :tag=>['I24', 'I24t'],
-                  :justify=>:center, :font=>['Times Roman', 18, :bold])
+                  :justify=>:center, :font=>['Times Roman', 18, :bold],
+                  :fill=>@C['fg'])
       return 1
     end
 
@@ -1805,7 +1806,8 @@ class TkGoldberg_Demo
       end
       TkcText.new(@canvas, 430, 740, :anchor=>:s, :tag=>'I26',
                   :text=>'click to continue',
-                  :font=>['Times Roman', 24, :bold])
+                  :font=>['Times Roman', 24, :bold],
+                  :fill=>@C['fg'])
       @canvas.bind('1', proc{reset})
       return 4
     end

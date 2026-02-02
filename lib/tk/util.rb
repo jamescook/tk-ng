@@ -14,6 +14,24 @@
 
 require_relative 'warnings'
 
+# Type conversion utilities for Tcl/Tk interop.
+#
+# Provides helper methods for converting between Ruby and Tcl types:
+# booleans, numbers, and special Tcl values.
+#
+# @example Boolean conversion
+#   TkUtil.bool("yes")    # => true
+#   TkUtil.bool("no")     # => false
+#   TkUtil.bool(0)        # => false
+#   TkUtil.bool(1)        # => true
+#   TkUtil.bool("false")  # => false
+#
+# @example Number conversion
+#   TkUtil.number("42")   # => 42
+#   TkUtil.number("3.14") # => 3.14
+#
+# @note These methods are YJIT-optimized for performance with frozen string
+#   literals and efficient type dispatch.
 module TkUtil
   # Tcl boolean string to Ruby boolean
   # Handles: integers, true/false, and strings like "yes", "no", "on", "off", "true", "false"
@@ -151,13 +169,22 @@ module TkUtil
     TkUtil._symbolkey2str(keys)
   end
 
-  # Legacy encoding methods - no-ops since modern Ruby/Tcl use UTF-8 natively
+  # @deprecated No longer needed. Modern Ruby strings are UTF-8 by default.
+  #   This method is a no-op kept only for backwards compatibility.
+  # @param str [String] the string (returned as-is)
+  # @param encoding [nil] ignored
+  # @return [String] the input string unchanged
   def _toUTF8(str, encoding = nil)
     Tk::Warnings.warn_once(:util_to_utf8,
       "_toUTF8 is deprecated. Ruby strings are already UTF-8.")
     str.to_s
   end
 
+  # @deprecated No longer needed. Modern Ruby strings are UTF-8 by default.
+  #   This method is a no-op kept only for backwards compatibility.
+  # @param str [String] the string (returned as-is)
+  # @param encoding [nil] ignored
+  # @return [String] the input string unchanged
   def _fromUTF8(str, encoding = nil)
     Tk::Warnings.warn_once(:util_from_utf8,
       "_fromUTF8 is deprecated. Ruby strings are already UTF-8.")

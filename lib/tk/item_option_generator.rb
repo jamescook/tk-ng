@@ -6,12 +6,9 @@ require_relative 'item_type_registry'
 require_relative 'option_generator'  # Reuse OptionEntry
 
 module Tk
-  # Generates Item Option DSL declarations by introspecting Tk widgets at runtime.
-  # Used by `rake tk:generate_item_options` to create version-specific item option files.
-  #
-  # This mirrors OptionGenerator but for item-level configuration (canvas items,
-  # menu entries, text tags, listbox items, etc.)
-  #
+  # @!visibility private
+  # Internal tool for generating Item Option DSL declarations.
+  # Used by `rake tk:generate_item_options`. Not intended for end users.
   class ItemOptionGenerator
     TEMPLATES_DIR = File.expand_path('templates', __dir__)
 

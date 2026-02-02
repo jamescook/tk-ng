@@ -5,6 +5,23 @@
 
 require 'tk/option_dsl'
 
+# Base class for Tk images.
+#
+# TkImage provides common functionality for bitmap and photo images.
+# In most cases, you'll use the subclasses {TkBitmapImage} or {TkPhotoImage}.
+#
+# @abstract Use {TkBitmapImage} for two-color images or {TkPhotoImage} for
+#   full-color images.
+#
+# @example Querying available image types
+#   TkImage.types  # => ["bitmap", "photo"]
+#
+# @example Listing all images
+#   TkImage.names  # => [#<TkPhotoImage:...>, ...]
+#
+# @see TkBitmapImage For two-color bitmap images
+# @see TkPhotoImage For full-color photo images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/image.htm Tcl/Tk image manual
 class TkImage<TkObject
   include Tk
 
@@ -83,6 +100,8 @@ class TkImage<TkObject
     end
   end
 
+  # Deletes this image and frees associated resources.
+  # @return [self]
   def delete
     Tk_IMGTBL.mutex.synchronize{
       Tk_IMGTBL.delete(@id) if @id
@@ -90,19 +109,33 @@ class TkImage<TkObject
     tk_call_without_enc('image', 'delete', @path)
     self
   end
+
+  # Returns the image height in pixels.
+  # @return [Integer]
   def height
     number(tk_call_without_enc('image', 'height', @path))
   end
+
+  # Returns whether this image is currently displayed by any widget.
+  # @return [Boolean]
   def inuse
     bool(tk_call_without_enc('image', 'inuse', @path))
   end
+
+  # Returns the image type ("bitmap" or "photo").
+  # @return [String]
   def itemtype
     tk_call_without_enc('image', 'type', @path)
   end
+
+  # Returns the image width in pixels.
+  # @return [Integer]
   def width
     number(tk_call_without_enc('image', 'width', @path))
   end
 
+  # Returns all image objects.
+  # @return [Array<TkImage, String>] Image objects or names
   def TkImage.names
     Tk_IMGTBL.mutex.synchronize{
       Tk.tk_call_without_enc('image', 'names').split.collect!{|id|
@@ -111,11 +144,26 @@ class TkImage<TkObject
     }
   end
 
+  # Returns available image types.
+  # @return [Array<String>] Typically ["bitmap", "photo"]
   def TkImage.types
     Tk.tk_call_without_enc('image', 'types').split
   end
 end
 
+# A two-color bitmap image.
+#
+# Bitmap images display in foreground/background colors with no gradients.
+# Useful for icons, cursors, and simple graphics.
+#
+# @example Creating from file
+#   icon = TkBitmapImage.new(file: '/path/to/icon.xbm')
+#
+# @example With foreground/background colors
+#   icon = TkBitmapImage.new(file: 'check.xbm', foreground: 'green', background: 'white')
+#
+# @see TkPhotoImage For full-color images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/bitmap.htm Tcl/Tk bitmap manual
 class TkBitmapImage<TkImage
   extend Tk::OptionDSL
 
@@ -130,12 +178,39 @@ class TkBitmapImage<TkImage
   end
 end
 
-# A photo is an image whose pixels can display any color or be transparent.
-# At present, only GIF and PPM/PGM formats are supported, but an interface
-# exists to allow additional image file formats to be added easily.
+# A full-color image with optional transparency.
 #
-# This class documentation is a copy from the original Tcl/Tk at
-# http://www.tcl.tk/man/tcl8.5/TkCmd/photo.htm with some rewritten parts.
+# Photo images can display any color and support per-pixel transparency.
+# Built-in support for PNG, GIF, and PPM/PGM formats; additional formats
+# (JPEG, TIFF, etc.) available via the tkimg extension.
+#
+# @note **Supported formats**: Only PNG, GIF, and PPM/PGM are built-in.
+#   For JPEG, BMP, TIFF, etc., install the tkimg extension.
+#
+# @note **Dithering quirk**: If loading image data in pieces, the dithered
+#   image may not be exactly correct. Call {#redither} to recalculate.
+#
+# @example Creating from file
+#   img = TkPhotoImage.new(file: '/path/to/photo.png')
+#
+# @example Creating empty image with fixed size
+#   img = TkPhotoImage.new(width: 200, height: 150)
+#
+# @example Getting/setting pixels
+#   r, g, b = img.get(10, 20)  # Get pixel at (10, 20)
+#   img.put('{red green blue}', to: [0, 0, 3, 1])  # Set 3 pixels
+#
+# @example Copying regions with zoom
+#   dest.copy(source, from: [0, 0, 100, 100], zoom: [2, 2])
+#
+# @example High-performance pixel writes (e.g. for games)
+#   rgba_data = "\xFF\x00\x00\xFF" * (100 * 100)  # 100x100 red
+#   img.put_block(rgba_data, 100, 100)
+#   # Or with scaling:
+#   img.put_zoomed_block(rgba_data, 100, 100, zoom_x: 3, zoom_y: 3)
+#
+# @see TkBitmapImage For two-color images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/photo.htm Tcl/Tk photo manual
 class TkPhotoImage<TkImage
   NullArgOptionKeys = [ "shrink", "grayscale" ]
 
@@ -221,13 +296,7 @@ class TkPhotoImage<TkImage
     super(*args)
   end
 
-  # Blank the image; that is, set the entire image to have no data, so it will
-  # be displayed as transparent, and the background of whatever window it is
-  # displayed in will show through.
-  def blank
-    tk_send_without_enc('blank')
-    self
-  end
+  # Note: blank is defined below using the faster C API (Tk_PhotoBlank)
 
   def cget_strict(option)
     case option.to_s
@@ -409,40 +478,44 @@ class TkPhotoImage<TkImage
     self
   end
 
-  # Fast RGBA pixel writes using Tk_PhotoPutBlock C API.
+  # Fast pixel writes using Tk_PhotoPutBlock C API.
   #
   # Much faster than #put for real-time graphics - uses direct memory copy
   # instead of parsing hex color strings.
   #
-  # @param rgba_data [String] Binary string of RGBA pixels (4 bytes per pixel)
+  # @param pixel_data [String] Binary string of pixels (4 bytes per pixel)
   # @param width [Integer] Width in pixels
   # @param height [Integer] Height in pixels
   # @param x [Integer] X offset in destination image (default: 0)
   # @param y [Integer] Y offset in destination image (default: 0)
+  # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
   #
-  # @example Fill a 100x100 image with red pixels
+  # @example Fill a 100x100 image with red pixels (RGBA)
   #   img = TkPhotoImage.new(width: 100, height: 100)
   #   red_rgba = "\xFF\x00\x00\xFF" * (100 * 100)
   #   img.put_block(red_rgba, 100, 100)
   #
-  # @example Update a region at offset (10, 20)
-  #   img.put_block(rgba_data, 50, 50, x: 10, y: 20)
+  # @example Using ARGB format (common in SDL2, graphics libraries)
+  #   # ARGB integers packed little-endian: 0xAARRGGBB -> [B,G,R,A] bytes
+  #   argb_data = [0xFFFF0000].pack('V*') * (100 * 100)  # red
+  #   img.put_block(argb_data, 100, 100, format: :argb)
   #
-  def put_block(rgba_data, width, height, x: 0, y: 0)
+  def put_block(pixel_data, width, height, x: 0, y: 0, format: :rgba)
     opts = {}
     opts[:x] = x if x != 0
     opts[:y] = y if y != 0
-    Tk::INTERP.photo_put_block(@path, rgba_data, width, height, opts.empty? ? nil : opts)
+    opts[:format] = format if format != :rgba
+    Tk::INTERP.photo_put_block(@path, pixel_data, width, height, opts.empty? ? nil : opts)
     self
   end
 
-  # Fast RGBA pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
+  # Fast pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
   #
   # Writes pixels and scales in a single operation - faster than put_block + copy.
   # Zoom replicates pixels, subsample skips pixels.
   #
-  # @param rgba_data [String] Binary string of RGBA pixels (4 bytes per pixel)
+  # @param pixel_data [String] Binary string of pixels (4 bytes per pixel)
   # @param width [Integer] Source width in pixels
   # @param height [Integer] Source height in pixels
   # @param x [Integer] X offset in destination (default: 0)
@@ -451,14 +524,20 @@ class TkPhotoImage<TkImage
   # @param zoom_y [Integer] Vertical zoom factor (default: 1)
   # @param subsample_x [Integer] Horizontal subsample factor (default: 1)
   # @param subsample_y [Integer] Vertical subsample factor (default: 1)
+  # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
   #
   # @example Scale up 3x for display
   #   img = TkPhotoImage.new(width: 960, height: 720)
   #   img.put_zoomed_block(rgba_data, 320, 240, zoom_x: 3, zoom_y: 3)
   #
-  def put_zoomed_block(rgba_data, width, height, x: 0, y: 0,
-                       zoom_x: 1, zoom_y: 1, subsample_x: 1, subsample_y: 1)
+  # @example NES emulator with ARGB pixel data
+  #   # Optcarrot outputs ARGB integers, pack and pass directly
+  #   argb_data = colors.pack('V*')
+  #   img.put_zoomed_block(argb_data, 256, 224, zoom_x: 3, zoom_y: 3, format: :argb)
+  #
+  def put_zoomed_block(pixel_data, width, height, x: 0, y: 0,
+                       zoom_x: 1, zoom_y: 1, subsample_x: 1, subsample_y: 1, format: :rgba)
     opts = {}
     opts[:x] = x if x != 0
     opts[:y] = y if y != 0
@@ -466,7 +545,8 @@ class TkPhotoImage<TkImage
     opts[:zoom_y] = zoom_y if zoom_y != 1
     opts[:subsample_x] = subsample_x if subsample_x != 1
     opts[:subsample_y] = subsample_y if subsample_y != 1
-    Tk::INTERP.photo_put_zoomed_block(@path, rgba_data, width, height, opts.empty? ? nil : opts)
+    opts[:format] = format if format != :rgba
+    Tk::INTERP.photo_put_zoomed_block(@path, pixel_data, width, height, opts.empty? ? nil : opts)
     self
   end
 

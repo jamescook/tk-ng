@@ -9,6 +9,22 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Drag source registration for BWidget drag-and-drop.
+    #
+    # DragSite enables widgets to initiate drag operations.
+    # Use with DropSite for complete drag-and-drop functionality.
+    #
+    # @example Register a drag source
+    #   require 'tkextlib/bwidget'
+    #   Tk::BWidget::DragSite.register(label,
+    #     dragevent: 1,
+    #     draginitcmd: proc { |path, x, y, top|
+    #       # Return: type, data, operations
+    #       ['TEXT', label.text, 'copy']
+    #     })
+    #
+    # @see Tk::BWidget::DropSite For drop targets
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/DragSite.html
     module DragSite
     end
   end

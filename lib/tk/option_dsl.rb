@@ -5,22 +5,90 @@ require_relative 'option'
 module Tk
   # DSL for declaring widget options at the class level.
   #
-  # Example:
-  #   class MyWidget
+  # OptionDSL lets widget classes declare their configuration options
+  # with type information, aliases, and version requirements. This
+  # metadata is used by cget/configure to convert values and resolve
+  # option names.
+  #
+  # ## Basic Usage
+  #
+  #     class MyWidget < TkWindow
+  #       extend Tk::OptionDSL
+  #
+  #       option :text                           # String (default)
+  #       option :width, type: :integer          # With type
+  #       option :background, alias: :bg         # With alias
+  #       option :font, type: :font              # Returns TkFont object
+  #     end
+  #
+  # ## Option Types
+  #
+  # The `type:` parameter specifies how values are converted:
+  #
+  # - `:string` (default) - Pass-through
+  # - `:integer` - Converts to/from Integer
+  # - `:boolean` - Converts to/from true/false
+  # - `:font` - Returns TkFont objects
+  # - `:widget` - Returns widget objects from paths
+  # - `:tkvariable` - Returns TkVarAccess objects
+  # - `:callback` - Registers procs, returns callback IDs
+  #
+  # See {OptionType} for the full list.
+  #
+  # ## Aliases
+  #
+  # Short names for convenience:
+  #
+  #     option :background, alias: :bg
+  #     option :foreground, aliases: [:fg, :fgcolor]
+  #
+  # Both cget(:bg) and cget(:background) will work.
+  #
+  # ## Version Requirements
+  #
+  # Mark options that need newer Tk versions:
+  #
+  #     option :placeholder, type: :string, min_version: 9
+  #
+  # Calling this on Tk 8.6 will raise an appropriate error.
+  #
+  # ## Inheritance
+  #
+  # Subclasses inherit parent options and can override them:
+  #
+  #     class ParentWidget
+  #       extend Tk::OptionDSL
+  #       option :text
+  #     end
+  #
+  #     class ChildWidget < ParentWidget
+  #       option :text, type: :string  # Inherits, can override
+  #       option :value                # Add new option
+  #     end
+  #
+  # ## Integration with TkObject
+  #
+  # TkObject's cget/configure/configinfo methods automatically use
+  # the options declared via this DSL for:
+  # - Type conversion (to_tcl/from_tcl)
+  # - Alias resolution
+  # - Version checking
+  #
+  # @example Complete widget with options
+  #   class TkEntry
   #     extend Tk::OptionDSL
   #
-  #     option :text
+  #     option :textvariable, type: :tkvariable
   #     option :width, type: :integer
-  #     option :bg, type: :color, aliases: [:background]
+  #     option :show               # Password masking character
+  #     option :state              # normal, disabled, readonly
+  #     option :validate           # none, focus, focusin, focusout, key, all
+  #     option :validatecommand, type: :callback, alias: :vcmd
   #   end
   #
-  #   MyWidget.options[:text]      # => Tk::Option
-  #   MyWidget.resolve_option(:bg) # => Tk::Option (same as :background)
-  #
-  # Integration:
-  #   TkObject's cget/configure/configinfo use resolve_option to look up
-  #   type converters and aliases declared via this DSL.
-  #
+  # @see Option Metadata for individual options
+  # @see OptionType Type converters
+  # @see ItemOptionDSL For item options (canvas items, menu entries)
   module OptionDSL
     # Called when module is extended into a class
     # Merge with existing options (from parent) instead of resetting

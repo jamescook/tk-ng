@@ -10,6 +10,30 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Enhanced entry widget with dynamic help and drag-and-drop.
+    #
+    # Extends the standard Tk entry with:
+    # - Dynamic help (tooltip) support via `:helptext`
+    # - Drag-and-drop capabilities
+    # - State-dependent visual styling
+    # - Command execution on Return key
+    #
+    # @example Entry with help text
+    #   require 'tkextlib/bwidget'
+    #   entry = Tk::BWidget::Entry.new(root,
+    #     helptext: 'Enter your username')
+    #   entry.pack
+    #
+    # @example Non-editable display field
+    #   entry = Tk::BWidget::Entry.new(root,
+    #     editable: false,
+    #     textvariable: status_var)
+    #
+    # @example With command on Return
+    #   entry = Tk::BWidget::Entry.new(root,
+    #     command: proc { submit_form })
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/Entry.html
     class Entry < Tk::Entry
     end
   end

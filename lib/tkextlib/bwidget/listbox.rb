@@ -10,10 +10,41 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Canvas-based list widget with rich item customization.
+    #
+    # Unlike the standard Tk listbox, BWidget ListBox is built on canvas,
+    # allowing items with images, custom fonts, and embedded windows.
+    # Supports drag-and-drop, in-place editing, and multiple selection.
+    #
+    # @example Basic list with items
+    #   require 'tkextlib/bwidget'
+    #   list = Tk::BWidget::ListBox.new(root)
+    #   list.insert('end', 'item1', text: 'First Item')
+    #   list.insert('end', 'item2', text: 'Second Item')
+    #   list.insert('end', 'item3', text: 'Third Item')
+    #   list.pack(fill: :both, expand: true)
+    #
+    # @example With images
+    #   list.insert('end', 'doc', text: 'Document', image: doc_icon)
+    #   list.insert('end', 'folder', text: 'Folder', image: folder_icon)
+    #
+    # @example Selection handling
+    #   list.textbind('<Double-1>') do |event|
+    #     selected = list.selection_get
+    #     puts "Selected: #{selected}"
+    #   end
+    #
+    # @see Tk::BWidget::ListBox::Item Individual list item class
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/ListBox.html
     class ListBox < TkWindow
-      # is NOT a subclass of a listbox widget class.
-      # because it constructed on a canvas widget.
-
+      # Represents a single item in a BWidget ListBox.
+      #
+      # Items can have text, images, custom fonts and colors.
+      #
+      # @example Creating items
+      #   item = Tk::BWidget::ListBox::Item.new(listbox,
+      #     text: 'My Item',
+      #     image: my_icon)
       class Item < TkObject
       end
     end

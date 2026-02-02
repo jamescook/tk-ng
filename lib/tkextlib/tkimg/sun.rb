@@ -16,6 +16,15 @@ TkPackage.require('img::sun')
 
 module Tk
   module Img
+    # Sun Raster image format support for TkPhotoImage.
+    #
+    # @example Loading a Sun Raster image
+    #   require 'tkextlib/tkimg/sun'
+    #   image = TkPhotoImage.new(file: 'image.ras')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as Sun Raster
+    #   image.write('output.ras', format: 'sun')
     module SUN
       PACKAGE_NAME = 'img::sun'.freeze
       def self.package_name

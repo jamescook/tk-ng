@@ -5,6 +5,56 @@
 require 'tk/text'
 require 'tk/tagfont'
 
+# A named style that can be applied to text ranges in a Text widget.
+#
+# Tags serve three purposes:
+# 1. **Styling** - Set colors, fonts, margins, spacing on tagged text
+# 2. **Event binding** - Attach click/hover handlers to tagged regions
+# 3. **Selection** - The built-in "sel" tag manages text selection
+#
+# ## Tag Priority
+#
+# When multiple tags cover the same text, higher-priority tags override
+# lower-priority tags for conflicting options. Priority is set by creation
+# order but can be adjusted with {#raise} and {#lower}.
+#
+# @example Creating and applying a tag
+#   text = TkText.new(root)
+#   text.insert(:end, "Hello World")
+#
+#   # Create tag with styling
+#   bold_tag = TkTextTag.new(text, foreground: 'blue', font: 'Helvetica 12 bold')
+#   bold_tag.add("1.0", "1.5")  # Apply to "Hello"
+#
+# @example Adding ranges
+#   tag.add("1.0", "1.5")           # Range from 1.0 to 1.5
+#   tag.add("1.0", "1.5", "2.0", "2.10")  # Multiple ranges
+#
+# @example Event binding on tagged text
+#   link_tag = TkTextTag.new(text, foreground: 'blue', underline: true)
+#   link_tag.bind('Enter') { link_tag.configure(foreground: 'red') }
+#   link_tag.bind('Leave') { link_tag.configure(foreground: 'blue') }
+#   link_tag.bind('ButtonRelease-1') { open_url(url) }
+#
+# @example Controlling tag priority
+#   tag1.raise           # Move to highest priority
+#   tag2.lower           # Move to lowest priority
+#   tag1.raise(tag2)     # Position tag1 just above tag2
+#
+# ## Common Tag Options
+#
+# - `:foreground`, `:background` - Text and background colors
+# - `:font` - Font specification
+# - `:underline`, `:overstrike` - Text decorations
+# - `:justify` - :left, :right, :center
+# - `:lmargin1`, `:lmargin2`, `:rmargin` - Margins
+# - `:spacing1`, `:spacing2`, `:spacing3` - Line spacing
+# - `:elide` - Hide text (still takes up index space)
+# - `:relief`, `:borderwidth` - 3D border effects
+#
+# @see TkTextTagSel The built-in "sel" tag for text selection
+# @see TkTextMark For position tracking
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
 class TkTextTag<TkObject
   include TkTreatTagFont
   include Tk::Text::IndexModMethods
@@ -121,30 +171,6 @@ class TkTextTag<TkObject
   def cget_strict(key)
     @t.tag_cget_strict @id, key
   end
-=begin
-  def cget(key)
-    case key.to_s
-    when 'text', 'label', 'show', 'data', 'file'
-      _fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget', @id, "-#{key}"))
-    when 'font', 'kanjifont'
-      #fnt = tk_tcl2ruby(tk_call(@t.path, 'tag', 'cget', @id, "-#{key}"))
-      fnt = tk_tcl2ruby(_fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget',
-                                                      @id, '-font')))
-      unless fnt.kind_of?(TkFont)
-        fnt = tagfontobj(@id, fnt)
-      end
-      if key.to_s == 'kanjifont' && JAPANIZED_TK && TK_VERSION =~ /^4\.*/
-        # obsolete; just for compatibility
-        fnt.kanji_font
-      else
-        fnt
-      end
-    else
-      tk_tcl2ruby(_fromUTF8(tk_call_without_enc(@t.path, 'tag', 'cget',
-                                                @id, "-#{key}")))
-    end
-  end
-=end
 
   def configure(key, val=None)
     @t.tag_configure @id, key, val
@@ -204,12 +230,22 @@ class TkTextTag<TkObject
     _bindinfo([@t.path, 'tag', 'bind', @id], context)
   end
 
+  # Raises this tag's priority.
+  #
+  # Higher priority tags override lower priority tags when display
+  # options conflict on the same text.
+  #
+  # @param above [TkTextTag, nil] Position just above this tag, or nil for highest
+  # @return [self]
   def raise(above=None)
     tk_call_without_enc(@t.path, 'tag', 'raise', @id,
                         _get_eval_enc_str(above))
     self
   end
 
+  # Lowers this tag's priority.
+  # @param below [TkTextTag, nil] Position just below this tag, or nil for lowest
+  # @return [self]
   def lower(below=None)
     tk_call_without_enc(@t.path, 'tag', 'lower', @id,
                         _get_eval_enc_str(below))
@@ -255,6 +291,20 @@ class TkTextNamedTag<TkTextTag
 end
 TktNamedTag = TkTextNamedTag
 
+# The built-in "sel" tag that manages text selection.
+#
+# This special tag is automatically created and cannot be deleted.
+# Its display options are tied to widget options like `-selectbackground`
+# and `-selectforeground`.
+#
+# @example Getting selected text
+#   sel = TkTextTagSel.new(text)
+#   ranges = sel.ranges  # => [["1.5", "1.10"], ...]
+#   selected_text = text.get(*ranges.first) if ranges.any?
+#
+# @example Programmatic selection
+#   sel = TkTextTagSel.new(text)
+#   sel.add("1.0", "1.10")  # Select first 10 chars
 class TkTextTagSel<TkTextNamedTag
   def self.new(parent, *args)
     super(parent, 'sel', *args)

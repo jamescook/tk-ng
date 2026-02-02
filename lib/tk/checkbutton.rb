@@ -1,11 +1,37 @@
 # frozen_string_literal: false
-#
-# tk/checkbutton.rb : treat checkbutton widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/checkbutton.html
-#
 require 'tk/radiobutton'
 
+# A checkbox widget that toggles between on/off states.
+#
+# The state is stored in a TkVariable. Use `:onvalue` and `:offvalue`
+# to customize what values represent checked/unchecked (default "1"/"0").
+#
+# @example Basic checkbox
+#   agree = TkVariable.new(0)
+#   Tk::CheckButton.new(
+#     text: "I agree to the terms",
+#     variable: agree,
+#     command: -> { puts "Agreed: #{agree.value}" }
+#   ).pack
+#
+# @example Custom on/off values
+#   enabled = TkVariable.new("no")
+#   Tk::CheckButton.new(
+#     text: "Enable feature",
+#     variable: enabled,
+#     onvalue: "yes",
+#     offvalue: "no"
+#   ).pack
+#
+# @example Toolbar-style (no indicator box)
+#   Tk::CheckButton.new(text: "Bold", indicatoron: false).pack
+#
+# @note The checkbox automatically updates when its variable changes,
+#   even if changed elsewhere in code.
+#
+# @see Tk::RadioButton for one-of-many selection
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/checkbutton.html Tcl/Tk checkbutton manual
+#
 class Tk::CheckButton<Tk::RadioButton
   include Tk::Generated::Checkbutton
   # @generated:options:start

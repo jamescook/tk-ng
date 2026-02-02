@@ -1,0 +1,20 @@
+title: tk-ng API Documentation
+description: Ruby bindings for Tcl/Tk with modern Ruby support
+url: https://jamescook.github.io/tk-ng
+
+# Collections for API docs
+collections:
+  api:
+    output: true
+    permalink: /api/:path/
+
+# Plugins
+plugins:
+  - jekyll-seo-tag
+
+# Exclude from build
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

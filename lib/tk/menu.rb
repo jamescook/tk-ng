@@ -1,14 +1,10 @@
 # frozen_string_literal: false
-#
-# tk/menu.rb : treat menu and menubutton
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/menu.html
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html
-#
 require 'tk/menuspec'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 
+# @!visibility private
+# Mixin for menu entry configuration methods.
 module TkMenuEntryConfig
   include Tk::ItemOptionDSL::InstanceMethods
 
@@ -27,6 +23,44 @@ module TkMenuEntryConfig
   private :itemconfigure, :itemconfiginfo, :current_itemconfiginfo
 end
 
+# A menu widget for menubars, popup menus, and cascading submenus.
+#
+# == Entry Types
+# - `:command` - executes a callback when clicked
+# - `:checkbutton` - toggleable on/off item
+# - `:radiobutton` - one-of-many selection
+# - `:cascade` - submenu
+# - `:separator` - horizontal divider line
+#
+# @example Menubar
+#   root = TkRoot.new
+#   menubar = Tk::Menu.new(root)
+#   root.menu = menubar
+#
+#   file_menu = Tk::Menu.new(menubar, tearoff: false)
+#   menubar.add(:cascade, menu: file_menu, label: 'File')
+#   file_menu.add(:command, label: 'Open', command: -> { open_file })
+#   file_menu.add(:separator)
+#   file_menu.add(:command, label: 'Exit', command: -> { exit })
+#
+# @example Popup (context) menu
+#   popup = Tk::Menu.new(tearoff: false)
+#   popup.add(:command, label: 'Cut', command: -> { cut })
+#   popup.add(:command, label: 'Copy', command: -> { copy })
+#
+#   widget.bind('Button-3') do |e|
+#     popup.popup(e.x_root, e.y_root)
+#   end
+#
+# @note Menu entries are not separate widgets - the whole menu is one widget.
+#   Entry options cannot be set via the option database.
+#
+# @note The `:tearoff` option (default false) adds a dashed line that lets
+#   users "tear off" the menu into a separate window. Ignored on macOS.
+#
+# @see Tk::Menubutton for a button that displays a menu
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/menu.html Tcl/Tk menu manual
+#
 class Tk::Menu<TkWindow
   include Wm
   include TkMenuEntryConfig
@@ -341,6 +375,28 @@ Tk.__set_loaded_toplevel_aliases__('tk/menu.rb', :Tk, Tk::SysMenu_Apple,
                                    :TkSysMenu_Apple)
 
 
+# A button that displays an associated menu when clicked.
+#
+# Menubuttons are typically used in toolbars or custom menu systems.
+# For standard menubars, attach a {Tk::Menu} directly to a Toplevel instead.
+#
+# @example Menubutton with dropdown
+#   mb = Tk::Menubutton.new(text: "Options", relief: :raised)
+#   menu = Tk::Menu.new(mb, tearoff: false)
+#   menu.add(:command, label: "Option 1")
+#   menu.add(:command, label: "Option 2")
+#   mb.menu = menu
+#   mb.pack
+#
+# @note The `:direction` option controls where the menu appears:
+#   `:below` (default), `:above`, `:left`, `:right`, or `:flush`.
+#
+# @note For modern menubars, prefer attaching a Menu to a Toplevel's
+#   `:menu` option rather than using multiple Menubuttons.
+#
+# @see Tk::Menu for the menu widget
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html Tcl/Tk menubutton manual
+#
 class Tk::Menubutton<Tk::Label
   include Tk::Generated::Menubutton
   # @generated:options:start

@@ -16,6 +16,14 @@ TkPackage.require('img::pixmap')
 
 module Tk
   module Img
+    # Pixmap image format support.
+    #
+    # Provides TkPixmapImage class for working with pixmap images.
+    #
+    # @example Creating a pixmap image
+    #   require 'tkextlib/tkimg/pixmap'
+    #   image = TkPixmapImage.new(file: 'icon.xpm')
+    #   TkLabel.new(image: image).pack
     module PIXMAP
       PACKAGE_NAME = 'img::pixmap'.freeze
       def self.package_name
@@ -33,7 +41,12 @@ module Tk
   end
 end
 
-class TkPixmapImage<TkImage
+# Image class for pixmap format.
+#
+# @example Loading an XPM file
+#   image = TkPixmapImage.new(file: 'icon.xpm')
+#   TkLabel.new(image: image).pack
+class TkPixmapImage < TkImage
   def self.version
     Tk::Img::PIXMAP.version
   end

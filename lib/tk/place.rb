@@ -3,6 +3,70 @@
 # tk/place.rb : control place geometry manager
 #
 
+# Place geometry manager for absolute and relative positioning.
+#
+# Place positions widgets using exact coordinates or relative positions
+# within their container. Unlike pack and grid, place gives you complete
+# control over widget placement.
+#
+# ## Basic Usage
+#
+# Widgets call `.place` with position options:
+#
+#     button.place(x: 100, y: 50)                    # Absolute
+#     button.place(relx: 0.5, rely: 0.5, anchor: :center)  # Centered
+#
+# Or use the module directly:
+#
+#     TkPlace.configure(button, x: 100, y: 50)
+#
+# ## Key Options
+#
+# **Absolute positioning:**
+# - `:x`, `:y` - Pixel coordinates for anchor point
+# - `:width`, `:height` - Fixed size in pixels
+#
+# **Relative positioning (0.0 to 1.0):**
+# - `:relx`, `:rely` - Position as fraction of container (0.5 = center)
+# - `:relwidth`, `:relheight` - Size as fraction of container
+#
+# **Anchor and container:**
+# - `:anchor` - Which point of widget aligns with (x,y): :nw, :center, etc.
+# - `:in` - Container window (defaults to parent)
+# - `:bordermode` - How borders affect placement: :inside, :outside, :ignore
+#
+# ## Combining Absolute and Relative
+#
+# Absolute and relative values are **added together**:
+#
+#     # Position at center minus 50 pixels
+#     widget.place(relx: 0.5, x: -50, rely: 0.5, y: -25)
+#
+#     # Full width minus 10 pixels on each side
+#     widget.place(relwidth: 1.0, width: -20, x: 10)
+#
+# @example Centered widget
+#   label.place(relx: 0.5, rely: 0.5, anchor: :center)
+#
+# @example Bottom-right corner with margin
+#   button.place(relx: 1.0, rely: 1.0, anchor: :se, x: -10, y: -10)
+#
+# @example Fill container with margins
+#   content.place(x: 10, y: 10, relwidth: 1.0, relheight: 1.0,
+#                 width: -20, height: -20)
+#
+# @example Overlay on top of another widget
+#   overlay.place(in: base_widget, relwidth: 1.0, relheight: 1.0)
+#
+# @note **No propagation**: Unlike pack and grid, place does NOT affect
+#   container sizing. You must set container dimensions explicitly.
+#
+# @note **Stacking order**: When placing in a non-parent container, ensure
+#   the widget is higher in stacking order or it may be obscured.
+#
+# @see TkPack For simple stacking layouts
+# @see TkGrid For table-like layouts
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/place.htm Tcl/Tk place manual
 module TkPlace
   include Tk
   extend Tk

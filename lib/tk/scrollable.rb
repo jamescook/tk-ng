@@ -1,9 +1,7 @@
 # frozen_string_literal: false
-#
-# tk/scrollable.rb : module for scrollable widget
-#
 
 module Tk
+  # Modules for scrollable widgets.
   module XScrollable
     def xscrollcommand(cmd=nil, &block)
       cmd ||= block

@@ -4,6 +4,45 @@
 #
 require 'tk/text'
 
+# An image embedded within a Text widget.
+#
+# Embedded images appear inline with text, occupying a single character
+# position in the text index. They move with surrounding text as edits
+# are made.
+#
+# @example Inserting an image
+#   text = TkText.new(root)
+#   photo = TkPhotoImage.new(file: 'icon.png')
+#   img = TkTextImage.new(text, "1.0", image: photo)
+#
+# @example With alignment and padding
+#   img = TkTextImage.new(text, :end,
+#     image: photo,
+#     align: :center,   # top, center, bottom, baseline
+#     padx: 5,
+#     pady: 2
+#   )
+#
+# @example Accessing the image later
+#   img.image           # => TkPhotoImage object
+#   img.image = other   # Change the displayed image
+#   img.mark            # => TkTextMark tracking position
+#
+# ## Options
+#
+# - `:image` - The TkImage to display (required)
+# - `:name` - Custom identifier for this image instance
+# - `:align` - Vertical alignment: :top, :center, :bottom, :baseline
+# - `:padx`, `:pady` - Padding around the image
+#
+# @note Multiple instances of the same TkImage can be embedded in one
+#   Text widget, each with its own position and options.
+#
+# @note Deleting the text range containing the image removes it from display.
+#
+# @see TkTextWindow For embedding widgets instead of images
+# @see TkPhotoImage For creating images
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
 class TkTextImage<TkObject
   include Tk::Text::IndexModMethods
 

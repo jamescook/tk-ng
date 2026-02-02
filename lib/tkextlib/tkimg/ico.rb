@@ -16,6 +16,15 @@ TkPackage.require('img::ico')
 
 module Tk
   module Img
+    # ICO (Windows Icon) image format support for TkPhotoImage.
+    #
+    # @example Loading an ICO image
+    #   require 'tkextlib/tkimg/ico'
+    #   image = TkPhotoImage.new(file: 'app.ico')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as ICO
+    #   image.write('output.ico', format: 'ico')
     module ICO
       PACKAGE_NAME = 'img::ico'.freeze
       def self.package_name

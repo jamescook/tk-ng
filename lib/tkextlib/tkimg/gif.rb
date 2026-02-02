@@ -16,6 +16,18 @@ TkPackage.require('img::gif')
 
 module Tk
   module Img
+    # GIF image format support for TkPhotoImage.
+    #
+    # Adds write support for GIF format. Tk has built-in GIF read support,
+    # but this package enables saving images as GIF.
+    #
+    # @example Loading a GIF image
+    #   require 'tkextlib/tkimg/gif'
+    #   image = TkPhotoImage.new(file: 'animation.gif')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as GIF
+    #   image.write('output.gif', format: 'gif')
     module GIF
       PACKAGE_NAME = 'img::gif'.freeze
       def self.package_name

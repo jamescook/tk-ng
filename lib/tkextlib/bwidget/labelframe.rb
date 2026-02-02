@@ -11,6 +11,26 @@ require 'tkextlib/bwidget/label'
 
 module Tk
   module BWidget
+    # Frame with an attached label on any side.
+    #
+    # LabelFrame creates a container with a label positioned at top,
+    # bottom, left, or right. Used as a building block for ComboBox,
+    # SpinBox, and similar widgets.
+    #
+    # @example Labeled input group
+    #   require 'tkextlib/bwidget'
+    #   lf = Tk::BWidget::LabelFrame.new(root,
+    #     text: 'User Name:',
+    #     side: :left)
+    #   lf.pack(fill: :x, padx: 5, pady: 5)
+    #
+    #   entry = TkEntry.new(lf.get_frame)
+    #   entry.pack(fill: :x, expand: true)
+    #
+    # @example Aligning multiple LabelFrames
+    #   Tk::BWidget::LabelFrame.align(lf1, lf2, lf3)
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/LabelFrame.html
     class LabelFrame < TkWindow
     end
   end

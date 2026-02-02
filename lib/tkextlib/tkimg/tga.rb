@@ -16,6 +16,15 @@ TkPackage.require('img::tga')
 
 module Tk
   module Img
+    # TGA (Truevision Targa) image format support for TkPhotoImage.
+    #
+    # @example Loading a TGA image
+    #   require 'tkextlib/tkimg/tga'
+    #   image = TkPhotoImage.new(file: 'texture.tga')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as TGA
+    #   image.write('output.tga', format: 'tga')
     module TGA
       PACKAGE_NAME = 'img::tga'.freeze
       def self.package_name

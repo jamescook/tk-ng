@@ -3,6 +3,52 @@
 require_relative 'tk/tk_callback_entry'  # TkCallbackEntry
 require_relative 'tk/ractor_support'     # TkRactorSupport
 
+# Core module providing the Tcl/Tk interpreter interface and event loop.
+#
+# TkCore is included by TkObject and provides the fundamental Tcl/Tk
+# operations: running the event loop, scheduling callbacks, invoking
+# Tcl commands, and displaying dialogs.
+#
+# == Event Loop
+#
+# Every Tk application must call Tk.mainloop to process events:
+#
+#   require 'tk'
+#   button = TkButton.new(text: "Hello").pack
+#   Tk.mainloop  # Required! Process events until all windows close
+#
+# == Timers and Deferred Execution
+#
+#   # Run code after a delay (milliseconds)
+#   Tk.after(1000) { puts "One second later" }
+#
+#   # Run code when the event loop is idle
+#   Tk.after_idle { label.text = "Updated" }
+#
+# == Standard Dialogs
+#
+#   # File dialogs
+#   path = Tk.getOpenFile(filetypes: [["Text", "*.txt"]])
+#   path = Tk.getSaveFile(defaultextension: ".txt")
+#
+#   # Message box
+#   result = Tk.messageBox(message: "Continue?", type: :yesno)
+#
+#   # Color picker
+#   color = Tk.chooseColor(initialcolor: "#ff0000")
+#
+# == Threading
+#
+# Tk operations must occur on the main thread. For background work:
+#
+#   Thread.new do
+#     result = expensive_calculation
+#     TkCore.on_main_thread { label.text = result }
+#   end
+#
+# @see Tk for the main module interface
+# @see TkObject for widget configuration
+#
 module TkCore
   include TkComm
   extend TkComm
@@ -501,6 +547,26 @@ module TkCore
     bool(tk_call('auto_load', tk_cmd))
   end
 
+  # Schedule code to run after a delay.
+  #
+  # @param ms [Integer] delay in milliseconds
+  # @param cmd [Proc, nil] code to run (or provide a block)
+  # @yield code to run after the delay
+  # @return [String] an ID that can be passed to after_cancel
+  #
+  # @example Flash a label after 2 seconds
+  #   Tk.after(2000) { label.configure(bg: "red") }
+  #
+  # @example Animation loop
+  #   def animate
+  #     update_position
+  #     Tk.after(16) { animate }  # ~60fps
+  #   end
+  #
+  # @see #after_idle for running when idle
+  # @see #after_cancel to cancel a scheduled callback
+  # @see https://www.tcl.tk/man/tcl/TclCmd/after.html
+  #
   def after(ms, cmd=nil, &block)
     cmd ||= block
     cmdid = install_cmd(proc{ret = cmd.call;uninstall_cmd(cmdid); ret})
@@ -509,6 +575,21 @@ module TkCore
     after_id
   end
 
+  # Schedule code to run when the event loop is idle.
+  #
+  # The callback runs after all pending events are processed. Useful for
+  # deferring work that shouldn't block the UI.
+  #
+  # @param cmd [Proc, nil] code to run (or provide a block)
+  # @yield code to run when idle
+  # @return [String] an ID that can be passed to after_cancel
+  #
+  # @example Defer expensive update
+  #   Tk.after_idle { text_widget.highlight_syntax }
+  #
+  # @see #after for delayed execution
+  # @see https://www.tcl.tk/man/tcl/TclCmd/after.html
+  #
   def after_idle(cmd=nil, &block)
     cmd ||= block
     cmdid = install_cmd(proc{ret = cmd.call;uninstall_cmd(cmdid); ret})
@@ -517,6 +598,16 @@ module TkCore
     after_id
   end
 
+  # Cancel a previously scheduled after or after_idle callback.
+  #
+  # @param afterId [String] the ID returned by after or after_idle
+  # @return [String] the cancelled ID
+  #
+  # @example Cancel a repeating timer
+  #   @timer_id = Tk.after(1000) { tick }
+  #   # later...
+  #   Tk.after_cancel(@timer_id)
+  #
   def after_cancel(afterId)
     tk_call_without_enc('after','cancel',afterId)
     if (cmdid = afterId.instance_variable_get('@cmdid'))
@@ -526,6 +617,18 @@ module TkCore
     afterId
   end
 
+  # Returns the windowing system in use.
+  #
+  # @return [String] "x11" (Linux/Unix), "win32" (Windows), or "aqua" (macOS)
+  #
+  # @example Platform-specific behavior
+  #   case Tk.windowingsystem
+  #   when "aqua"
+  #     # macOS-specific code
+  #   when "win32"
+  #     # Windows-specific code
+  #   end
+  #
   def windowingsystem
     tk_call_without_enc('tk', 'windowingsystem')
   end
@@ -726,25 +829,123 @@ module TkCore
     nil
   end
 
+  # Display a message box dialog.
+  #
+  # @param keys [Hash] dialog options
+  # @option keys :message [String] main message text
+  # @option keys :title [String] dialog title
+  # @option keys :type [Symbol] button set - :ok, :okcancel, :yesno, :yesnocancel, :retrycancel, :abortretryignore
+  # @option keys :icon [Symbol] icon - :error, :info, :question, :warning
+  # @option keys :default [Symbol] default button - :ok, :cancel, :yes, :no, etc.
+  # @option keys :parent [TkWindow] parent window for positioning
+  # @return [String] the button clicked ("ok", "cancel", "yes", "no", etc.)
+  #
+  # @example Simple alert
+  #   Tk.messageBox(message: "Operation complete!", icon: :info)
+  #
+  # @example Yes/No confirmation
+  #   if Tk.messageBox(message: "Delete file?", type: :yesno) == "yes"
+  #     delete_file
+  #   end
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/messageBox.html
+  #
   def messageBox(keys)
     tk_call('tk_messageBox', *hash_kv(keys))
   end
 
+  # Display a file open dialog.
+  #
+  # @param keys [Hash] dialog options
+  # @option keys :title [String] dialog title
+  # @option keys :initialdir [String] starting directory
+  # @option keys :initialfile [String] default filename
+  # @option keys :filetypes [Array] file type filters, e.g., [["Text", "*.txt"], ["All", "*"]]
+  # @option keys :parent [TkWindow] parent window
+  # @return [String] selected file path, or empty string if cancelled
+  #
+  # @example
+  #   path = Tk.getOpenFile(
+  #     title: "Open Document",
+  #     filetypes: [["Ruby", "*.rb"], ["All Files", "*"]]
+  #   )
+  #   File.read(path) unless path.empty?
+  #
+  # @see #getMultipleOpenFile to select multiple files
+  # @see https://www.tcl.tk/man/tcl/TkCmd/getOpenFile.html
+  #
   def getOpenFile(keys = nil)
     tk_call('tk_getOpenFile', *hash_kv(keys))
   end
+
+  # Display a file open dialog allowing multiple file selection.
+  #
+  # @param keys [Hash] same options as getOpenFile
+  # @return [Array<String>] array of selected file paths (empty if cancelled)
+  #
+  # @see #getOpenFile for single file selection
+  #
   def getMultipleOpenFile(keys = nil)
     simplelist(tk_call('tk_getOpenFile', '-multiple', '1', *hash_kv(keys)))
   end
 
+  # Display a file save dialog.
+  #
+  # @param keys [Hash] dialog options
+  # @option keys :title [String] dialog title
+  # @option keys :initialdir [String] starting directory
+  # @option keys :initialfile [String] default filename
+  # @option keys :defaultextension [String] extension added if user doesn't provide one
+  # @option keys :filetypes [Array] file type filters
+  # @option keys :parent [TkWindow] parent window
+  # @return [String] selected file path, or empty string if cancelled
+  #
+  # @example
+  #   path = Tk.getSaveFile(
+  #     title: "Save As",
+  #     defaultextension: ".txt"
+  #   )
+  #   File.write(path, content) unless path.empty?
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/getSaveFile.html
+  #
   def getSaveFile(keys = nil)
     tk_call('tk_getSaveFile', *hash_kv(keys))
   end
 
+  # Display a color chooser dialog.
+  #
+  # @param keys [Hash] dialog options
+  # @option keys :title [String] dialog title
+  # @option keys :initialcolor [String] starting color (e.g., "#ff0000", "red")
+  # @option keys :parent [TkWindow] parent window
+  # @return [String] selected color in "#RRGGBB" format, or empty string if cancelled
+  #
+  # @example
+  #   color = Tk.chooseColor(initialcolor: button[:bg])
+  #   button.configure(bg: color) unless color.empty?
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/chooseColor.html
+  #
   def chooseColor(keys = nil)
     tk_call('tk_chooseColor', *hash_kv(keys))
   end
 
+  # Display a directory chooser dialog.
+  #
+  # @param keys [Hash] dialog options
+  # @option keys :title [String] dialog title
+  # @option keys :initialdir [String] starting directory
+  # @option keys :mustexist [Boolean] if true, only existing directories can be selected
+  # @option keys :parent [TkWindow] parent window
+  # @return [String] selected directory path, or empty string if cancelled
+  #
+  # @example
+  #   dir = Tk.chooseDirectory(title: "Select Output Folder")
+  #   process_directory(dir) unless dir.empty?
+  #
+  # @see https://www.tcl.tk/man/tcl/TkCmd/chooseDirectory.html
+  #
   def chooseDirectory(keys = nil)
     tk_call('tk_chooseDirectory', *hash_kv(keys))
   end
@@ -832,14 +1033,6 @@ module TkCore
     #args.compact!
     #args.flatten!
     args = _conv_args([], enc_mode, *args)
-    # DEBUG: log configure calls with #BWidget paths
-    if args.any? { |a| a.to_s.include?('#BWidget') }
-      File.open('/tmp/tkcore_debug.log', 'a') do |f|
-        f.puts "=== _tk_call_core at #{Time.now} ==="
-        f.puts "  args: #{args.inspect}"
-        f.puts "  caller: #{caller.take(8).join("\n    ")}"
-      end
-    end
     puts 'invoke args => ' + args.inspect if $DEBUG
     ### print "=> ", args.join(" ").inspect, "\n" if $DEBUG
     begin
@@ -866,14 +1059,35 @@ module TkCore
   end
   private :_tk_call_core
 
+  # Execute a Tcl command with automatic argument quoting.
+  #
+  # This is the primary low-level interface for calling Tcl/Tk commands.
+  # Arguments are automatically escaped/quoted for safe Tcl evaluation.
+  # Prefer this over {#ip_eval} for most use cases.
+  #
+  # @param args [Array] the Tcl command and arguments
+  # @return [String] the Tcl result
+  #
+  # @example Create a button
+  #   tk_call('button', '.b', '-text', 'Click me')
+  #
+  # @example Query widget info
+  #   tk_call('winfo', 'width', '.frame')
+  #
+  # @see TkObject#tk_send for widget-scoped commands
+  # @see #ip_eval for raw Tcl script evaluation
+  #
   def tk_call(*args)
     _tk_call_core(nil, *args)
   end
 
+  # Like {#tk_call} but skips encoding conversion on arguments.
+  # Use when arguments are already in the correct encoding.
   def tk_call_without_enc(*args)
     _tk_call_core(false, *args)
   end
 
+  # Like {#tk_call} but forces encoding conversion on arguments.
   def tk_call_with_enc(*args)
     _tk_call_core(true, *args)
   end

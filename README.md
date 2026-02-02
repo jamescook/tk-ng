@@ -325,6 +325,6 @@ Contributions are welcome on GitHub at https://github.com/jamescook/tk-ng.
 
 ## License
 
-The gem is available as open source under the terms of the [Ruby license](LICENSE.txt).
+The gem is available as open source under the terms of the [Ruby license](LICENSE) (BSD-2-Clause or Ruby License).
 
 This is a fork of [ruby/tk](https://github.com/ruby/tk). Original authors: SHIBATA Hiroshi, Nobuyoshi Nakada, Jeremy Evans.

@@ -16,6 +16,17 @@ TkPackage.require('img::ps')
 
 module Tk
   module Img
+    # PostScript/PDF image format support for TkPhotoImage (read-only).
+    #
+    # Requires Ghostscript to be installed for rendering.
+    #
+    # @example Loading a PostScript file
+    #   require 'tkextlib/tkimg/ps'
+    #   image = TkPhotoImage.new(file: 'document.ps')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Loading a PDF file
+    #   image = TkPhotoImage.new(file: 'document.pdf')
     module PS
       PACKAGE_NAME = 'img::ps'.freeze
       def self.package_name

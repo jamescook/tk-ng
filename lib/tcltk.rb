@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# @deprecated Use `require 'tk'` instead.
 # tcltk.rb - Legacy low-level Tcl/Tk API (REMOVED)
 #
 # This file previously contained a direct, low-level wrapper around tcltklib

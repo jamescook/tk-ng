@@ -1,11 +1,33 @@
 # frozen_string_literal: false
-#
-# tk/scrollbar.rb : treat scrollbar widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/scrollbar.html
-#
 require 'tk/option_dsl'
 
+# A scrollbar for scrolling other widgets.
+#
+# Scrollbars are typically paired with Text, Listbox, or Canvas widgets.
+# The scrollbar and widget communicate bidirectionally:
+# - Scrollbar tells widget to scroll (via widget's xview/yview)
+# - Widget tells scrollbar its visible range (via scrollbar's set)
+#
+# @example Scrollbar with Text widget (manual wiring)
+#   frame = Tk::Frame.new.pack(fill: :both, expand: true)
+#   text = Tk::Text.new(frame).pack(side: :left, fill: :both, expand: true)
+#   scrollbar = Tk::Scrollbar.new(frame, orient: :vertical)
+#   scrollbar.pack(side: :right, fill: :y)
+#
+#   # Wire them together
+#   text.yscrollcommand = proc { |*args| scrollbar.set(*args) }
+#   scrollbar.command = proc { |*args| text.yview(*args) }
+#
+# @example Using helper method (if widget supports it)
+#   text = Tk::Text.new
+#   scrollbar = Tk::Scrollbar.new
+#   text.yscrollbar(scrollbar)  # automatic wiring
+#
+# @note The `:jump` option controls drag behavior. When true, the view
+#   updates only on mouse release (smoother for large documents).
+#
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/scrollbar.html Tcl/Tk scrollbar manual
+#
 class Tk::Scrollbar<TkWindow
   include Tk::Generated::Scrollbar
   # @generated:options:start

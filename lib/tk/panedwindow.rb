@@ -1,11 +1,33 @@
 # frozen_string_literal: false
-#
-# tk/panedwindow.rb : treat panedwindow
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/panedwindow.html
-#
 require 'tk/option_dsl'
 
+# A container with resizable panes separated by draggable sashes.
+#
+# Panes can be arranged horizontally or vertically. Users can drag
+# the sash between panes to resize them.
+#
+# @example Horizontal split
+#   paned = Tk::PanedWindow.new(orient: :horizontal)
+#   left = Tk::Frame.new(paned, width: 200, height: 300)
+#   right = Tk::Frame.new(paned, width: 400, height: 300)
+#   paned.add(left, right)
+#   paned.pack(fill: :both, expand: true)
+#
+# @example Vertical split with weights
+#   paned = Tk::PanedWindow.new(orient: :vertical)
+#   top = Tk::Text.new(paned)
+#   bottom = Tk::Text.new(paned)
+#   paned.add(top, minsize: 100)
+#   paned.add(bottom, minsize: 50)
+#   paned.pack(fill: :both, expand: true)
+#
+# @note Add panes only after their geometry is finalized. Panes don't
+#   auto-resize once mapped.
+#
+# @note Extra space from window resizing goes to the last (rightmost/bottom) pane.
+#
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/panedwindow.html Tcl/Tk panedwindow manual
+#
 class Tk::PanedWindow<TkWindow
   include Tk::Generated::Panedwindow
   # @generated:options:start

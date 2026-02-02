@@ -1,0 +1,375 @@
+/* Custom styles for tk-ng docs */
+
+/* Sidebar */
+.sidebar {
+  height: 100vh;
+  border-right: 1px solid #dee2e6;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+}
+
+.sidebar-header h5 {
+  color: #333;
+}
+
+/* Footer */
+.site-footer {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.85rem;
+  color: #6c757d;
+  background: #fff;
+  border-top: 1px solid #dee2e6;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.site-footer .github-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.6;
+}
+
+.site-footer .github-icon:hover {
+  opacity: 1;
+}
+
+/* Main content padding for fixed footer */
+main {
+  padding-bottom: 4rem;
+}
+
+/* Sticky page title */
+.page-title {
+  position: sticky;
+  top: 0;
+  background: #fff;
+  padding: 0.75rem 0;
+  margin: 0 0 0.75rem 0;
+  border-bottom: 1px solid #dee2e6;
+  z-index: 100;
+}
+
+/* Offset anchor scroll for sticky header */
+[id] {
+  scroll-margin-top: 4rem;
+}
+
+/* Page sub-navigation */
+.page-subnav {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+.page-subnav a {
+  text-decoration: none;
+  color: var(--bs-secondary);
+}
+
+.page-subnav a::before {
+  content: "↳ ";
+  opacity: 0.5;
+}
+
+.page-subnav a:hover {
+  color: var(--bs-primary);
+}
+
+/* Type badges */
+.type-badge {
+  display: inline-block;
+  font-size: 0.5em;
+  font-weight: 500;
+  padding: 0.2em 0.6em;
+  border-radius: 4px;
+  vertical-align: middle;
+  margin-left: 0.5em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.type-badge.type-class {
+  background: #e6f3ff;
+  color: #0969da;
+}
+
+.type-badge.type-module {
+  background: #dafbe1;
+  color: #1a7f37;
+}
+
+/* Method cards */
+.method-card {
+  background: #fff;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  border: 1px solid #dee2e6;
+}
+
+.method-card h3 {
+  margin-top: 0;
+  font-size: 1.1rem;
+}
+
+.method-card.method-class {
+  border-left: 3px solid var(--bs-primary);
+}
+
+.method-card.method-instance {
+  border-left: 3px solid var(--bs-success);
+}
+
+/* Jump to top link */
+.jump-top {
+  font-size: 0.6em;
+  color: var(--bs-secondary);
+  text-decoration: none;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  opacity: 0.6;
+}
+
+.jump-top:hover {
+  color: var(--bs-primary);
+  opacity: 1;
+}
+
+/* Method group headings */
+.method-group {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bs-secondary);
+  margin: 1.5rem 0 0.75rem 0;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Search */
+.search-container {
+  position: relative;
+  overflow: visible;
+}
+
+.sidebar .position-sticky {
+  overflow: visible;
+}
+
+.search-results {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 300px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 9999;
+}
+
+.search-result-item {
+  display: block;
+  padding: 0.5rem 0.75rem;
+  color: #333;
+  text-decoration: none;
+  border-bottom: 1px solid #eee;
+  font-size: 0.85rem;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: #f8f9fa;
+}
+
+.search-result-item .badge {
+  font-size: 0.65rem;
+  margin-right: 0.25rem;
+}
+
+.search-snippet {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.15rem;
+  margin-left: 1.5rem;
+}
+
+/* Nested navigation */
+.nav-nested {
+  padding-left: 1rem;
+  font-size: 0.9em;
+}
+
+.nav-nested .nav-link {
+  padding: 0.25rem 0.5rem;
+}
+
+.nav-chevron {
+  color: var(--bs-secondary);
+  margin-right: 0.25rem;
+  font-size: 0.8em;
+}
+
+/* Nav breadcrumb tracker */
+.nav-breadcrumb {
+  position: sticky;
+  top: 0;
+  background: var(--bs-light);
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--bs-secondary);
+  z-index: 10;
+  display: none;
+}
+
+.nav-breadcrumb.visible {
+  display: block;
+}
+
+.nav-breadcrumb a {
+  color: var(--bs-secondary);
+  text-decoration: none;
+}
+
+.nav-breadcrumb a:hover {
+  color: var(--bs-primary);
+}
+
+
+/* Nested children section */
+.children-section {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--bs-light);
+}
+
+.children-section h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.children-list {
+  column-count: 3;
+  column-gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.children-list li {
+  break-inside: avoid;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+}
+
+.children-list .badge {
+  font-size: 0.6rem;
+  padding: 0.2em 0.4em;
+  vertical-align: middle;
+}
+
+.children-list a {
+  text-decoration: none;
+}
+
+.children-list a:hover {
+  text-decoration: underline;
+}
+
+/* Inherited methods section */
+.inherited-section {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 6px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: var(--bs-light);
+}
+
+.inherited-section h6 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.inherited-source {
+  margin-bottom: 0.75rem;
+}
+
+.inherited-source:last-child {
+  margin-bottom: 0;
+}
+
+.inherited-from {
+  font-size: 0.75rem;
+  color: var(--bs-secondary);
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.inherited-list {
+  column-count: 3;
+  column-gap: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.inherited-list li {
+  break-inside: avoid;
+  padding: 0.1rem 0;
+  font-size: 0.8rem;
+  font-family: var(--bs-font-monospace);
+}
+
+.inherited-list a {
+  text-decoration: none;
+}
+
+.inherited-list a:hover {
+  text-decoration: underline;
+}
+
+.inherited-class-method {
+  color: var(--bs-primary);
+}
+
+.inherited-instance-method {
+  color: var(--bs-success);
+}
+
+/* Code blocks */
+pre {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+code {
+  font-size: 0.9em;
+}

@@ -34,10 +34,15 @@ class TestBusy < Minitest::Test
     # current returns widget objects
     errors << "current should include frame" unless current.any? { |w| w.path == frame.path }
 
-    # --- Configure cursor ---
+    # --- Configure cursor (generic configure/cget) ---
     Tk::Busy.configure(frame, cursor: 'watch')
     cursor_val = Tk::Busy.cget(frame, :cursor)
     errors << "cursor should be watch, got #{cursor_val}" unless cursor_val.to_s.include?('watch')
+
+    # --- Explicit cursor accessors ---
+    Tk::Busy.set_cursor(frame, 'crosshair')
+    cursor_val = Tk::Busy.cursor(frame)
+    errors << "explicit cursor accessor should return crosshair, got #{cursor_val}" unless cursor_val.to_s.include?('crosshair')
 
     # --- Configinfo ---
     info = Tk::Busy.configinfo(frame)

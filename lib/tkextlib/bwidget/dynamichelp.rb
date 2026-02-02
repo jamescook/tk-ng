@@ -9,6 +9,26 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Tooltip and contextual help system for widgets.
+    #
+    # DynamicHelp provides balloon tooltips and status bar help text.
+    # Works with any Tk or BWidget widget, canvas items, and menus.
+    #
+    # @example Adding balloon tooltip
+    #   require 'tkextlib/bwidget'
+    #   btn = TkButton.new(root, text: 'Save')
+    #   Tk::BWidget::DynamicHelp.add(btn,
+    #     type: :balloon,
+    #     text: 'Save the current document')
+    #
+    # @example Status bar help
+    #   status_var = TkVariable.new
+    #   Tk::BWidget::DynamicHelp.add(btn,
+    #     type: :variable,
+    #     variable: status_var,
+    #     text: 'Click to save')
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/DynamicHelp.html
     module DynamicHelp
     end
   end

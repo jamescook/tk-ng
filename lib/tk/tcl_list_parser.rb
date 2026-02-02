@@ -1,24 +1,21 @@
 # frozen_string_literal: true
 
-#
-# Pure Ruby Tcl list parser
-#
-# Parses Tcl list strings into Ruby arrays using byte-level operations.
-# Optimized for YJIT - benchmarks show 1.22x faster than C FFI with YJIT enabled.
-#
-# Tcl list format:
-# - Elements separated by whitespace (space, tab, newline)
-# - Braces {like this} group elements containing whitespace or special chars
-# - Nested braces are supported: {outer {inner} more}
-# - Backslash escapes: \{ \} \\ etc.
-#
-# Examples:
-#   "a b c"              => ["a", "b", "c"]
-#   "{hello world} foo"  => ["hello world", "foo"]
-#   "{a {b c} d}"        => ["a {b c} d"]
-#
-
 module Tk
+  # Pure Ruby Tcl list parser
+  #
+  # Parses Tcl list strings into Ruby arrays using byte-level operations.
+  # Optimized for YJIT - benchmarks show 1.22x faster than C FFI with YJIT enabled.
+  #
+  # Tcl list format:
+  # - Elements separated by whitespace (space, tab, newline)
+  # - Braces {like this} group elements containing whitespace or special chars
+  # - Nested braces are supported: {outer {inner} more}
+  # - Backslash escapes: \{ \} \\ etc.
+  #
+  # @example Parsing
+  #   "a b c"              => ["a", "b", "c"]
+  #   "{hello world} foo"  => ["hello world", "foo"]
+  #   "{a {b c} d}"        => ["a {b c} d"]
   module TclListParser
     module_function
 

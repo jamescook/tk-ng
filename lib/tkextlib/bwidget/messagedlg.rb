@@ -10,6 +10,36 @@ require 'tkextlib/bwidget/dialog.rb'
 
 module Tk
   module BWidget
+    # Simple message dialog with predefined button sets.
+    #
+    # MessageDlg displays a message with icon and standard button
+    # configurations. Returns the index of the pressed button.
+    #
+    # @example Information message
+    #   require 'tkextlib/bwidget'
+    #   dlg = Tk::BWidget::MessageDlg.new(
+    #     type: :ok,
+    #     icon: :info,
+    #     title: 'Success',
+    #     message: 'Operation completed.')
+    #   dlg.create
+    #
+    # @example Yes/No confirmation
+    #   dlg = Tk::BWidget::MessageDlg.new(
+    #     type: :yesno,
+    #     icon: :question,
+    #     title: 'Confirm',
+    #     message: 'Delete this file?')
+    #   result = dlg.create  # 0=Yes, 1=No, nil=destroyed
+    #
+    # @example Error message
+    #   dlg = Tk::BWidget::MessageDlg.new(
+    #     type: :ok,
+    #     icon: :error,
+    #     message: 'File not found.')
+    #   dlg.create
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/MessageDlg.html
     class MessageDlg < TkWindow
     end
   end

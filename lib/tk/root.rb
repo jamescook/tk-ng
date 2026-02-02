@@ -8,6 +8,44 @@ require 'tk/wm'
 require 'tk/menuspec'
 require 'tk/option_dsl'
 
+# The root window - the main application window for a Tk application.
+#
+# Every Tk application has exactly one root window (path "."). This is
+# automatically created when the Tk interpreter starts. You access it
+# via `Tk::Root.new` which returns the existing root (creating only once).
+#
+# The root window is a toplevel window with window manager integration
+# for title, geometry, iconification, and other platform features.
+#
+# @example Basic application structure
+#   root = Tk::Root.new(title: "My App", geometry: "800x600")
+#   # Add widgets to root...
+#   Tk.mainloop
+#
+# @example Setting window properties
+#   root = Tk::Root.new
+#   root.title = "My Application"
+#   root.geometry = "640x480+100+100"  # size + position
+#   root.minsize(320, 240)
+#   root.resizable(true, false)  # width resizable, not height
+#
+# @example Using window manager commands
+#   root.iconify       # Minimize to taskbar/dock
+#   root.deiconify     # Restore from minimized
+#   root.withdraw      # Hide completely
+#   root.state         # => "normal", "iconic", "withdrawn", "zoomed"
+#
+# @note **Window manager quirks**: Changes to window properties may not take
+#   effect immediately on all platforms. If a property change seems ignored,
+#   try withdrawing and then deiconifying the window.
+#
+# @note **Platform differences**: `deiconify` on Windows also raises and
+#   focuses the window. Some attributes (like transparency, fullscreen) have
+#   platform-specific behavior via `wm attributes`.
+#
+# @see Wm Window manager mixin with iconify, deiconify, geometry, etc.
+# @see TkToplevel For additional toplevel windows
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/wm.htm Tcl/Tk wm manual
 class Tk::Root<TkWindow
   include Wm
   include TkMenuSpec
@@ -145,6 +183,12 @@ class Tk::Root<TkWindow
     "."
   end
 
+  # Adds a menu to the root window's menu bar.
+  # @param menu_info [Array] Menu specification (see TkMenuSpec)
+  # @param tearoff [Boolean, Hash] Enable tearoff menus, or options hash
+  # @param opts [Hash, nil] Default options for all cascade menus
+  # @return [TkMenu] The created menu
+  # @see TkMenuSpec For menu specification format
   def add_menu(menu_info, tearoff=false, opts=nil)
     # See tk/menuspec.rb for menu_info.
     # opts is a hash of default configs for all of cascade menus.
@@ -156,6 +200,12 @@ class Tk::Root<TkWindow
     _create_menubutton(self, menu_info, tearoff, opts)
   end
 
+  # Creates a complete menu bar from specifications.
+  # @param menu_spec [Array<Array>] Array of menu specifications
+  # @param tearoff [Boolean, Hash] Enable tearoff menus, or options hash
+  # @param opts [Hash, nil] Default options for all menus
+  # @return [TkMenu] The menu bar
+  # @see TkMenuSpec For menu specification format
   def add_menubar(menu_spec, tearoff=false, opts=nil)
     # See tk/menuspec.rb for menu_spec.
     # opts is a hash of default configs for all of cascade menus.
@@ -164,8 +214,16 @@ class Tk::Root<TkWindow
     self.menu
   end
 
+  # Destroys the root window and exits the Tk application.
+  # @return [void]
+  # @note This effectively ends your Tk application.
   def Root.destroy
+    root = TkCore::INTERP.tk_windows['.']
+    return if root && root.destroyed?
+    root.instance_variable_set(:@destroyed, true) if root
     TkCore::INTERP._invoke('destroy', '.')
+  rescue
+    # Suppress errors during interpreter shutdown
   end
 end
 

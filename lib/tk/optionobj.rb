@@ -1,16 +1,16 @@
 # frozen_string_literal: false
-#
-# tk/optionobj.rb : control options for a group of widgets
-#
-#  NOTE: If you want to use key-only option (no value),
-#        use Tk::None for the value of the key-only option.
-#
-#        e.g. hash_kv({'aaa'=>1, 'bbb'=>Tk::None, 'ccc'=>3})
-#                 => ["-aaa", 1, "-bbb", "-ccc", 3]
-#
+
 require 'tk'
 
 module Tk
+  # Control options for a group of widgets.
+  #
+  # NOTE: If you want to use key-only option (no value),
+  # use Tk::None for the value of the key-only option.
+  #
+  # @example
+  #   hash_kv({'aaa'=>1, 'bbb'=>Tk::None, 'ccc'=>3})
+  #   #=> ["-aaa", 1, "-bbb", "-ccc", 3]
   class OptionObj < Hash
     include TkUtil
 

@@ -1,0 +1,58 @@
+PATH
+  remote: .
+  specs:
+    yard-markdown (0.5.0)
+      csv
+      yard
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    csv (3.3.5)
+    date (3.5.1)
+    erb (6.0.1)
+    minitest (5.27.0)
+    ostruct (0.6.3)
+    psych (5.3.1)
+      date
+      stringio
+    rake (13.3.1)
+    rdoc (7.1.0)
+      erb
+      psych (>= 4.0.0)
+      tsort
+    redcarpet (3.6.1)
+    stringio (3.2.0)
+    tsort (0.2.0)
+    yard (0.9.38)
+
+PLATFORMS
+  arm64-darwin-25
+  ruby
+
+DEPENDENCIES
+  minitest (~> 5.0)
+  ostruct
+  rake (~> 13.0)
+  rdoc
+  redcarpet
+  yard (>= 0.9.37)
+  yard-markdown!
+
+CHECKSUMS
+  csv (3.3.5) sha256=6e5134ac3383ef728b7f02725d9872934f523cb40b961479f69cf3afa6c8e73f
+  date (3.5.1)
+  erb (6.0.1)
+  minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
+  ostruct (0.6.3) sha256=95a2ed4a4bd1d190784e666b47b2d3f078e4a9efda2fccf18f84ddc6538ed912
+  psych (5.3.1)
+  rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
+  rdoc (7.1.0)
+  redcarpet (3.6.1)
+  stringio (3.2.0)
+  tsort (0.2.0)
+  yard (0.9.38) sha256=721fb82afb10532aa49860655f6cc2eaa7130889df291b052e1e6b268283010f
+  yard-markdown (0.5.0)
+
+BUNDLED WITH
+  4.0.3

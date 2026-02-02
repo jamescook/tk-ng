@@ -1,11 +1,32 @@
 # frozen_string_literal: false
-#
-# tk/scale.rb : treat scale widget
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/scale.html
-#
 require 'tk/option_dsl'
 
+# A slider widget for selecting a numeric value from a range.
+#
+# @example Basic scale
+#   volume = TkVariable.new(50)
+#   Tk::Scale.new(
+#     from: 0,
+#     to: 100,
+#     variable: volume,
+#     orient: :horizontal,
+#     label: "Volume"
+#   ).pack
+#
+# @example Scale with callback
+#   Tk::Scale.new(
+#     from: 0.0,
+#     to: 1.0,
+#     resolution: 0.1,
+#     command: ->(val) { puts "Value: #{val}" }
+#   ).pack
+#
+# @note The `:resolution` option controls value rounding. Default is 1
+#   (integers only). Set to 0.1 for one decimal place, or a negative
+#   value to disable rounding entirely.
+#
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/scale.html Tcl/Tk scale manual
+#
 class Tk::Scale<TkWindow
   include Tk::Generated::Scale
   # @generated:options:start

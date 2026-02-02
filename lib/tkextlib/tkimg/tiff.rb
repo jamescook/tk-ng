@@ -16,6 +16,15 @@ TkPackage.require('img::tiff')
 
 module Tk
   module Img
+    # TIFF image format support for TkPhotoImage.
+    #
+    # @example Loading a TIFF image
+    #   require 'tkextlib/tkimg/tiff'
+    #   image = TkPhotoImage.new(file: 'document.tiff')
+    #   TkLabel.new(image: image).pack
+    #
+    # @example Saving as TIFF
+    #   image.write('output.tiff', format: 'tiff')
     module TIFF
       PACKAGE_NAME = 'img::tiff'.freeze
       def self.package_name

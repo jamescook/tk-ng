@@ -55,6 +55,40 @@ module TkTextTagConfig
   private :itemconfigure, :itemconfiginfo, :current_itemconfiginfo
 end
 
+# A multi-line text editor widget.
+#
+# Text widgets support styled text, embedded images/widgets, and undo/redo.
+# Use {Tk::Entry} for single-line input.
+#
+# == Index Format
+# Positions use `line.char` format where lines start at 1, chars at 0.
+# - `"1.0"` - first character of first line
+# - `"end"` - after the last character
+# - `"insert"` - current cursor position
+# - `"current"` - character under mouse
+# - `"@x,y"` - character at pixel coordinates
+#
+# @example Basic text editor
+#   text = Tk::Text.new(width: 80, height: 24)
+#   text.pack(fill: :both, expand: true)
+#   text.insert('end', "Hello, World!")
+#
+# @example Get and set content
+#   text.insert('end', "Line 1\nLine 2\n")
+#   content = text.get('1.0', 'end')   # get all text
+#   text.delete('1.0', 'end')          # clear all
+#
+# @example Using tags for styling
+#   text.insert('end', "Important", 'highlight')
+#   text.tag_configure('highlight', foreground: 'red', font: 'bold')
+#
+# @note Text widgets always have a trailing newline that cannot be deleted.
+#
+# @see Tk::Entry for single-line input
+# @see TkTextMark for cursor/position marks
+# @see TkTextTag for text styling
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/text.html Tcl/Tk text manual
+#
 class Tk::Text<TkTextWin
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -668,6 +702,7 @@ class Tk::Text<TkTextWin
     self
   end
 
+  # @deprecated Use {#see} instead. xview never had -pickplace in Tcl.
   def xview_pickplace(index)
     # Note: xview never had -pickplace in any Tcl version (only yview did).
     # This method exists for API compatibility - it uses 'see' which handles
@@ -678,6 +713,7 @@ class Tk::Text<TkTextWin
     self
   end
 
+  # @deprecated Use {#see} instead. Removed in Tcl 9.0.
   def yview_pickplace(index)
     if Tk::TCL_MAJOR_VERSION >= 9
       Tk::Warnings.warn_once(:pickplace,

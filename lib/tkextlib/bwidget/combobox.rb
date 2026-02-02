@@ -12,6 +12,30 @@ require 'tkextlib/bwidget/spinbox'
 
 module Tk
   module BWidget
+    # Dropdown selection widget combining entry and listbox.
+    #
+    # ComboBox allows users to select from a predefined list of values
+    # or (when editable) type custom values. Supports auto-completion
+    # and auto-posting as the user types.
+    #
+    # @example Basic dropdown selection
+    #   require 'tkextlib/bwidget'
+    #   combo = Tk::BWidget::ComboBox.new(root,
+    #     values: ['Red', 'Green', 'Blue'],
+    #     editable: false)
+    #   combo.pack
+    #
+    # @example Editable with auto-complete
+    #   combo = Tk::BWidget::ComboBox.new(root,
+    #     values: ['Apple', 'Apricot', 'Banana', 'Cherry'],
+    #     editable: true,
+    #     autocomplete: true)
+    #
+    # @example Getting the selected value
+    #   value = combo.get
+    #   index = combo.getvalue  # -1 if not in list
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/ComboBox.html
     class ComboBox < Tk::BWidget::SpinBox
     end
   end

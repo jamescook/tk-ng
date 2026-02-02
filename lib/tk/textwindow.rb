@@ -4,6 +4,48 @@
 #
 require 'tk/text'
 
+# A widget embedded within a Text widget.
+#
+# Embedded windows appear inline with text, allowing buttons, entries,
+# or any widget to be placed within flowing text content. They occupy
+# a single character position and move with surrounding text.
+#
+# @example Inserting a button
+#   text = TkText.new(root)
+#   text.insert(:end, "Click here: ")
+#   btn = TkButton.new(text, text: "OK") { puts "Clicked!" }
+#   TkTextWindow.new(text, :end, window: btn)
+#   text.insert(:end, " to continue.")
+#
+# @example Lazy creation with :create option
+#   # Widget is only created when needed (useful for peer widgets)
+#   TkTextWindow.new(text, "1.0",
+#     create: proc { TkButton.new(text, text: "Generated") }
+#   )
+#
+# @example With alignment
+#   TkTextWindow.new(text, :end,
+#     window: my_entry,
+#     align: :center,  # top, center, bottom, baseline
+#     stretch: true,   # Expand vertically if line is taller
+#     padx: 5
+#   )
+#
+# ## Options
+#
+# - `:window` - The widget to embed
+# - `:create` - Proc to create widget lazily (alternative to :window)
+# - `:align` - Vertical alignment: :top, :center, :bottom, :baseline
+# - `:stretch` - Expand vertically if smaller than line height
+# - `:padx`, `:pady` - Padding around the widget
+#
+# @note Deleting the text range containing the window destroys the widget.
+#
+# @note Windows cannot be shared between peer text widgets. Use the
+#   `:create` option so each peer creates its own widget instance.
+#
+# @see TkTextImage For embedding images instead of widgets
+# @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
 class TkTextWindow<TkObject
   include Tk::Text::IndexModMethods
 

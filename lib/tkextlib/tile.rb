@@ -17,23 +17,93 @@ require 'tkextlib/tile/setup.rb'
 TkPackage.require('Ttk')
 
 module Tk
+  # Ttk (Themed Tk) widget support.
+  #
+  # Ttk provides themed widgets that use native platform appearance on
+  # Windows, macOS, and Linux. Bundled with Tk 8.5+, it separates widget
+  # behavior from appearance through a style engine.
+  #
+  # ## Using Ttk Widgets
+  #
+  # Access themed widgets through the Tk::Tile namespace:
+  #
+  #     button = Tk::Tile::Button.new(root, text: 'Click')
+  #     entry = Tk::Tile::Entry.new(root)
+  #     combo = Tk::Tile::Combobox.new(root, values: ['A', 'B', 'C'])
+  #
+  # Or set Ttk as the default widget set:
+  #
+  #     Tk.default_widget_set = :Ttk
+  #     button = TkButton.new(root, text: 'Click')  # Uses Ttk::Button
+  #
+  # ## Available Widgets
+  #
+  # | Widget | Description |
+  # |--------|-------------|
+  # | {Tk::Tile::Button} | Themed button |
+  # | {Tk::Tile::Checkbutton} | Themed checkbutton |
+  # | {Tk::Tile::Combobox} | Dropdown selection |
+  # | {Tk::Tile::Entry} | Themed text entry |
+  # | {Tk::Tile::Frame} | Themed container |
+  # | {Tk::Tile::Label} | Themed label |
+  # | {Tk::Tile::LabelFrame} | Labeled container |
+  # | {Tk::Tile::Menubutton} | Menu dropdown button |
+  # | {Tk::Tile::Notebook} | Tabbed container |
+  # | {Tk::Tile::Panedwindow} | Resizable panes |
+  # | {Tk::Tile::Progressbar} | Progress indicator |
+  # | {Tk::Tile::Radiobutton} | Themed radiobutton |
+  # | {Tk::Tile::Scale} | Themed slider |
+  # | {Tk::Tile::Scrollbar} | Themed scrollbar |
+  # | {Tk::Tile::Separator} | Visual separator |
+  # | {Tk::Tile::Sizegrip} | Window resize grip |
+  # | {Tk::Tile::Spinbox} | Numeric entry with arrows |
+  # | {Tk::Tile::Treeview} | Hierarchical list/tree |
+  #
+  # ## Theming
+  #
+  # Change the visual theme:
+  #
+  #     Tk::Tile.themes           # => ['clam', 'alt', 'default', 'classic', ...]
+  #     Tk::Tile.set_theme('clam')
+  #
+  # ## State Management
+  #
+  # Ttk widgets use state flags instead of a single `:state` option:
+  #
+  #     button.ttk_state           # => ['!disabled', '!pressed', ...]
+  #     button.ttk_state('disabled')  # Disable the button
+  #     button.ttk_instate('disabled')  # => true/false
+  #
+  # ## Key Differences from Classic Tk
+  #
+  # - Use `:padding` instead of `:padx`/`:pady` (auto-translated with warning)
+  # - No `:activebackground`, `:activeforeground` - use styles instead
+  # - State is a set of flags, not a single value
+  #
+  # @see Tk::Tile::Style For style configuration
+  # @see https://www.tcl-lang.org/man/tcl/TkCmd/ttk_intro.html Ttk introduction
+  # @see https://www.tcl-lang.org/man/tcl/TkCmd/ttk_style.html Ttk style system
   module Tile
+    # @!visibility private
     USE_TILE_NAMESPACE = false
+    # @!visibility private
     USE_TTK_NAMESPACE  = true
+    # @!visibility private
     TILE_SPEC_VERSION_ID = 8
     PACKAGE_NAME = 'Ttk'.freeze
   end
 end
 
-# autoload
 module Tk
   module Tile
     TkComm::TkExtlibAutoloadModule.unshift(self)
 
+    # @return [String] Package name ('Ttk')
     def self.package_name
       PACKAGE_NAME
     end
 
+    # @return [String] Ttk version from Tcl
     def self.package_version
       begin
         TkPackage.require(PACKAGE_NAME)
@@ -42,6 +112,7 @@ module Tk
       end
     end
 
+    # @deprecated Use `Tk.default_widget_set = :Ttk` instead.
     def self.__Import_Tile_Widgets__!
       Tk::Warnings.warn_once(:tile_import_obsolete,
         '"Tk::Tile::__Import_Tile_Widgets__!" is obsolete. ' \
@@ -86,6 +157,15 @@ module Tk
       Tk.tk_call('eval', tcl_script)
     end
 
+    # Load images from a directory for use in themed widgets.
+    #
+    # @param imgdir [String] Directory containing image files
+    # @param pat [String, Array<String>] Glob pattern(s) for images (default: '*.gif')
+    # @return [Hash{String => TkPhotoImage}] Mapping of image names to TkPhotoImage objects
+    #
+    # @example
+    #   images = Tk::Tile.load_images('/path/to/icons', '*.png')
+    #   button.configure(image: images['save'])
     def self.load_images(imgdir, pat=nil)
       pat ||= '*.gif'
       pat_list = pat.kind_of?(Array) ? pat : [pat]
@@ -110,10 +190,23 @@ module Tk
       images
     end
 
+    # Build a style name from components.
+    # @param args [Array<String>] Style name components
+    # @return [String] Dot-joined style name
+    # @example
+    #   Tk::Tile.style('custom', 'TButton')  # => 'custom.TButton'
     def self.style(*args)
       args.map!{|arg| TkComm._get_eval_string(arg)}.join('.')
     end
 
+    # List available themes.
+    #
+    # @param glob_ptn [String] Glob pattern to filter themes
+    # @return [Array<String>] Theme names
+    #
+    # @example
+    #   Tk::Tile.themes          # => ['clam', 'alt', 'default', 'classic', ...]
+    #   Tk::Tile.themes('c*')    # => ['clam', 'classic']
     def self.themes(glob_ptn = '*')
       begin
         TkComm.simplelist(Tk.tk_call_without_enc('::ttk::themes', glob_ptn))
@@ -124,6 +217,13 @@ module Tk
       end
     end
 
+    # Change the current theme.
+    #
+    # @param theme [String] Theme name (see {.themes} for available themes)
+    # @return [void]
+    #
+    # @example
+    #   Tk::Tile.set_theme('clam')
     def self.set_theme(theme)
       begin
         Tk.tk_call_without_enc('::ttk::setTheme', theme)
@@ -132,6 +232,7 @@ module Tk
       end
     end
 
+    # @!visibility private
     # KeyNav was for ancient Tile - these are no-ops on modern Ttk
     module KeyNav
       def self.enableMnemonics(w)
@@ -142,16 +243,31 @@ module Tk
       end
     end
 
+    # Standard Tk font names for consistent platform-native appearance.
+    #
+    # These fonts are defined by Tk and adapt to platform conventions.
+    # Use these instead of hardcoded font names for proper theme support.
+    #
+    # @example
+    #   label = Tk::Tile::Label.new(font: Tk::Tile::Font::Heading)
     module Font
+      # Default UI font
       Default      = 'TkDefaultFont'
+      # Font for text entry/display
       Text         = 'TkTextFont'
+      # Font for headings
       Heading      = 'TkHeadingFont'
+      # Font for window captions
       Caption      = 'TkCaptionFont'
+      # Font for tooltips
       Tooltip      = 'TkTooltipFont'
-
+      # Fixed-width/monospace font
       Fixed        = 'TkFixedFont'
+      # Font for menus
       Menu         = 'TkMenuFont'
+      # Smaller caption font
       SmallCaption = 'TkSmallCaptionFont'
+      # Font for icon labels
       Icon         = 'TkIconFont'
     end
 
@@ -211,6 +327,10 @@ module Tk
       end
     end
 
+    # Mixin providing Ttk-specific methods for themed widgets.
+    #
+    # Included automatically in all Tk::Tile widget classes.
+    # Provides state management and identification methods.
     module TileWidget
       include Tk::Tile::ParseStyleLayout
 
@@ -218,6 +338,28 @@ module Tk
         base.prepend(OptionTranslator)
       end
 
+      # Check or execute based on widget state.
+      #
+      # Ttk widgets have multiple state flags (disabled, pressed, focus, etc.)
+      # rather than a single state value.
+      #
+      # @overload ttk_instate(state)
+      #   Check if widget matches state specification.
+      #   @param state [String] State spec (e.g., 'disabled', '!pressed')
+      #   @return [Boolean] true if widget matches
+      #
+      # @overload ttk_instate(state, script)
+      #   Execute script if state matches.
+      #   @param state [String] State specification
+      #   @param script [String, Proc] Script to execute
+      #   @return [Object] Script result or nil
+      #
+      # @example Check state
+      #   button.ttk_instate('disabled')  # => true/false
+      #   button.ttk_instate('!disabled') # => opposite
+      #
+      # @example Conditional execution
+      #   button.ttk_instate('!disabled') { puts "Button is enabled" }
       def ttk_instate(state, script=nil, &b)
         if script
           tk_send('instate', state, script)
@@ -229,6 +371,21 @@ module Tk
       end
       alias tile_instate ttk_instate
 
+      # Get or set widget state flags.
+      #
+      # @overload ttk_state
+      #   Get current state flags.
+      #   @return [Array<String>] State flags (e.g., ['!disabled', 'focus'])
+      #
+      # @overload ttk_state(state)
+      #   Modify state flags.
+      #   @param state [String] State modification (e.g., 'disabled', '!pressed')
+      #   @return [void]
+      #
+      # @example
+      #   button.ttk_state                    # => ['!disabled', '!pressed', ...]
+      #   button.ttk_state('disabled')        # Disable button
+      #   button.ttk_state('!disabled focus') # Enable and focus
       def ttk_state(state=nil)
         if state
           tk_send('state', state)
@@ -238,6 +395,14 @@ module Tk
       end
       alias tile_state ttk_state
 
+      # Identify the widget element at given coordinates.
+      #
+      # @param x [Integer] X coordinate relative to widget
+      # @param y [Integer] Y coordinate relative to widget
+      # @return [String, nil] Element name at coordinates, or nil if none
+      #
+      # @example
+      #   scrollbar.ttk_identify(5, 10)  # => 'uparrow' or 'trough' etc.
       def ttk_identify(x, y)
         ret = tk_send_without_enc('identify', x, y)
         (ret.empty?)? nil: ret

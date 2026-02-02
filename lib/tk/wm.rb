@@ -1,11 +1,70 @@
 # frozen_string_literal: false
-#
-# tk/wm.rb : methods for wm command
-#
-# Note: This file is autoloaded from tk.rb - do not require 'tk' here
-# to avoid circular require. TkCore, TkComm etc. are available.
 
 module Tk
+  # Window Manager interface for toplevel windows.
+  #
+  # The Wm module provides methods to control window behavior through
+  # the window manager: title, geometry, iconification, resize constraints,
+  # and platform-specific attributes.
+  #
+  # This module is mixed into {Tk::Root} and {TkToplevel}.
+  #
+  # ## Common Methods
+  #
+  # - {#title} - Get/set window title bar text
+  # - {#geometry} - Get/set window size and position ("WxH+X+Y")
+  # - {#iconify} - Minimize window to taskbar/dock
+  # - {#deiconify} - Restore window from minimized state
+  # - {#withdraw} - Hide window completely (still exists, just invisible)
+  # - {#state} - Get/set window state ("normal", "iconic", "withdrawn", "zoomed")
+  # - {#resizable} - Control whether user can resize window
+  # - {#minsize}/{#maxsize} - Set size constraints
+  # - {#protocol} - Handle window manager events (e.g., WM_DELETE_WINDOW)
+  # - {#attributes} - Platform-specific attributes (alpha, fullscreen, topmost)
+  #
+  # ## Terminology
+  #
+  # - **iconify** = minimize to taskbar/dock
+  # - **deiconify** = restore from minimized (raise + focus on Windows)
+  # - **withdraw** = hide completely (no taskbar icon, still exists)
+  # - **transient** = dialog-like window that follows its master
+  #
+  # @example Basic window setup
+  #   root = Tk::Root.new
+  #   root.title = "My Application"
+  #   root.geometry = "800x600+100+100"  # 800x600 at position (100,100)
+  #   root.minsize(400, 300)
+  #
+  # @example Handling window close
+  #   root.protocol('WM_DELETE_WINDOW') do
+  #     if confirm_quit?
+  #       root.destroy
+  #     end
+  #   end
+  #
+  # @example Window states
+  #   root.iconify            # Minimize
+  #   root.deiconify          # Restore
+  #   root.withdraw           # Hide completely
+  #   root.state              # => "normal"
+  #   root.state = "zoomed"   # Maximize (platform-dependent)
+  #
+  # @example Platform-specific attributes
+  #   root.attributes(alpha: 0.9)       # 90% opacity
+  #   root.attributes(topmost: true)    # Always on top
+  #   root.attributes(fullscreen: true) # Fullscreen mode
+  #
+  # @note **Platform differences**: Some attributes behave differently or
+  #   are unavailable on certain platforms. `deiconify` on Windows also
+  #   raises and focuses the window. `zoomed` state handling varies.
+  #
+  # @note **Window manager quirks**: Some changes may not take effect
+  #   immediately due to window manager async behavior. Try withdraw +
+  #   deiconify to force updates.
+  #
+  # @see Tk::Root The main application window
+  # @see TkToplevel Additional toplevel windows
+  # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/wm.htm Tcl/Tk wm manual
   module Wm
     #include TkComm
     extend TkCore
@@ -90,6 +149,15 @@ module Tk
       Wm.command(self, value)
     end
 
+    # Restores a window from minimized (iconic) state.
+    #
+    # "Deiconify" = restore from minimized. The window becomes visible
+    # and usable again.
+    #
+    # @param win [TkWindow] Window to deiconify
+    # @param ex [Boolean] true to deiconify, false to iconify
+    # @return [TkWindow] The window
+    # @note On Windows, deiconify also raises the window and gives it focus.
     def Wm.deiconify(win, ex = true)
       if ex
         tk_call_without_enc('wm', 'deiconify', win.epath)
@@ -98,6 +166,8 @@ module Tk
       end
       win
     end
+    # Restores this window from minimized state.
+    # @see Wm.deiconify
     def deiconify(ex = true)
       Wm.deiconify(self, ex)
     end
@@ -134,6 +204,22 @@ module Tk
     end
     alias wm_frame frame
 
+    # Gets or sets window geometry (size and position).
+    #
+    # Geometry format: "WxH+X+Y" or "WxH" or "+X+Y"
+    # - W = width in pixels
+    # - H = height in pixels
+    # - X = horizontal position (+ from left, - from right)
+    # - Y = vertical position (+ from top, - from bottom)
+    #
+    # @param win [TkWindow] Window to configure
+    # @param geom [String, nil] Geometry string, or nil to query
+    # @return [String, TkWindow] Current geometry if querying, window if setting
+    # @example
+    #   win.geometry = "800x600+100+100"  # 800x600 at (100, 100)
+    #   win.geometry = "800x600"          # Size only, position unchanged
+    #   win.geometry = "+100+100"         # Position only, size unchanged
+    #   win.geometry                      # => "800x600+100+100"
     def Wm.geometry(win, geom=nil)
       if geom
         tk_call_without_enc('wm', 'geometry', win.epath, geom)
@@ -142,6 +228,7 @@ module Tk
         tk_call_without_enc('wm', 'geometry', win.epath)
       end
     end
+    # @see Wm.geometry
     def geometry(geom=nil)
       Wm.geometry(self, geom)
     end
@@ -214,6 +301,14 @@ module Tk
     end
     alias wm_iconphoto_default iconphoto_default
 
+    # Minimizes a window to the taskbar/dock.
+    #
+    # "Iconify" = minimize. The window is hidden but still exists,
+    # represented by an icon in the taskbar or dock.
+    #
+    # @param win [TkWindow] Window to iconify
+    # @param ex [Boolean] true to iconify, false to deiconify
+    # @return [TkWindow] The window
     def Wm.iconify(win, ex = true)
       if ex
         tk_call_without_enc('wm', 'iconify', win.epath)
@@ -222,6 +317,8 @@ module Tk
       end
       win
     end
+    # Minimizes this window to taskbar/dock.
+    # @see Wm.iconify
     def iconify(ex = true)
       Wm.iconify(self, ex)
     end
@@ -363,6 +460,27 @@ module Tk
     end
     alias wm_positionfrom positionfrom
 
+    # Handles window manager protocol events.
+    #
+    # The most common use is handling WM_DELETE_WINDOW to intercept
+    # window close requests (e.g., for "Save changes?" confirmation).
+    #
+    # @param win [TkWindow] Window to configure
+    # @param name [String, nil] Protocol name (e.g., "WM_DELETE_WINDOW")
+    # @param cmd [Proc, nil] Handler to execute when protocol triggered
+    # @yield Block form of handler
+    # @return [TkWindow, Proc, Array] Window if setting, handler if querying
+    #   one protocol, or list of protocol names if querying all
+    #
+    # @example Confirm before close
+    #   root.protocol('WM_DELETE_WINDOW') do
+    #     if confirm_quit?
+    #       root.destroy
+    #     end
+    #   end
+    #
+    # @example Query registered protocols
+    #   root.protocol  # => ["WM_DELETE_WINDOW", ...]
     def Wm.protocol(win, name=nil, cmd=nil, &b)
       if cmd
         tk_call_without_enc('wm', 'protocol', win.epath, name, cmd)
@@ -377,6 +495,7 @@ module Tk
         tk_split_simplelist(tk_call_without_enc('wm', 'protocol', win.epath))
       end
     end
+    # @see Wm.protocol
     def protocol(name=nil, cmd=nil, &b)
       Wm.protocol(self, name, cmd, &b)
     end
@@ -464,6 +583,17 @@ module Tk
     alias wm_stackorder_isbelow stackorder_isbelow
     alias wm_stackorder_is_below stackorder_isbelow
 
+    # Gets or sets the window state.
+    #
+    # Valid states:
+    # - "normal" - Normal visible window
+    # - "iconic" - Minimized to taskbar/dock (see {#iconify})
+    # - "withdrawn" - Hidden completely (see {#withdraw})
+    # - "zoomed" - Maximized (platform-dependent)
+    #
+    # @param win [TkWindow] Window to configure
+    # @param st [String, nil] New state, or nil to query
+    # @return [String, TkWindow] Current state if querying, window if setting
     def Wm.state(win, st=nil)
       if st
         tk_call_without_enc('wm', 'state', win.epath, st)
@@ -472,11 +602,19 @@ module Tk
         tk_call_without_enc('wm', 'state', win.epath)
       end
     end
+    # @see Wm.state
     def state(st=nil)
       Wm.state(self, st)
     end
     alias wm_state state
 
+    # Gets or sets the window title bar text.
+    # @param win [TkWindow] Window to configure
+    # @param str [String, nil] New title, or nil to query
+    # @return [String, TkWindow] Current title if querying, window if setting
+    # @example
+    #   win.title = "My Application"
+    #   win.title  # => "My Application"
     def Wm.title(win, str=nil)
       if str
         tk_call('wm', 'title', win.epath, str)
@@ -485,6 +623,7 @@ module Tk
         tk_call('wm', 'title', win.epath)
       end
     end
+    # @see Wm.title
     def title(str=nil)
       Wm.title(self, str)
     end
@@ -503,6 +642,15 @@ module Tk
     end
     alias wm_transient transient
 
+    # Hides a window completely.
+    #
+    # Unlike iconify, withdrawn windows have no taskbar/dock icon.
+    # The window still exists and can be shown again with deiconify.
+    # Useful for temporary hiding or creating windows to show later.
+    #
+    # @param win [TkWindow] Window to withdraw
+    # @param ex [Boolean] true to withdraw, false to deiconify
+    # @return [TkWindow] The window
     def Wm.withdraw(win, ex = true)
       if ex
         tk_call_without_enc('wm', 'withdraw', win.epath)
@@ -511,6 +659,8 @@ module Tk
       end
       win
     end
+    # Hides this window completely.
+    # @see Wm.withdraw
     def withdraw(ex = true)
       Wm.withdraw(self, ex)
     end

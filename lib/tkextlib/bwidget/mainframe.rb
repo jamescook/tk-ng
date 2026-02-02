@@ -11,6 +11,36 @@ require 'tkextlib/bwidget/progressbar'
 
 module Tk
   module BWidget
+    # Application main window with menu, toolbar, and status bar.
+    #
+    # MainFrame manages a complete application window layout with:
+    # - Menu bar with automatic accelerator key bindings
+    # - One or more hideable toolbars
+    # - Status bar with optional progress indicator
+    # - Main content frame
+    #
+    # @example Basic application frame
+    #   require 'tkextlib/bwidget'
+    #   mf = Tk::BWidget::MainFrame.new(root,
+    #     menu: [
+    #       ['&File', {}, [
+    #         ['&Open', {command: proc { open_file }}],
+    #         ['&Save', {command: proc { save_file }}],
+    #         ['separator'],
+    #         ['E&xit', {command: proc { exit }}]
+    #       ]]
+    #     ])
+    #   mf.pack(fill: :both, expand: true)
+    #
+    #   # Get content frame
+    #   frame = mf.get_frame
+    #   TkLabel.new(frame, text: 'Content here').pack
+    #
+    # @example Adding toolbar
+    #   toolbar = mf.add_toolbar
+    #   TkButton.new(toolbar, text: 'New').pack(side: :left)
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/MainFrame.html
     class MainFrame < TkWindow
     end
   end

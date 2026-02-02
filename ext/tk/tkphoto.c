@@ -7,19 +7,24 @@
 #include "tcltkbridge.h"
 
 /* ---------------------------------------------------------
- * Interp#photo_put_block(photo_path, rgba_data, width, height, opts={})
+ * Interp#photo_put_block(photo_path, pixel_data, width, height, opts={})
  *
- * Fast RGBA pixel writes to a photo image using Tk_PhotoPutBlock.
+ * Fast pixel writes to a photo image using Tk_PhotoPutBlock.
  * Much faster than Tcl's 'photo put' which requires parsing hex strings.
  *
  * Arguments:
  *   photo_path - Tcl path of the photo image (e.g., "i00001")
- *   rgba_data  - Binary string of RGBA pixels (4 bytes per pixel)
+ *   pixel_data - Binary string of pixels (4 bytes per pixel)
  *   width      - Image width in pixels
  *   height     - Image height in pixels
- *   opts       - Optional hash with :x, :y offsets (default 0,0)
+ *   opts       - Optional hash:
+ *                :x, :y    - destination offsets (default 0,0)
+ *                :format   - :rgba (default) or :argb
  *
- * The rgba_data must be exactly width * height * 4 bytes.
+ * The pixel_data must be exactly width * height * 4 bytes.
+ *
+ * Format :argb expects pixels packed as 0xAARRGGBB integers (little-endian: B,G,R,A bytes).
+ * This matches SDL2 and many graphics libraries.
  *
  * See: https://www.tcl-lang.org/man/tcl8.6/TkLib/FindPhoto.htm
  * --------------------------------------------------------- */
@@ -28,16 +33,17 @@ static VALUE
 interp_photo_put_block(int argc, VALUE *argv, VALUE self)
 {
     struct tcltk_interp *tip = get_interp(self);
-    VALUE photo_path, rgba_data, width_val, height_val, opts;
+    VALUE photo_path, pixel_data, width_val, height_val, opts;
     Tk_PhotoHandle photo;
     Tk_PhotoImageBlock block;
     int width, height, x_off, y_off;
+    int is_argb = 0;
     long expected_size;
 
-    rb_scan_args(argc, argv, "41", &photo_path, &rgba_data, &width_val, &height_val, &opts);
+    rb_scan_args(argc, argv, "41", &photo_path, &pixel_data, &width_val, &height_val, &opts);
 
     StringValue(photo_path);
-    StringValue(rgba_data);
+    StringValue(pixel_data);
     width = NUM2INT(width_val);
     height = NUM2INT(height_val);
 
@@ -48,19 +54,26 @@ interp_photo_put_block(int argc, VALUE *argv, VALUE self)
 
     /* Validate data size */
     expected_size = (long)width * height * 4;
-    if (RSTRING_LEN(rgba_data) != expected_size) {
-        rb_raise(rb_eArgError, "rgba_data size mismatch: expected %ld bytes, got %ld",
-                 expected_size, RSTRING_LEN(rgba_data));
+    if (RSTRING_LEN(pixel_data) != expected_size) {
+        rb_raise(rb_eArgError, "pixel_data size mismatch: expected %ld bytes, got %ld",
+                 expected_size, RSTRING_LEN(pixel_data));
     }
 
-    /* Parse optional x/y offsets */
+    /* Parse options */
     x_off = 0;
     y_off = 0;
     if (!NIL_P(opts) && TYPE(opts) == T_HASH) {
-        VALUE x_val = rb_hash_aref(opts, ID2SYM(rb_intern("x")));
-        VALUE y_val = rb_hash_aref(opts, ID2SYM(rb_intern("y")));
-        if (!NIL_P(x_val)) x_off = NUM2INT(x_val);
-        if (!NIL_P(y_val)) y_off = NUM2INT(y_val);
+        VALUE val;
+        val = rb_hash_aref(opts, ID2SYM(rb_intern("x")));
+        if (!NIL_P(val)) x_off = NUM2INT(val);
+        val = rb_hash_aref(opts, ID2SYM(rb_intern("y")));
+        if (!NIL_P(val)) y_off = NUM2INT(val);
+        val = rb_hash_aref(opts, ID2SYM(rb_intern("format")));
+        if (!NIL_P(val) && TYPE(val) == T_SYMBOL) {
+            if (rb_intern("argb") == SYM2ID(val)) {
+                is_argb = 1;
+            }
+        }
     }
 
     /* Find the photo image by Tcl path */
@@ -70,15 +83,25 @@ interp_photo_put_block(int argc, VALUE *argv, VALUE self)
     }
 
     /* Set up the pixel block structure */
-    block.pixelPtr = (unsigned char *)RSTRING_PTR(rgba_data);
+    block.pixelPtr = (unsigned char *)RSTRING_PTR(pixel_data);
     block.width = width;
     block.height = height;
-    block.pitch = width * 4;      /* bytes per row */
-    block.pixelSize = 4;          /* RGBA = 4 bytes per pixel */
-    block.offset[0] = 0;          /* Red offset */
-    block.offset[1] = 1;          /* Green offset */
-    block.offset[2] = 2;          /* Blue offset */
-    block.offset[3] = 3;          /* Alpha offset */
+    block.pitch = width * 4;
+    block.pixelSize = 4;
+
+    if (is_argb) {
+        /* ARGB: 0xAARRGGBB stored little-endian as bytes: [B, G, R, A] */
+        block.offset[0] = 2;  /* Red at byte 2 */
+        block.offset[1] = 1;  /* Green at byte 1 */
+        block.offset[2] = 0;  /* Blue at byte 0 */
+        block.offset[3] = 3;  /* Alpha at byte 3 */
+    } else {
+        /* RGBA: [R, G, B, A] */
+        block.offset[0] = 0;
+        block.offset[1] = 1;
+        block.offset[2] = 2;
+        block.offset[3] = 3;
+    }
 
     /* Write pixels to the photo image */
     if (Tk_PhotoPutBlock(tip->interp, photo, &block, x_off, y_off,
@@ -91,24 +114,28 @@ interp_photo_put_block(int argc, VALUE *argv, VALUE self)
 }
 
 /* ---------------------------------------------------------
- * Interp#photo_put_zoomed_block(photo_path, rgba_data, width, height, opts={})
+ * Interp#photo_put_zoomed_block(photo_path, pixel_data, width, height, opts={})
  *
- * Fast RGBA pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
+ * Fast pixel writes with zoom/subsample using Tk_PhotoPutZoomedBlock.
  * Writes pixels and scales in a single operation - faster than put_block + copy.
  *
  * Arguments:
  *   photo_path - Tcl path of the photo image (e.g., "i00001")
- *   rgba_data  - Binary string of RGBA pixels (4 bytes per pixel)
+ *   pixel_data - Binary string of pixels (4 bytes per pixel)
  *   width      - Source image width in pixels
  *   height     - Source image height in pixels
  *   opts       - Optional hash:
  *                :x, :y        - destination offsets (default 0,0)
  *                :zoom_x, :zoom_y       - zoom factors (default 1,1)
  *                :subsample_x, :subsample_y - subsample factors (default 1,1)
+ *                :format       - :rgba (default) or :argb
  *
- * The rgba_data must be exactly width * height * 4 bytes.
+ * The pixel_data must be exactly width * height * 4 bytes.
  * Zoom replicates pixels (zoom=3 makes each pixel 3x3).
  * Subsample skips pixels (subsample=2 takes every other pixel).
+ *
+ * Format :argb expects pixels packed as 0xAARRGGBB integers (little-endian: B,G,R,A bytes).
+ * This matches SDL2 and many graphics libraries.
  *
  * See: https://www.tcl-lang.org/man/tcl8.6/TkLib/FindPhoto.htm
  * --------------------------------------------------------- */
@@ -117,18 +144,19 @@ static VALUE
 interp_photo_put_zoomed_block(int argc, VALUE *argv, VALUE self)
 {
     struct tcltk_interp *tip = get_interp(self);
-    VALUE photo_path, rgba_data, width_val, height_val, opts;
+    VALUE photo_path, pixel_data, width_val, height_val, opts;
     Tk_PhotoHandle photo;
     Tk_PhotoImageBlock block;
     int width, height, x_off, y_off;
     int zoom_x, zoom_y, subsample_x, subsample_y;
     int dest_width, dest_height;
+    int is_argb = 0;
     long expected_size;
 
-    rb_scan_args(argc, argv, "41", &photo_path, &rgba_data, &width_val, &height_val, &opts);
+    rb_scan_args(argc, argv, "41", &photo_path, &pixel_data, &width_val, &height_val, &opts);
 
     StringValue(photo_path);
-    StringValue(rgba_data);
+    StringValue(pixel_data);
     width = NUM2INT(width_val);
     height = NUM2INT(height_val);
 
@@ -139,9 +167,9 @@ interp_photo_put_zoomed_block(int argc, VALUE *argv, VALUE self)
 
     /* Validate data size */
     expected_size = (long)width * height * 4;
-    if (RSTRING_LEN(rgba_data) != expected_size) {
-        rb_raise(rb_eArgError, "rgba_data size mismatch: expected %ld bytes, got %ld",
-                 expected_size, RSTRING_LEN(rgba_data));
+    if (RSTRING_LEN(pixel_data) != expected_size) {
+        rb_raise(rb_eArgError, "pixel_data size mismatch: expected %ld bytes, got %ld",
+                 expected_size, RSTRING_LEN(pixel_data));
     }
 
     /* Parse options with defaults */
@@ -166,6 +194,12 @@ interp_photo_put_zoomed_block(int argc, VALUE *argv, VALUE self)
         if (!NIL_P(val)) subsample_x = NUM2INT(val);
         val = rb_hash_aref(opts, ID2SYM(rb_intern("subsample_y")));
         if (!NIL_P(val)) subsample_y = NUM2INT(val);
+        val = rb_hash_aref(opts, ID2SYM(rb_intern("format")));
+        if (!NIL_P(val) && TYPE(val) == T_SYMBOL) {
+            if (rb_intern("argb") == SYM2ID(val)) {
+                is_argb = 1;
+            }
+        }
     }
 
     /* Validate zoom/subsample */
@@ -183,15 +217,25 @@ interp_photo_put_zoomed_block(int argc, VALUE *argv, VALUE self)
     }
 
     /* Set up the pixel block structure */
-    block.pixelPtr = (unsigned char *)RSTRING_PTR(rgba_data);
+    block.pixelPtr = (unsigned char *)RSTRING_PTR(pixel_data);
     block.width = width;
     block.height = height;
     block.pitch = width * 4;
     block.pixelSize = 4;
-    block.offset[0] = 0;
-    block.offset[1] = 1;
-    block.offset[2] = 2;
-    block.offset[3] = 3;
+
+    if (is_argb) {
+        /* ARGB: 0xAARRGGBB stored little-endian as bytes: [B, G, R, A] */
+        block.offset[0] = 2;  /* Red at byte 2 */
+        block.offset[1] = 1;  /* Green at byte 1 */
+        block.offset[2] = 0;  /* Blue at byte 0 */
+        block.offset[3] = 3;  /* Alpha at byte 3 */
+    } else {
+        /* RGBA: [R, G, B, A] */
+        block.offset[0] = 0;
+        block.offset[1] = 1;
+        block.offset[2] = 2;
+        block.offset[3] = 3;
+    }
 
     /* Calculate destination dimensions */
     dest_width = (width / subsample_x) * zoom_x;

@@ -1,12 +1,39 @@
 # frozen_string_literal: false
-#
-#               tk/spinbox.rb - Tk spinbox classes
-#                       by Yukihiro Matsumoto <matz@caelum.co.jp>
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/spinbox.html
-#
 require 'tk/entry'
 
+# An entry widget with increment/decrement spin buttons.
+#
+# Spinboxes allow both direct text entry and cycling through values
+# using up/down buttons. Values can be a numeric range or a list.
+#
+# @example Numeric range
+#   Tk::Spinbox.new(
+#     from: 1,
+#     to: 100,
+#     increment: 5
+#   ).pack
+#
+# @example Fixed list of values
+#   Tk::Spinbox.new(
+#     values: %w[Small Medium Large X-Large]
+#   ).pack
+#
+# @example With variable binding
+#   quantity = TkVariable.new(1)
+#   Tk::Spinbox.new(
+#     from: 1,
+#     to: 99,
+#     textvariable: quantity
+#   ).pack
+#
+# @note If both `:values` and `:from/:to` are specified, `:values` takes precedence.
+#
+# @note Same validation quirk as Entry: mixing textvariable with
+#   validatecommand can silently disable validation.
+#
+# @see Tk::Entry for the base text entry functionality
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/spinbox.html Tcl/Tk spinbox manual
+#
 class Tk::Spinbox<Tk::Entry
   include Tk::Generated::Spinbox
   # @generated:options:start

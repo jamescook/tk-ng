@@ -3,6 +3,9 @@
 # tk/tagfont.rb : control font of tags
 #
 
+# @deprecated This module is from the JAPANIZED_TK era when Tk needed
+#   separate fonts for Japanese text. Modern Tk handles Unicode natively.
+#   Use standard font configuration instead.
 module TkTreatTagFont
   def font_configinfo
     @parent.tagfont_configinfo(@id)

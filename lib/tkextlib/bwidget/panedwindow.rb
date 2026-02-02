@@ -10,6 +10,28 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Resizable paned container with draggable sash dividers.
+    #
+    # PanedWindow arranges child panes in a horizontal or vertical layout.
+    # Users can drag the sash between panes to resize them.
+    #
+    # @example Horizontal split
+    #   require 'tkextlib/bwidget'
+    #   pw = Tk::BWidget::PanedWindow.new(root)
+    #   pw.pack(fill: :both, expand: true)
+    #
+    #   left = pw.add(weight: 1)
+    #   right = pw.add(weight: 2)
+    #
+    #   TkLabel.new(left, text: 'Left pane').pack
+    #   TkLabel.new(right, text: 'Right pane').pack
+    #
+    # @example Vertical split
+    #   pw = Tk::BWidget::PanedWindow.new(root, side: :top)
+    #   top = pw.add(minsize: 100)
+    #   bottom = pw.add
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/PanedWindow.html
     class PanedWindow < TkWindow
     end
   end

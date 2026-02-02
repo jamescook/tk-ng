@@ -1,25 +1,86 @@
 # frozen_string_literal: true
 
 module Tk
-  # Handles conversion between Ruby values and Tcl strings for widget options.
+  # Type converters for widget options.
   #
-  # Each type defines:
-  #   - to_tcl:   Ruby value -> Tcl string
-  #   - from_tcl: Tcl string -> Ruby value
+  # OptionType handles bidirectional conversion between Ruby values and
+  # Tcl strings. Each type defines two converters:
+  # - `to_tcl`: Ruby value -> Tcl string (for configure)
+  # - `from_tcl`: Tcl string -> Ruby value (for cget)
   #
-  # Example:
-  #   OptionType::Boolean.to_tcl(true)   # => "1"
-  #   OptionType::Boolean.from_tcl("0")  # => false
+  # ## Built-in Types
   #
+  # | Type        | Ruby                | Tcl         | Notes                              |
+  # |-------------|---------------------|-------------|------------------------------------|
+  # | :string     | String              | String      | Pass-through                       |
+  # | :integer    | Integer             | "123"       | Handles dimension strings like "10c" |
+  # | :float      | Float               | "1.5"       | Handles dimension strings like "1.5i" |
+  # | :boolean    | true/false          | "1"/"0"     | Accepts "yes/no", "on/off"         |
+  # | :list       | Array               | "a b c"     | Space-separated                    |
+  # | :pixels     | Integer or String   | "10" or "2c"| Preserves unit suffixes            |
+  # | :color      | String              | "red"       | Color names or #RRGGBB             |
+  # | :anchor     | Symbol/String       | "nw"        | n, ne, e, se, s, sw, w, nw, center |
+  # | :relief     | Symbol/String       | "raised"    | flat, raised, sunken, groove, ridge|
+  # | :widget     | TkWindow            | ".path"     | Converts path to widget object     |
+  # | :tkvariable | TkVariable          | "varname"   | Converts to TkVarAccess            |
+  # | :font       | TkFont              | "fontspec"  | Creates TkFont wrapper             |
+  # | :callback   | Proc                | "cb_id"     | Registers callback, returns ID     |
+  # | :canvas_tags| Array of TkcTag     | "tag1 tag2" | Converts to TkcTag objects         |
+  #
+  # @example Using built-in types
+  #   OptionType[:boolean].to_tcl(true)     # => "1"
+  #   OptionType[:boolean].from_tcl("yes")  # => true
+  #
+  #   OptionType[:integer].from_tcl("10c")  # => 10 (ignores unit suffix)
+  #   OptionType[:list].to_tcl([:a, :b])    # => "a b"
+  #
+  # @example Registering a custom type
+  #   MyType = OptionType.new(:mytype,
+  #     to_tcl: ->(v) { v.upcase },
+  #     from_tcl: ->(v) { v.downcase.to_sym }
+  #   )
+  #   OptionType.register(:mytype, MyType)
+  #
+  # @see Option Uses OptionType for value conversion
+  # @see OptionDSL Declares options with type: parameter
   class OptionType
+    # @return [Symbol] Type name (e.g., :string, :boolean, :widget)
     attr_reader :name
 
+    # Create a new type converter.
+    #
+    # @param name [Symbol] Type name for registry lookup
+    # @param to_tcl [Symbol, Proc] Converter for Ruby -> Tcl.
+    #   If Symbol, calls that method on the value.
+    #   If Proc, calls with (value) or (value, widget:).
+    # @param from_tcl [Symbol, Proc] Converter for Tcl -> Ruby.
+    #   Same calling convention as to_tcl.
+    #
+    # @example Simple type using method names
+    #   OptionType.new(:upcase, to_tcl: :upcase, from_tcl: :downcase)
+    #
+    # @example Type with procs
+    #   OptionType.new(:reversed,
+    #     to_tcl: ->(v) { v.reverse },
+    #     from_tcl: ->(v) { v.reverse }
+    #   )
+    #
+    # @example Type needing widget context
+    #   OptionType.new(:widget,
+    #     to_tcl: ->(v, widget:) { v.path },
+    #     from_tcl: ->(v, widget:) { widget.window(v) }
+    #   )
     def initialize(name, to_tcl:, from_tcl:)
       @name = name
       @to_tcl = to_tcl
       @from_tcl = from_tcl
     end
 
+    # Convert a Ruby value to Tcl string representation.
+    #
+    # @param value [Object] Ruby value to convert
+    # @param widget [TkWindow, nil] Widget context for types that need it
+    # @return [String] Tcl string representation
     def to_tcl(value, widget: nil)
       case @to_tcl
       when Symbol then value.send(@to_tcl)
@@ -30,6 +91,11 @@ module Tk
       end
     end
 
+    # Convert a Tcl string to Ruby value.
+    #
+    # @param value [String] Tcl string to convert
+    # @param widget [TkWindow, nil] Widget context for types that need it
+    # @return [Object] Ruby value
     def from_tcl(value, widget: nil)
       case @from_tcl
       when Symbol then value.send(@from_tcl)
@@ -44,7 +110,9 @@ module Tk
       "#<Tk::OptionType:#{@name}>"
     end
 
-    # Built-in types
+    # Built-in type converters.
+    #
+    # Access via `OptionType::Types::Boolean` or `OptionType[:boolean]`.
     module Types
       String = OptionType.new(:string,
         to_tcl: :to_s,
@@ -168,18 +236,36 @@ module Tk
       )
     end
 
+    # @!visibility private
     # Registry for looking up types by name
     @registry = {}
 
     class << self
+      # Register a type converter by name.
+      #
+      # @param name [Symbol, String] Type name for lookup
+      # @param type [OptionType] Type converter instance
+      # @return [OptionType] The registered type
       def register(name, type)
         @registry[name.to_sym] = type
       end
 
+      # Look up a type converter by name.
+      #
+      # @param name [Symbol, String] Type name
+      # @return [OptionType] The type, or Types::String if not found
+      #
+      # @example
+      #   OptionType[:boolean]  # => OptionType::Types::Boolean
+      #   OptionType[:unknown]  # => OptionType::Types::String (fallback)
       def [](name)
         @registry[name.to_sym] || Types::String
       end
 
+      # Check if a type is registered.
+      #
+      # @param name [Symbol, String] Type name
+      # @return [Boolean]
       def registered?(name)
         @registry.key?(name.to_sym)
       end

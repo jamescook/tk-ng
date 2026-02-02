@@ -10,6 +10,33 @@ require 'tkextlib/bwidget.rb'
 
 module Tk
   module BWidget
+    # Tabbed notebook widget for organizing multiple pages.
+    #
+    # NoteBook displays one page at a time with tabs for switching
+    # between pages. Tabs can be placed on top or bottom, and pages
+    # can be dynamically added, removed, or reordered.
+    #
+    # @example Basic notebook with pages
+    #   require 'tkextlib/bwidget'
+    #   nb = Tk::BWidget::NoteBook.new(root)
+    #   nb.pack(fill: :both, expand: true)
+    #
+    #   # Add pages
+    #   page1 = nb.insert('end', 'tab1', text: 'General')
+    #   page2 = nb.insert('end', 'tab2', text: 'Advanced')
+    #
+    #   # Add widgets to pages
+    #   TkLabel.new(page1, text: 'General settings').pack
+    #   TkLabel.new(page2, text: 'Advanced settings').pack
+    #
+    #   nb.raise('tab1')  # Show first tab
+    #
+    # @example Tab event binding
+    #   nb.tabbind('<Button-1>') do |event|
+    #     puts "Clicked tab: #{event}"
+    #   end
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/NoteBook.html
     class NoteBook < TkWindow
     end
   end

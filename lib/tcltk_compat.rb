@@ -86,9 +86,9 @@ class TclTkIp
   # the previous command succeeded (0 = TCL_OK).
   def _return_value = 0
 
-  # Legacy encoding methods - no-ops since modern Tcl/Ruby use UTF-8 natively
-  # TODO: Remove these and fix 150+ callsites in tk.rb
+  # @deprecated No longer needed. Modern Ruby/Tcl use UTF-8 natively.
   def _toUTF8(str, enc = nil) = str.to_s
+  # @deprecated No longer needed. Modern Ruby/Tcl use UTF-8 natively.
   def _fromUTF8(str, enc = nil) = str.to_s
 
   # Legacy encoding table method - removed in new bridge.
@@ -247,21 +247,19 @@ module TkItemConfigMethod
   end
 end
 
-# ---------------------------------------------------------
-# String command evaluation setting
-#
-# Legacy Ruby/Tk allowed passing strings as widget commands:
-#   command "quit 'save'"
-# which would be eval'd as Ruby code when triggered.
-#
-# This is disabled by default for security - if an app were to
-# pass untrusted input as a command string, it would allow
-# arbitrary code execution.
-#
-# Enable only if you need legacy string command compatibility
-# and trust all command strings in your application.
-# ---------------------------------------------------------
 module Tk
+  # String command evaluation setting.
+  #
+  # Legacy Ruby/Tk allowed passing strings as widget commands:
+  #   command "quit 'save'"
+  # which would be eval'd as Ruby code when triggered.
+  #
+  # This is disabled by default for security - if an app were to
+  # pass untrusted input as a command string, it would allow
+  # arbitrary code execution.
+  #
+  # Enable only if you need legacy string command compatibility
+  # and trust all command strings in your application.
   @allow_string_eval = false
 
   class << self
@@ -281,17 +279,12 @@ module Tk
   end
 end
 
-# ---------------------------------------------------------
-# Deprecated TkVariable constants
-#
+# @api private
+# Internal compatibility shim for TkVariable trace syntax.
 # USE_OLD_TRACE_OPTION_STYLE was used to support Tcl < 8.4 trace syntax.
-# Since we now require Tcl 8.6+, this is always false and the old
-# code paths have been removed.
-#
-# This hook is called when TkVariable is loaded to add the deprecation.
-# ---------------------------------------------------------
+# Since we now require Tcl 8.6+, this is always false.
 module TkVariableCompatExtension
-  # Always false - we require Tcl 8.6+ which uses modern trace syntax
+  # @api private
   USE_OLD_TRACE_OPTION_STYLE = false
 end
 

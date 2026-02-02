@@ -10,6 +10,23 @@ require 'tkextlib/bwidget/messagedlg'
 
 module Tk
   module BWidget
+    # Login/password dialog for authentication.
+    #
+    # PasswdDlg presents username and password entry fields.
+    # Returns the entered credentials as an array.
+    #
+    # @example Login dialog
+    #   require 'tkextlib/bwidget'
+    #   dlg = Tk::BWidget::PasswdDlg.new(root,
+    #     title: 'Login Required',
+    #     loginlabel: 'Username:',
+    #     passwdlabel: 'Password:')
+    #   login, password = dlg.create
+    #   if login
+    #     authenticate(login, password)
+    #   end
+    #
+    # @see https://core.tcl-lang.org/bwidget/doc/trunk/BWman/PasswdDlg.html
     class PasswdDlg < Tk::BWidget::MessageDlg
     end
   end

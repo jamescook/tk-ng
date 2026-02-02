@@ -1,15 +1,44 @@
 # frozen_string_literal: false
-#
-# tk/entry.rb - Tk entry classes
-#                       by Yukihiro Matsumoto <matz@caelum.co.jp>
-#
-# See: https://www.tcl-lang.org/man/tcl/TkCmd/entry.html
-#
 require 'tk/label'
 require 'tk/scrollable'
 require 'tk/validation'
 require 'tk/option_dsl'
 
+# A single-line text input field.
+#
+# Entry widgets allow users to type text. Use {Tk::Text} for multi-line input.
+#
+# @example Basic entry with variable binding
+#   name = TkVariable.new
+#   entry = Tk::Entry.new(textvariable: name, width: 30)
+#   entry.pack
+#   # Later: name.value contains what user typed
+#
+# @example Password entry (masked input)
+#   password = TkVariable.new
+#   Tk::Entry.new(textvariable: password, show: "*").pack
+#
+# @example Entry with validation
+#   entry = Tk::Entry.new(
+#     validate: :key,
+#     validatecommand: [->(new_val) { new_val.match?(/^\d*$/) }, '%P']
+#   )  # Only allows digits
+#
+# @example Get/set text directly
+#   entry.insert('end', "default text")
+#   text = entry.get
+#   entry.delete(0, 'end')  # clear
+#
+# @note **Validation + textvariable warning**: Mixing textvariable with
+#   validatecommand is risky. Setting the variable to an invalid value
+#   silently disables validation. Use one or the other, not both.
+#
+# @note **Valid indices**: `0` (first char), `end`, `insert` (cursor),
+#   `anchor`, `sel.first`, `sel.last`, or `@x` (x-coordinate).
+#
+# @see Tk::Text for multi-line text editing
+# @see https://www.tcl-lang.org/man/tcl/TkCmd/entry.html Tcl/Tk entry manual
+#
 class Tk::Entry<Tk::Label
   include X_Scrollable
   include TkValidation
