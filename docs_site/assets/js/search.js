@@ -126,7 +126,7 @@
           }
         }
 
-        return '<a href="' + doc.url + '" class="search-result-item">' + badge + ' ' + doc.title + snippet + '</a>';
+        return '<a href="' + baseUrl + doc.url + '" class="search-result-item">' + badge + ' ' + doc.title + snippet + '</a>';
       }).join('');
 
       searchResults.innerHTML = html;
