@@ -4,6 +4,8 @@ Tk interface module for Ruby.
 
 Fork of [ruby/tk](https://github.com/ruby/tk) with Tcl/Tk 8.6 and 9.x support. Modernized for Ruby 3.2+.
 
+**[API Documentation](https://jamescook.github.io/tk-ng/)**
+
 ## Features
 
 - Full Tcl/Tk 8.6 and 9.x compatibility
