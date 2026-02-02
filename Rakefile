@@ -3,26 +3,15 @@ require 'rake/extensiontask'
 require 'rake/testtask'
 require 'rake/clean'
 
-# YARD documentation generation
-begin
-  require 'yard'
-
-  # Load vendored yard-markdown template if YARD_MARKDOWN=1
-  if ENV['YARD_MARKDOWN']
-    $LOAD_PATH.unshift(File.expand_path('vendor/yard-markdown/lib', __dir__))
-    require 'yard-markdown'
+# Documentation tasks - all doc gems are in docs_site/Gemfile
+namespace :docs do
+  desc "Install docs dependencies (docs_site/Gemfile)"
+  task :setup do
+    Dir.chdir('docs_site') do
+      Bundler.with_unbundled_env { sh 'bundle install' }
+    end
   end
 
-  # Uses .yardopts for configuration
-  YARD::Rake::YardocTask.new(:yard_json)
-
-  desc "Generate API docs (YARD JSON -> HTML)"
-  task yard: :yard_json do
-    ruby "scripts/build_api_docs.rb"
-  end
-
-  # Clean artifacts before regenerating
-  task :yard_json => :yard_clean
   task :yard_clean do
     FileUtils.rm_rf('doc')
     FileUtils.rm_rf('docs_site/_api')
@@ -31,31 +20,40 @@ begin
     FileUtils.rm_f('docs_site/assets/js/search-data.json')
   end
 
-  # Alias for convenience
-  task doc: :yard
-
-  namespace :docs do
-    desc "Generate full docs site (clean + YARD + Jekyll)"
-    task :generate => :yard do
-      Dir.chdir('docs_site') do
-        sh 'bundle exec jekyll build'
-      end
-      puts "Docs generated in docs_site/_site/"
-    end
-
-    desc "Serve docs locally"
-    task :serve => :yard do
-      Dir.chdir('docs_site') do
-        sh 'bundle exec jekyll serve'
-      end
+  desc "Generate YARD JSON (uses docs_site/Gemfile)"
+  task yard_json: :yard_clean do
+    # Run yard from docs_site bundle context, but in root dir to access lib/
+    Bundler.with_unbundled_env do
+      sh 'BUNDLE_GEMFILE=docs_site/Gemfile bundle exec yard doc'
     end
   end
-rescue LoadError
-  desc "Generate YARD documentation (yard gem not installed)"
-  task :yard do
-    abort "YARD is not available. Run: bundle install"
+
+  desc "Generate API docs (YARD JSON -> HTML)"
+  task yard: :yard_json do
+    Bundler.with_unbundled_env do
+      sh 'BUNDLE_GEMFILE=docs_site/Gemfile bundle exec ruby docs_site/build_api_docs.rb'
+    end
+  end
+
+  desc "Generate full docs site (YARD + Jekyll)"
+  task generate: :yard do
+    Dir.chdir('docs_site') do
+      Bundler.with_unbundled_env { sh 'bundle exec jekyll build' }
+    end
+    puts "Docs generated in docs_site/_site/"
+  end
+
+  desc "Serve docs locally"
+  task serve: :yard do
+    Dir.chdir('docs_site') do
+      Bundler.with_unbundled_env { sh 'bundle exec jekyll serve' }
+    end
   end
 end
+
+# Aliases for convenience
+task doc: 'docs:yard'
+task yard: 'docs:yard'
 
 # Compiling on macOS with Homebrew:
 #

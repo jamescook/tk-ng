@@ -1,7 +1,0 @@
-<div class="method-card method-<%= method['scope'] %><%= ' has-docs' if method['has_content'] %>" id="<%= method_anchor(method) %>">
-  <h3><a href="#<%= method_anchor(method) %>" class="anchor-link"><%= h method['signature'] %></a></h3>
-  <% unless method['docstring'].to_s.empty? %>
-  <%= md(method['docstring']) %>
-  <% end %>
-  <%= render_tags(method['tags']) %>
-</div>

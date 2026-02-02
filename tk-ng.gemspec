@@ -24,10 +24,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "method_source", "~> 1.0"
   spec.add_development_dependency "prism", "~> 1.0"  # stdlib in Ruby 3.3+, gem for 3.2
   spec.add_development_dependency "base64"  # stdlib until Ruby 3.4, now bundled gem
-  spec.add_development_dependency "yard", "~> 0.9"
-  spec.add_development_dependency "redcarpet", "~> 3.6"  # Markdown support for YARD
-  spec.add_development_dependency "kramdown", "~> 2.4"   # Markdown for doc generation
-  spec.add_development_dependency "rdoc"  # Required by YARD on Ruby 4.x
 
   spec.metadata["msys2_mingw_dependencies"] = "tk"
 end

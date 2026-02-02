@@ -26,11 +26,11 @@ jobs:
           ruby-version: '3.4'
           bundler-cache: true
 
-      - name: Install docs_site dependencies
-        run: cd docs_site && bundle install
+      - name: Install docs dependencies
+        run: rake docs:setup
 
       - name: Build docs
-        run: bundle exec rake docs:generate
+        run: rake docs:generate
         env:
           JEKYLL_ENV: production
 

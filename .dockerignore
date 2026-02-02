@@ -31,8 +31,6 @@ doc/
 docs/
 docs_site/
 .yardoc/
-scripts/build_api_docs.rb
-scripts/templates/
 vendor/yard-json/
 *.md
 

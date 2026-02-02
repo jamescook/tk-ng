@@ -18,3 +18,5 @@ exclude:
   - Gemfile.lock
   - node_modules
   - vendor
+  - templates
+  - build_api_docs.rb
