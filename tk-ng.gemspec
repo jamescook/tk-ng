@@ -1,20 +1,22 @@
+require_relative "lib/tk/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "tk-ng"
-  spec.version       = "1.0.0"
-  spec.authors       = ["SHIBATA Hiroshi", "Nobuyoshi Nakada", "Jeremy Evans"]
-  spec.email         = ["hsbt@ruby-lang.org", "nobu@ruby-lang.org", "code@jeremyevans.net"]
+  spec.version       = Tk::GEM_VERSION
+  spec.authors       = ["James Cook"]
+  spec.email         = ["4067+jamescook@users.noreply.github.com"]
 
   spec.summary       = %q{Tk interface module with Tcl/Tk 8.6+ and 9.x support.}
   spec.description   = %q{Tk interface module using tcltklib. Fork of ruby/tk with Tcl/Tk 9.x compatibility.}
   spec.homepage      = "https://github.com/jamescook/tk-ng"
   spec.licenses      = ["BSD-2-Clause", "Ruby"]
 
-  spec.files         = Dir.glob("{lib,ext,exe,sample}/**/*").select { |f| File.file?(f) } +
+  spec.files         = Dir.glob("{lib,ext,bin,sample}/**/*").select { |f| File.file?(f) } +
                        %w[Rakefile LICENSE README.md tk-ng.gemspec Gemfile]
-  spec.bindir        = "exe"
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.bindir        = "bin"
+  spec.executables   = %w[console setup]
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/tk/extconf.rb", "ext/tk/tkutil/extconf.rb"]
+  spec.extensions    = ["ext/tk/extconf.rb"]
   spec.required_ruby_version = ">= 3.2"
 
   spec.add_development_dependency "rake", "~> 13.0"
@@ -26,4 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "base64"  # stdlib until Ruby 3.4, now bundled gem
 
   spec.metadata["msys2_mingw_dependencies"] = "tk"
+  spec.metadata["homepage_uri"] = spec.homepage
+  spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
 end
