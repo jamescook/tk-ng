@@ -4,6 +4,8 @@
 #
 
 require 'tk/option_dsl'
+require_relative 'core/callable'
+require_relative 'callback'
 
 # Base class for Tk images.
 #
@@ -22,8 +24,9 @@ require 'tk/option_dsl'
 # @see TkBitmapImage For two-color bitmap images
 # @see TkPhotoImage For full-color photo images
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/image.htm Tcl/Tk image manual
-class TkImage<TkObject
-  include Tk
+class TkImage
+  include Tk::Core::Callable
+  include TkCallback
 
   TkCommandNames = ['image'.freeze].freeze
 
@@ -39,6 +42,8 @@ class TkImage<TkObject
     Tk_IMGTBL.mutex.synchronize{ Tk_IMGTBL.clear }
   }
 
+  attr_reader :path
+
   def self.new(keys=nil)
     if keys.kind_of?(Hash)
       name = nil
@@ -51,7 +56,13 @@ class TkImage<TkObject
         if name.kind_of?(TkImage)
           obj = name
         else
-          name = _get_eval_string(name)
+          name = if name.respond_to?(:path)
+                   name.path
+                 elsif name.respond_to?(:to_eval)
+                   name.to_eval
+                 else
+                   name.to_s
+                 end
           obj = nil
           Tk_IMGTBL.mutex.synchronize{
             obj = Tk_IMGTBL[name]
@@ -59,12 +70,12 @@ class TkImage<TkObject
         end
         if obj
           if !(keys[:without_creating] || keys['without_creating'])
-            keys = _symbolkey2str(keys)
+            keys = keys.transform_keys(&:to_s)
             keys.delete('imagename')
             keys.delete('without_creating')
             obj.instance_eval{
-              tk_call_without_enc('image', 'create',
-                                  @type, @path, *hash_kv(keys, true))
+              tk_call('image', 'create',
+                      @type, @path, *_image_hash_kv(keys))
             }
           end
           return obj
@@ -84,7 +95,7 @@ class TkImage<TkObject
     @path = nil
     without_creating = false
     if keys.kind_of?(Hash)
-      keys = _symbolkey2str(keys)
+      keys = keys.transform_keys(&:to_s)
       @path = keys.delete('imagename')
       without_creating = keys.delete('without_creating')
     end
@@ -95,8 +106,8 @@ class TkImage<TkObject
       }
     end
     unless without_creating
-      tk_call_without_enc('image', 'create',
-                          @type, @path, *hash_kv(keys, true))
+      tk_call('image', 'create',
+              @type, @path, *_image_hash_kv(keys))
     end
   end
 
@@ -106,39 +117,64 @@ class TkImage<TkObject
     Tk_IMGTBL.mutex.synchronize{
       Tk_IMGTBL.delete(@id) if @id
     }
-    tk_call_without_enc('image', 'delete', @path)
+    tk_call('image', 'delete', @path)
     self
   end
 
   # Returns the image height in pixels.
   # @return [Integer]
   def height
-    number(tk_call_without_enc('image', 'height', @path))
+    tk_call('image', 'height', @path).to_i
   end
 
   # Returns whether this image is currently displayed by any widget.
   # @return [Boolean]
   def inuse
-    bool(tk_call_without_enc('image', 'inuse', @path))
+    tk_call('image', 'inuse', @path) == '1'
+  end
+
+  # Get a configuration option value.
+  # @param option [Symbol, String] Option name
+  # @return [String] The option value
+  def cget(option)
+    tk_send('cget', "-#{option}")
+  end
+
+  # Configure one or more options.
+  # @param keys [Hash] Option name/value pairs
+  # @return [self]
+  def configure(keys = {})
+    tk_send('configure', *_image_hash_kv(keys.transform_keys(&:to_s)))
+    self
+  end
+
+  # Hash-style option access (for compatibility)
+  def [](key)
+    cget(key)
+  end
+
+  def []=(key, val)
+    configure(key.to_s => val)
+    val
   end
 
   # Returns the image type ("bitmap" or "photo").
   # @return [String]
   def itemtype
-    tk_call_without_enc('image', 'type', @path)
+    tk_call('image', 'type', @path)
   end
 
   # Returns the image width in pixels.
   # @return [Integer]
   def width
-    number(tk_call_without_enc('image', 'width', @path))
+    tk_call('image', 'width', @path).to_i
   end
 
   # Returns all image objects.
   # @return [Array<TkImage, String>] Image objects or names
   def TkImage.names
     Tk_IMGTBL.mutex.synchronize{
-      Tk.tk_call_without_enc('image', 'names').split.collect!{|id|
+      TkCore::INTERP._invoke('image', 'names').split.collect!{|id|
         (Tk_IMGTBL[id])? Tk_IMGTBL[id] : id
       }
     }
@@ -147,7 +183,66 @@ class TkImage<TkObject
   # Returns available image types.
   # @return [Array<String>] Typically ["bitmap", "photo"]
   def TkImage.types
-    Tk.tk_call_without_enc('image', 'types').split
+    TkCore::INTERP._invoke('image', 'types').split
+  end
+
+  private
+
+  # Convert hash to -key value args for image commands.
+  # Handles complex values like [:gif, {index: 0}] → "gif -index 0"
+  def _image_hash_kv(keys)
+    return [] unless keys
+    args = []
+    keys.each do |k, v|
+      args << "-#{k}"
+      args << _eval_value(v)
+    end
+    args
+  end
+
+  # Convert a value to its Tcl string representation.
+  # Arrays like [:gif, {index: 0}] become "gif -index 0" (flat Tcl list).
+  def _eval_value(v)
+    case v
+    when Array
+      parts = []
+      v.each do |el|
+        case el
+        when Hash
+          # Flatten hash entries into the same list level
+          el.each do |hk, hv|
+            parts << "-#{hk}"
+            parts << _eval_value(hv)
+          end
+        else
+          parts << _eval_value(el)
+        end
+      end
+      TclTkLib._merge_tklist(*parts)
+    when Hash
+      parts = []
+      v.each do |hk, hv|
+        parts << "-#{hk}"
+        parts << _eval_value(hv)
+      end
+      TclTkLib._merge_tklist(*parts)
+    when Symbol
+      v.to_s
+    when true
+      '1'
+    when false
+      '0'
+    when Integer, Float
+      v.to_s
+    else
+      if v.respond_to?(:path)
+        v.path
+      elsif v.respond_to?(:to_eval)
+        v.to_eval
+      else
+        v.to_s
+      end
+    end
   end
 end
 
@@ -169,8 +264,6 @@ class TkBitmapImage<TkImage
 
   option :maskdata, type: :string
   option :maskfile, type: :string
-
-  # NOTE: __strval_optkeys override for 'maskdata', 'maskfile' removed - now declared via OptionDSL
 
   def initialize(*args)
     @type = 'bitmap'
@@ -215,7 +308,7 @@ class TkPhotoImage<TkImage
   NullArgOptionKeys = [ "shrink", "grayscale" ]
 
   def _photo_hash_kv(keys)
-    keys = _symbolkey2str(keys)
+    keys = keys.transform_keys(&:to_s)
     NullArgOptionKeys.collect{|opt|
       if keys[opt]
         keys[opt] = None
@@ -223,47 +316,22 @@ class TkPhotoImage<TkImage
         keys.delete(opt)
       end
     }
-    keys.collect{|k,v|
-      ['-' << k, v]
-    }.flatten
+    result = []
+    keys.each do |k, v|
+      next if v.equal?(None)
+      result << "-#{k}"
+      # Flat arrays (e.g. to: [0,0,16,16]) → separate args: -to 0 0 16 16
+      # Complex arrays (e.g. format: [:gif, {index: 0}]) → Tcl list: -format {gif -index 0}
+      if v.is_a?(Array) && v.all? { |el| el.is_a?(Integer) || el.is_a?(String) || el.is_a?(Float) }
+        v.each { |el| result << el.to_s }
+      else
+        result << _eval_value(v)
+      end
+    end
+    result
   end
   private :_photo_hash_kv
 
-  # Create a new image with the given options.
-  # == Examples of use :
-  # === Create an empty image of 300x200 pixels
-  #
-  #		image = TkPhotoImage.new(:height => 200, :width => 300)
-  #
-  # === Create an image from a file
-  #
-  #		image = TkPhotoImage.new(:file: => 'my_image.gif')
-  #
-  # == Options
-  # Photos support the following options:
-  # * :data
-  #   Specifies the contents of the image as a string.
-  # * :format
-  #   Specifies the name of the file format for the data.
-  # * :file
-  #   Gives the name of a file that is to be read to supply data for the image.
-  # * :gamma
-  #   Specifies that the colors allocated for displaying this image in a window
-  #   should be corrected for a non-linear display with the specified gamma
-  #   exponent value.
-  # * height
-  #   Specifies the height of the image, in pixels. This option is useful
-  #   primarily in situations where the user wishes to build up the contents of
-  #   the image piece by piece. A value of zero (the default) allows the image
-  #   to expand or shrink vertically to fit the data stored in it.
-  # * palette
-  #   Specifies the resolution of the color cube to be allocated for displaying
-  #   this image.
-  # * width
-  #   Specifies the width of the image, in pixels. This option is useful
-  #   primarily in situations where the user wishes to build up the contents of
-  #   the image piece by piece. A value of zero (the default) allows the image
-  #   to expand or shrink horizontally to fit the data stored in it.
   # Base64-encoded signatures for formats that DON'T support base64 -data natively
   # These formats require binary data but users often pass base64 by mistake
   BASE64_TKIMG_SIGNATURES = {
@@ -272,6 +340,8 @@ class TkPhotoImage<TkImage
     'SUkq' => 'tiff',   # "II*\x00" (little-endian TIFF)
     'TU0A' => 'tiff',   # "MM\x00*" (big-endian TIFF)
   }.freeze
+
+  None = TkUtil::None
 
   def initialize(*args)
     @type = 'photo'
@@ -296,14 +366,18 @@ class TkPhotoImage<TkImage
     super(*args)
   end
 
-  # Note: blank is defined below using the faster C API (Tk_PhotoBlank)
-
   def cget_strict(option)
     case option.to_s
     when 'data', 'file'
       tk_send 'cget', '-' << option.to_s
     else
-      tk_tcl2ruby(tk_send('cget', '-' << option.to_s))
+      val = tk_send('cget', '-' << option.to_s)
+      # Convert numeric strings to appropriate Ruby types
+      case val
+      when /\A-?\d+\z/ then val.to_i
+      when /\A-?\d+\.\d+\z/ then val.to_f
+      else val
+      end
     end
   end
 
@@ -315,50 +389,7 @@ class TkPhotoImage<TkImage
   end
 
   # Copies a region from the image called source to the image called
-  # destination, possibly with pixel zooming and/or subsampling. If no options
-  # are specified, this method copies the whole of source into destination,
-  # starting at coordinates (0,0) in destination. The following options may be
-  # specified:
-  #
-  # * :from [x1, y1, x2, y2]
-  #   Specifies a rectangular sub-region of the source image to be copied.
-  #   (x1,y1) and (x2,y2) specify diagonally opposite corners of the rectangle.
-  #   If x2 and y2 are not specified, the default value is the bottom-right
-  #   corner of the source image. The pixels copied will include the left and
-  #   top edges of the specified rectangle but not the bottom or right edges.
-  #   If the :from option is not given, the default is the whole source image.
-  # * :to [x1, y1, x2, y2]
-  #   Specifies a rectangular sub-region of the destination image to be
-  #   affected. (x1,y1) and (x2,y2) specify diagonally opposite corners of the
-  #   rectangle. If x2 and y2 are not specified, the default value is (x1,y1)
-  #   plus the size of the source region (after subsampling and zooming, if
-  #   specified). If x2 and  y2 are specified, the source region will be
-  #   replicated if necessary to fill the destination region in a tiled fashion.
-  # * :shrink
-  #   Specifies that the size of the destination image should be reduced, if
-  #   necessary, so that the region being copied into is at the bottom-right
-  #   corner of the image. This option will not affect the width or height of
-  #   the image if the user has specified a non-zero value for the :width or
-  #   :height configuration option, respectively.
-  # * :zoom [x, y]
-  #   Specifies that the source region should be magnified by a factor of x
-  #   in the X direction and y in the Y direction. If y is not given, the
-  #   default value is the same as x. With this option, each pixel in the
-  #   source image will be expanded into a block of x x y pixels in the
-  #   destination image, all the same color. x and y must be greater than 0.
-  # * :subsample [x, y]
-  #   Specifies that the source image should be reduced in size by using only
-  #   every xth pixel in the X direction and yth pixel in the Y direction.
-  #   Negative values will cause the image to be flipped about the Y or X axes,
-  #   respectively. If y is not given, the default value is the same as x.
-  # * :compositingrule rule
-  #   Specifies how transparent pixels in the source image are combined with
-  #   the destination image. When a compositing rule of <tt>overlay</tt> is set,
-  #   the old  contents of the destination image are visible, as if the source
-  #   image were  printed on a piece of transparent film and placed over the
-  #   top of the  destination. When a compositing rule of <tt>set</tt> is set,
-  #   the old contents of  the destination image are discarded and the source
-  #   image is used as-is. The default compositing rule is <tt>overlay</tt>.
+  # destination, possibly with pixel zooming and/or subsampling.
   def copy(src, *opts)
     if opts.size == 0
       tk_send('copy', src)
@@ -378,30 +409,10 @@ class TkPhotoImage<TkImage
     self
   end
 
-  # Returns image data in the form of a string. The following options may be
-  # specified:
-  # * :background color
-  #   If the color is specified, the data will not contain any transparency
-  #   information. In all transparent pixels the color will be replaced by the
-  #   specified color.
-  # * :format format-name
-  #   Specifies the name of the image file format handler to be used.
-  #   Specifically, this subcommand searches for the first handler whose name
-  #   matches an initial substring of format-name and which has the capability
-  #   to read this image data. If this option is not given, this subcommand
-  #   uses the first handler that has the capability to read the image data.
-  # * :from [x1, y1, x2, y2]
-  #   Specifies a rectangular region of imageName to be returned. If only x1
-  #   and y1 are specified, the region extends from (x1,y1) to the bottom-right
-  #   corner of imageName. If all four coordinates are given, they specify
-  #   diagonally opposite corners of the rectangular region, including x1,y1
-  #   and excluding x2,y2. The default, if this option is not given, is the
-  #   whole image.
-  # * :grayscale
-  #   If this options is specified, the data will not contain color information.
-  #   All pixel data will be transformed into grayscale.
+  # Returns image data in the form of a string.
   def data(keys={})
-    tk_split_list(tk_send('data', *_photo_hash_kv(keys)))
+    result = tk_send('data', *_photo_hash_kv(keys))
+    TclTkLib._split_tklist(result)
   end
 
   # Returns the color of the pixel at coordinates (x,y) in the image as a list
@@ -449,7 +460,7 @@ class TkPhotoImage<TkImage
 
   # Returns a boolean indicating if the pixel at (x,y) is transparent.
   def get_transparency(x, y)
-    bool(tk_send('transparency', 'get', x, y))
+    tk_send('transparency', 'get', x, y) == '1'
   end
 
   # Makes the pixel at (x,y) transparent if <tt>state</tt> is true, and makes
@@ -490,17 +501,6 @@ class TkPhotoImage<TkImage
   # @param y [Integer] Y offset in destination image (default: 0)
   # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
-  #
-  # @example Fill a 100x100 image with red pixels (RGBA)
-  #   img = TkPhotoImage.new(width: 100, height: 100)
-  #   red_rgba = "\xFF\x00\x00\xFF" * (100 * 100)
-  #   img.put_block(red_rgba, 100, 100)
-  #
-  # @example Using ARGB format (common in SDL2, graphics libraries)
-  #   # ARGB integers packed little-endian: 0xAARRGGBB -> [B,G,R,A] bytes
-  #   argb_data = [0xFFFF0000].pack('V*') * (100 * 100)  # red
-  #   img.put_block(argb_data, 100, 100, format: :argb)
-  #
   def put_block(pixel_data, width, height, x: 0, y: 0, format: :rgba)
     opts = {}
     opts[:x] = x if x != 0
@@ -526,16 +526,6 @@ class TkPhotoImage<TkImage
   # @param subsample_y [Integer] Vertical subsample factor (default: 1)
   # @param format [Symbol] :rgba (default) or :argb
   # @return [self]
-  #
-  # @example Scale up 3x for display
-  #   img = TkPhotoImage.new(width: 960, height: 720)
-  #   img.put_zoomed_block(rgba_data, 320, 240, zoom_x: 3, zoom_y: 3)
-  #
-  # @example NES emulator with ARGB pixel data
-  #   # Optcarrot outputs ARGB integers, pack and pass directly
-  #   argb_data = colors.pack('V*')
-  #   img.put_zoomed_block(argb_data, 256, 224, zoom_x: 3, zoom_y: 3, format: :argb)
-  #
   def put_zoomed_block(pixel_data, width, height, x: 0, y: 0,
                        zoom_x: 1, zoom_y: 1, subsample_x: 1, subsample_y: 1, format: :rgba)
     opts = {}
@@ -567,30 +557,6 @@ class TkPhotoImage<TkImage
   #   - :height [Integer] - Height of returned data
   #   - :data [String] - Binary RGBA string (when unpack: false)
   #   - :pixels [Array<Integer>] - Flat array [r,g,b,a,r,g,b,a,...] (when unpack: true)
-  #
-  # @example Read all pixels as binary string
-  #   result = img.get_image
-  #   rgba_data = result[:data]  # "\xFF\x00\x00\xFF..."
-  #
-  # @example Read as unpacked integers
-  #   result = img.get_image(unpack: true)
-  #   pixels = result[:pixels]  # [255, 0, 0, 255, 255, 0, 0, 255, ...]
-  #
-  #   # Get individual RGBA tuples:
-  #   pixels.each_slice(4) do |r, g, b, a|
-  #     puts "R=#{r} G=#{g} B=#{b} A=#{a}"
-  #   end
-  #
-  #   # Get rows of pixels:
-  #   pixels.each_slice(result[:width] * 4) do |row|
-  #     row.each_slice(4) do |r, g, b, a|
-  #       # process pixel
-  #     end
-  #   end
-  #
-  # @example Read a 100x100 region at offset (50, 50)
-  #   result = img.get_image(x: 50, y: 50, width: 100, height: 100)
-  #
   def get_image(x: 0, y: 0, width: nil, height: nil, unpack: false)
     opts = {}
     opts[:x] = x if x != 0
@@ -605,10 +571,6 @@ class TkPhotoImage<TkImage
   # Faster than querying width/height separately via Tcl.
   #
   # @return [Array<Integer>] [width, height]
-  #
-  # @example
-  #   width, height = img.get_size
-  #
   def get_size
     Tk::INTERP.photo_get_size(@path)
   end
@@ -617,10 +579,6 @@ class TkPhotoImage<TkImage
   # Faster than manually setting all pixels.
   #
   # @return [self]
-  #
-  # @example
-  #   img.blank
-  #
   def blank
     Tk::INTERP.photo_blank(@path)
     self
