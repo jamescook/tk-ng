@@ -7,7 +7,11 @@ module Tk
     class BindEvent
       attr_reader :x, :y, :rootx, :rooty, :width, :height,
                   :keycode, :keysym, :char, :state, :time,
-                  :widget, :type, :serial
+                  :widget, :type, :serial, :wheel_delta,
+                  :borderwidth, :send_event, :mode, :override,
+                  :place, :value_mask
+
+      alias delta wheel_delta
 
       def initialize(attrs = {})
         attrs.each { |k, v| instance_variable_set("@#{k}", v) }
@@ -125,8 +129,20 @@ module Tk
         time: '%t',
         widget: '%W',
         type: '%T',
-        serial: '%#'
+        serial: '%#',
+        wheel_delta: '%D',
+        borderwidth: '%B',
+        send_event: '%E',
+        mode: '%m',
+        override: '%o',
+        place: '%p',
+        value_mask: '%v'
       }.freeze
+
+      # Substitution keys that should be converted to integers
+      INT_SUBST_KEYS = Set[:x, :y, :rootx, :rooty, :width, :height,
+                           :keycode, :state, :time, :serial, :type,
+                           :wheel_delta, :borderwidth, :value_mask].freeze
 
       # Bind an event to this widget.
       #
@@ -143,7 +159,7 @@ module Tk
         cmd ||= block
         return self unless cmd
 
-        do_bind(event, cmd, args: args.empty? ? nil : args.join(' '), append: false)
+        do_bind(event, cmd, raw_args: args.empty? ? nil : args, append: false)
         self
       end
 
@@ -158,7 +174,7 @@ module Tk
         cmd ||= block
         return self unless cmd
 
-        do_bind(event, cmd, args: args.empty? ? nil : args.join(' '), append: true)
+        do_bind(event, cmd, raw_args: args.empty? ? nil : args, append: true)
         self
       end
 
@@ -193,9 +209,10 @@ module Tk
         attrs = {}
         EVENT_SUBST.keys.each_with_index do |key, i|
           val = args[i]
-          case key
-          when :x, :y, :rootx, :rooty, :width, :height, :keycode, :state, :time, :serial
+          if INT_SUBST_KEYS.include?(key)
             attrs[key] = val.to_i rescue val
+          elsif key == :widget
+            attrs[key] = TkCore::INTERP.tk_windows[val] || val
           else
             attrs[key] = val
           end
@@ -226,14 +243,37 @@ module Tk
         end
       end
 
-      def do_bind(event, cmd, args: nil, append: false)
+      # Convert symbol args (e.g. :x, :y) to Tcl % substitutions (%x, %y).
+      # Strings are passed through as-is (already Tcl format).
+      def _subst_args(args)
+        args.map { |a|
+          a.is_a?(Symbol) ? (EVENT_SUBST[a] || "%#{a}") : a.to_s
+        }.join(' ')
+      end
+
+      def do_bind(event, cmd, raw_args: nil, append: false)
         event = normalize_event(event)
 
-        if args
-          # Caller provided explicit Tcl substitution string (e.g. "%W %x 3").
-          # Pass raw substituted values directly to the callback.
-          callback_id = install_cmd(cmd)
-          script = "#{callback_id} #{args}"
+        if raw_args
+          # Caller provided explicit args (e.g. :x, :y or "%x %y").
+          # Convert symbols to % substitutions and wrap with type conversion.
+          sym_keys = raw_args.select { |a| a.is_a?(Symbol) }
+          subst_str = _subst_args(raw_args)
+
+          if sym_keys.any?
+            # Wrap callback to convert Tcl strings to Ruby types
+            int_keys = INT_SUBST_KEYS & sym_keys
+            wrapper = proc do |*cb_args|
+              converted = cb_args.each_with_index.map do |val, i|
+                int_keys.include?(sym_keys[i]) ? (val.to_i rescue val) : val
+              end
+              cmd.call(*converted)
+            end
+            callback_id = install_cmd(wrapper)
+          else
+            callback_id = install_cmd(cmd)
+          end
+          script = "#{callback_id} #{subst_str}"
         elsif cmd.arity != 0
           # Auto-wrap with standard event substitutions → BindEvent object
           wrapper = proc do |*cb_args|

@@ -481,7 +481,7 @@ class TestEvent < Minitest::Test
   # --- Mouse wheel event ---
 
   def test_mousewheel_event
-    assert_tk_app("MouseWheel event", method(:app_mousewheel_event))
+    assert_tk_app("MouseWheel event", method(:app_mousewheel_event), timeout: 5)
   end
 
   def app_mousewheel_event
