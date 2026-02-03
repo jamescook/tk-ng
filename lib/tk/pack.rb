@@ -65,33 +65,10 @@
 # @see TkPlace For absolute positioning
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/pack.htm Tcl/Tk pack manual
 module TkPack
-  include Tk
-  extend Tk
-
   TkCommandNames = ['pack'.freeze].freeze
 
-=begin
-  def configure(win, *args)
-    if args[-1].kind_of?(Hash)
-      opts = args.pop
-    else
-      opts = {}
-    end
-    params = []
-    # params.push((win.kind_of?(TkObject))? win.epath: win)
-    params.push(_epath(win))
-    args.each{|win|
-      # params.push((win.kind_of?(TkObject))? win.epath: win)
-      params.push(_epath(win))
-    }
-    opts.each{|k, v|
-      params.push("-#{k}")
-      # params.push((v.kind_of?(TkObject))? v.epath: v)
-      params.push(_epath(v))
-    }
-    tk_call_without_enc("pack", 'configure', *params)
-  end
-=end
+  NONE = TkUtil::None
+
   def configure(*args)
     if args[-1].kind_of?(Hash)
       opts = args.pop
@@ -103,30 +80,25 @@ module TkPack
     args.flatten(1).each{|win| params.push(_epath(win))}
     opts.each{|k, v|
       params.push("-#{k}")
-      params.push(_epath(v))  # have to use 'epath' (hash_kv() is unavailable)
+      params.push(_epath(v))
     }
-    tk_call_without_enc("pack", 'configure', *params)
+    _invoke('pack', 'configure', *params)
   end
   alias pack configure
 
   def forget(*args)
     return '' if args.size == 0
-    wins = args.collect{|win|
-      # (win.kind_of?(TkObject))? win.epath: win
-      _epath(win)
-    }
-    tk_call_without_enc('pack', 'forget', *wins)
+    wins = args.collect{|win| _epath(win) }
+    _invoke('pack', 'forget', *wins)
   end
 
   def info(slave)
-    # slave = slave.epath if slave.kind_of?(TkObject)
-    slave = _epath(slave)
-    ilist = list(tk_call_without_enc('pack', 'info', slave))
+    ilist = TclTkLib._split_tklist(_invoke('pack', 'info', _epath(slave)))
     info = {}
     while key = ilist.shift
       info[key[1..-1]] = ilist.shift
     end
-    return info
+    info
   end
 
   # Gets or sets geometry propagation.
@@ -137,23 +109,34 @@ module TkPack
   # @param master [TkWindow] Container window
   # @param mode [Boolean, nil] true/false to set, nil to query
   # @return [Boolean, void] Current state if querying
-  def propagate(master, mode=None)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    if mode == None
-      bool(tk_call_without_enc('pack', 'propagate', master))
+  def propagate(master, mode=NONE)
+    if mode.equal?(NONE)
+      _invoke('pack', 'propagate', _epath(master)) == '1'
     else
-      tk_call_without_enc('pack', 'propagate', master, mode)
+      _invoke('pack', 'propagate', _epath(master), mode.to_s)
     end
   end
 
   def slaves(master)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    list(tk_call_without_enc('pack', 'slaves', master))
+    TclTkLib._split_tklist(_invoke('pack', 'slaves', _epath(master)))
+  end
+
+  private
+
+  def _epath(win)
+    win.respond_to?(:epath) ? win.epath :
+      win.respond_to?(:path) ? win.path : win.to_s
+  end
+
+  def _invoke(*args)
+    TkCore::INTERP._invoke(*args.map { |a|
+      a.respond_to?(:epath) ? a.epath :
+        a.respond_to?(:path) ? a.path : a.to_s
+    })
   end
 
   module_function :pack, :configure, :forget, :info, :propagate, :slaves
+  module_function :_epath, :_invoke
 end
 =begin
 def TkPack(win, *args)
