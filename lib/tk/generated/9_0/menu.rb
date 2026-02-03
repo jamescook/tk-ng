@@ -17,7 +17,7 @@ module Tk
           option :activeforeground
           option :activerelief
           option :background, alias: :bg
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :disabledforeground
           option :font, type: :font

@@ -62,7 +62,7 @@ class Tk::RbWidget::AlignBox < TkFrame
 
   def add(*widgets)
     widgets.each{|w|
-      unless w.kind_of? TkWindow
+      unless w.respond_to?(:tk_widget?) && w.tk_widget?
         fail RuntimeError, "#{w.inspect} is not a widget instance."
       end
       @widgets.delete(w)

@@ -17,7 +17,7 @@ module Tk
           option :anchor  # n, ne, e, se, s, sw, w, nw, center
           option :background, alias: :bg
           option :bitmap
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :command, type: :callback
           option :compound  # none, bottom, top, left, right, center
           option :cursor  # mouse cursor name

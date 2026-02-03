@@ -7,18 +7,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TCheckButton < Tk::CheckButton
-    end
-    TCheckbutton = TCheckButton
-    CheckButton  = TCheckButton
-    Checkbutton  = TCheckButton
-  end
-end
-
-class Tk::Tile::TCheckButton < Tk::CheckButton
+class Tk::Tile::TCheckButton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkCheckbutton
 
@@ -28,10 +26,36 @@ class Tk::Tile::TCheckButton < Tk::CheckButton
     TkCommandNames = ['::tcheckbutton'.freeze].freeze
   end
   WidgetClassName = 'TCheckbutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+  end
+
+  def deselect
+    tk_send('deselect')
+    self
+  end
+
+  def select
+    tk_send('select')
+    self
+  end
+
+  def toggle
+    tk_send('toggle')
+    self
+  end
+
+  def invoke
+    tk_send('invoke')
+  end
+end
+
+module Tk
+  module Tile
+    TCheckbutton = TCheckButton
+    CheckButton  = TCheckButton
+    Checkbutton  = TCheckButton
   end
 end
 

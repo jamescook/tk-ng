@@ -2,6 +2,11 @@
 #
 # tk/winfo.rb : methods for winfo command
 #
+# @deprecated This module uses the problematic include+extend Tk pattern.
+#   New widgets should use Tk::Core::Winfo instead, which provides clean
+#   instance methods without the module function anti-pattern.
+#   This file will be removed once all widgets migrate to Tk::Core::Widget.
+#
 
 # Window information query methods.
 #

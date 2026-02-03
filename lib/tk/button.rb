@@ -1,6 +1,8 @@
 # frozen_string_literal: false
-require 'tk/label'
-require 'tk/option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'  # TkCallback (Tk::Core::Callback shim)
 
 # A clickable button widget.
 #
@@ -26,78 +28,26 @@ require 'tk/option_dsl'
 # @see Tk::Label for display-only text
 # @see https://www.tcl.tk/man/tcl/TkCmd/button.html Tcl/Tk button manual
 #
-class Tk::Button<Tk::Label
+class Tk::Button
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback  # for install_cmd used by Widget
+  include Tk::Core::Widget
   include Tk::Generated::Button
-  # @generated:options:start
-  # Available options (auto-generated from Tk introspection):
-  #
-  #   :activebackground
-  #   :activeforeground
-  #   :anchor
-  #   :background
-  #   :bitmap
-  #   :borderwidth
-  #   :command (callback)
-  #   :compound
-  #   :cursor
-  #   :default
-  #   :disabledforeground
-  #   :font
-  #   :foreground
-  #   :height
-  #   :highlightbackground
-  #   :highlightcolor
-  #   :highlightthickness
-  #   :image
-  #   :justify
-  #   :overrelief
-  #   :padx
-  #   :pady
-  #   :relief
-  #   :repeatdelay
-  #   :repeatinterval
-  #   :state
-  #   :takefocus
-  #   :text
-  #   :textvariable (tkvariable)
-  #   :underline
-  #   :width
-  #   :wraplength
-  # @generated:options:end
-
-
 
   TkCommandNames = ['button'.freeze].freeze
   WidgetClassName = 'Button'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   # Programmatically trigger the button's command callback.
-  #
-  # Acts as if the user clicked the button. The button flashes briefly
-  # and the command executes.
-  #
-  # @return [String] the return value of the command, or empty string
-  #
-  # @example Trigger button from code
-  #   submit_button.invoke
-  #
   def invoke
-    tk_send_without_enc('invoke')
+    tk_send('invoke')
   end
 
   # Flash the button to draw attention.
-  #
-  # Alternates between active and normal colors several times.
-  # Does not invoke the command.
-  #
-  # @return [self]
-  #
   def flash
-    tk_send_without_enc('flash')
+    tk_send('flash')
     self
   end
 end
 
-#TkButton = Tk::Button unless Object.const_defined? :TkButton
-#Tk.__set_toplevel_aliases__(:Tk, Tk::Button, :TkButton)
 Tk.__set_loaded_toplevel_aliases__('tk/button.rb', :Tk, Tk::Button, :TkButton)

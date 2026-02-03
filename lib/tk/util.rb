@@ -362,6 +362,139 @@ module TkUtil
     TkUtil._get_eval_enc_str(obj)
   end
 
+  # Split a Tcl list string into Ruby array, converting elements to
+  # numbers where possible. For nested lists, use depth > 0.
+  def self.list(val, depth = 0)
+    return [] if val == ""
+    TclTkLib._split_tklist(val).map { |token|
+      if depth > 0
+        list(token, depth - 1)
+      else
+        num_or_str(token)
+      end
+    }
+  end
+
+  def list(val, depth = 0)
+    TkUtil.list(val, depth)
+  end
+
+  # Split a Tcl list string into an array of strings (no type conversion).
+  def self.simplelist(val)
+    TclTkLib._split_tklist(val)
+  end
+
+  def simplelist(val)
+    TkUtil.simplelist(val)
+  end
+
+  # Split a Tcl list string. Encoding parameters are accepted for
+  # backward compatibility with TkComm but ignored (UTF-8 everywhere).
+  def self.tk_split_simplelist(str, src_enc=true, dst_enc=true)
+    TkCore::INTERP._split_tklist(str)
+  end
+
+  def tk_split_simplelist(str, src_enc=true, dst_enc=true)
+    TkUtil.tk_split_simplelist(str)
+  end
+
+  def self.tk_split_sublist(str, depth=-1, src_enc=true, dst_enc=true)
+    if depth == 0
+      return "" if str == ""
+      list = [str]
+    else
+      return [] if str == ""
+      list = TkCore::INTERP._split_tklist(str)
+    end
+    if list.size == 1
+      tk_tcl2ruby(list[0], false, false)
+    else
+      list.collect{|token| tk_split_sublist(token, depth - 1, false, dst_enc)}
+    end
+  end
+
+  def tk_split_sublist(str, depth=-1, src_enc=true, dst_enc=true)
+    TkUtil.tk_split_sublist(str, depth, src_enc, dst_enc)
+  end
+
+  def self.tk_split_list(str, depth=0, src_enc=true, dst_enc=true)
+    return [] if str == ""
+    TkCore::INTERP._split_tklist(str).map!{|token|
+      tk_split_sublist(token, depth - 1, false, dst_enc)
+    }
+  end
+
+  def tk_split_list(str, depth=0, src_enc=true, dst_enc=true)
+    TkUtil.tk_split_list(str, depth, src_enc, dst_enc)
+  end
+
+  # Convert a Tcl value to the appropriate Ruby type.
+  # Resolves widget paths, callbacks, images, numbers, and lists.
+  CALLBACK_PATTERN = /rb_out\S*(?:\s+(::\S*|\{(::.*)\}|"(::.*)"))?[ ](c(?:_\d+_)?\d+)/.freeze
+  IMAGE_PATTERN = /\Ai(?:_\d+_)?\d+\z/.freeze
+  FLOAT_PATTERN = /\A-?\d+\.?\d*(?:e[-+]?\d+)?\z/.freeze
+  ESCAPED_SPACE_PATTERN = /\\ /.freeze
+
+  def self.tk_tcl2ruby(val, enc_mode = false, listobj = true)
+    return val if val.empty?
+
+    first_char = val.getbyte(0)
+
+    # Callback reference
+    if first_char == 114 && val.start_with?('rb_out')
+      if (m = CALLBACK_PATTERN.match(val))
+        return TkCore::INTERP.tk_cmd_tbl[m[4]]
+      end
+    end
+
+    # Widget path
+    if first_char == 46 # '.'
+      second_char = val.getbyte(1)
+      if second_char.nil? || second_char < 48 || second_char > 57
+        win = TkCore::INTERP.tk_windows[val]
+        return win || val
+      end
+    end
+
+    # Image
+    if first_char == 105 # 'i'
+      second_char = val.getbyte(1)
+      if second_char && (second_char == 95 || (second_char >= 48 && second_char <= 57))
+        if IMAGE_PATTERN.match?(val)
+          return TkImage::Tk_IMGTBL.mutex.synchronize {
+            TkImage::Tk_IMGTBL[val] || val
+          }
+        end
+      end
+    end
+
+    # Spaces
+    if val.include?(' ')
+      if val.include?('\ ')
+        return val.gsub(ESCAPED_SPACE_PATTERN, ' ')
+      elsif listobj
+        return TkCore::INTERP._split_tklist(val).collect { |elt|
+          tk_tcl2ruby(elt, true, listobj)
+        }
+      else
+        return val
+      end
+    end
+
+    # Integer / float
+    if (first_char >= 48 && first_char <= 57) ||
+       (first_char == 45 && val.length > 1)
+      return val.to_i if val.match?(/\A-?\d+\z/)
+      return val.to_f if FLOAT_PATTERN.match?(val)
+    end
+
+    val
+  end
+
+  def tk_tcl2ruby(val, enc_mode = false, listobj = true)
+    TkUtil.tk_tcl2ruby(val, enc_mode, listobj)
+  end
+
   # Convert hash to key-value array with -key prefixes
   # C version: tkutil.c:617 (tk_hash_kv)
   #

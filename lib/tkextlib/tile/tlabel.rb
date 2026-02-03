@@ -7,16 +7,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TLabel < Tk::Label
-    end
-    Label = TLabel
-  end
-end
-
-class Tk::Tile::TLabel < Tk::Label
+class Tk::Tile::TLabel
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkLabel
 
@@ -26,10 +26,15 @@ class Tk::Tile::TLabel < Tk::Label
     TkCommandNames = ['::tlabel'.freeze].freeze
   end
   WidgetClassName = 'TLabel'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+  end
+end
+
+module Tk
+  module Tile
+    Label = TLabel
   end
 end
 

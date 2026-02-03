@@ -14,7 +14,7 @@ module Tk
         base.class_eval do
           option :activebackground
           option :background, alias: :bg
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :buttonbackground
           option :buttoncursor
           option :buttondownrelief

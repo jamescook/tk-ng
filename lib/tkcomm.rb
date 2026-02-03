@@ -83,9 +83,10 @@ module TkComm
       return path
     end
 
-    if ruby_class = WidgetClassNames[tk_class]
+    # Check both legacy and clean widget registries
+    if ruby_class = (WidgetClassNames[tk_class] ||
+                     (defined?(Tk::Core::Widget) && Tk::Core::Widget.registry[tk_class]))
       ruby_class_name = ruby_class.name
-      # gen_class_name = ruby_class_name + 'GeneratedOnTk'
       gen_class_name = ruby_class_name
       classname_def = ''
     else # ruby_class == nil

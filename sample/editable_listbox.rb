@@ -112,8 +112,8 @@ class Tk::RbWidget::Editable_Listbox < TkListbox
     super
   end
 
-  def create_self(keys)
-    super(keys)
+  def initialize(parent = nil, keys = {}, &block)
+    super
 
     unless self.listvariable
       self.listvariable = TkVariable.new(self.get(0, :end))

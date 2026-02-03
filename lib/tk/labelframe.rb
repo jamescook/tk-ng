@@ -28,7 +28,7 @@ require 'tk/frame'
 # @see Tk::Frame for unlabeled containers
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/labelframe.html Tcl/Tk labelframe manual
 #
-class Tk::LabelFrame<Tk::Frame
+class Tk::LabelFrame < Tk::Frame
   include Tk::Generated::Labelframe
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -58,7 +58,6 @@ class Tk::LabelFrame<Tk::Frame
 
   TkCommandNames = ['labelframe'.freeze].freeze
   WidgetClassName = 'Labelframe'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 end
 
 Tk::Labelframe = Tk::LabelFrame

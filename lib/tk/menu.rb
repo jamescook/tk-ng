@@ -2,6 +2,10 @@
 require 'tk/menuspec'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # @!visibility private
 # Mixin for menu entry configuration methods.
@@ -397,7 +401,11 @@ Tk.__set_loaded_toplevel_aliases__('tk/menu.rb', :Tk, Tk::SysMenu_Apple,
 # @see Tk::Menu for the menu widget
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/menubutton.html Tcl/Tk menubutton manual
 #
-class Tk::Menubutton<Tk::Label
+class Tk::Menubutton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Generated::Menubutton
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -437,20 +445,6 @@ class Tk::Menubutton<Tk::Label
 
   TkCommandNames = ['menubutton'.freeze].freeze
   WidgetClassName = 'Menubutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
-
-  def create_self(keys)
-    if keys and keys != None
-      tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                          *hash_kv(keys, true))
-    else
-      tk_call_without_enc(self.class::TkCommandNames[0], @path)
-    end
-  end
-  private :create_self
-
-  # NOTE: __boolval_optkeys override for 'indicatoron' removed - now declared via OptionDSL
-
 end
 Tk::MenuButton = Tk::Menubutton
 #TkMenubutton = Tk::Menubutton unless Object.const_defined? :TkMenubutton
@@ -482,10 +476,10 @@ class Tk::OptionMenubutton<Tk::Menubutton
     #       other Hash keys are menubutton options
     keys = {}
     keys = args.pop if args[-1].kind_of?(Hash)
-    keys = _symbolkey2str(keys)
+    keys = keys.transform_keys(&:to_s)
 
     parent = nil
-    if !args.empty? && (args[0].kind_of?(TkWindow) || args[0] == nil)
+    if !args.empty? && (args[0].respond_to?(:path) || args[0] == nil)
       keys.delete('parent') # ignore
       parent = args.shift
     else
@@ -508,7 +502,8 @@ class Tk::OptionMenubutton<Tk::Menubutton
       @variable.value = args[0]
     end
 
-    install_win(if parent then parent.path end)
+    @path = generate_path(parent)
+    TkCore::INTERP.tk_windows[@path] = self
     @menu = OptionMenu.new(tk_call('tk_optionMenu',
                                    @path, @variable.id, *args))
 

@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'  # TkCallback (Tk::Core::Callback shim)
 
 # A widget that displays text or an image.
 #
@@ -29,7 +32,11 @@ require 'tk/option_dsl'
 #
 # @see https://www.tcl.tk/man/tcl/TkCmd/label.html Tcl/Tk label manual
 #
-class Tk::Label<TkWindow
+class Tk::Label
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback  # for install_cmd used by Widget
+  include Tk::Core::Widget
   include Tk::Generated::Label
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -65,15 +72,6 @@ class Tk::Label<TkWindow
 
   TkCommandNames = ['label'.freeze].freeze
   WidgetClassName = 'Label'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('label', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('label', @path)
-  #  end
-  #end
-  #private :create_self
 end
 
 #TkLabel = Tk::Label unless Object.const_defined? :TkLabel

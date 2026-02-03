@@ -182,6 +182,12 @@ class TkWindow<TkObject
     @destroyed || false
   end
 
+  # Returns true for all Tk widgets.
+  # Use this instead of kind_of?(TkWindow) for widget type checks.
+  def tk_widget?
+    true
+  end
+
   alias subcommand tk_send
 
   def bind_class

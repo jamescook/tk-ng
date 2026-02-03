@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/label'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # A widget for displaying multi-line text with automatic line wrapping.
 #
@@ -28,7 +31,11 @@ require 'tk/label'
 # @see Tk::Label for single-line or fixed-layout text
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/message.html Tcl/Tk message manual
 #
-class Tk::Message<Tk::Label
+class Tk::Message
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Generated::Message
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -56,16 +63,6 @@ class Tk::Message<Tk::Label
 
   TkCommandNames = ['message'.freeze].freeze
   WidgetClassName = 'Message'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
-
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('message', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('message', @path)
-  #  end
-  #end
-  private :create_self
 end
 
 #TkMessage = Tk::Message unless Object.const_defined? :TkMessage

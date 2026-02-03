@@ -13,7 +13,7 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :background, alias: :bg
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :disabledbackground
           option :disabledforeground
@@ -42,7 +42,7 @@ module Tk
           option :validate  # none, focus, focusin, focusout, key, all
           option :validatecommand, alias: :vcmd
           option :width, type: :integer
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
           future_option :placeholder, min_version: '9.0'
           future_option :placeholderforeground, min_version: '9.0'
         end

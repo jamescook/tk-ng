@@ -7,16 +7,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TButton < Tk::Button
-    end
-    Button = TButton
-  end
-end
-
-class Tk::Tile::TButton < Tk::Button
+class Tk::Tile::TButton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkButton
 
@@ -26,10 +26,24 @@ class Tk::Tile::TButton < Tk::Button
     TkCommandNames = ['::tbutton'.freeze].freeze
   end
   WidgetClassName = 'TButton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+  end
+
+  def invoke
+    tk_send('invoke')
+  end
+
+  def flash
+    tk_send('flash')
+    self
+  end
+end
+
+module Tk
+  module Tile
+    Button = TButton
   end
 end
 

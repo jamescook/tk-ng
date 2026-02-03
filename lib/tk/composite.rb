@@ -2,6 +2,7 @@
 #
 # tk/composite.rb :
 #
+require_relative 'core/widget'
 
 # Mixin for building compound widgets from multiple Tk widgets.
 #
@@ -67,8 +68,7 @@
 # @see TkFrame Base class typically used with TkComposite
 # @see https://wiki.tcl-lang.org/page/megawidget Tcl megawidget pattern
 module TkComposite
-  include Tk
-  extend Tk
+  include TkUtil
 
   # Create a new composite widget.
   #
@@ -96,22 +96,8 @@ module TkComposite
     parent = args.shift
     parent = keys.delete('parent') if keys.has_key?('parent')
 
-    if keys.key?('classname')
-      keys['class'] = keys.delete('classname')
-    end
-    if (base_class_name = (keys.delete('class')).to_s).empty?
-      base_class_name = choice_classname_of_baseframe
-    end
-
-    if base_class_name
-      # @frame = Tk::Frame.new(parent, :class=>base_class_name)
-      # --> use current TkFrame class
-      @frame = TkFrame.new(parent, :class=>base_class_name)
-    else
-      # @frame = Tk::Frame.new(parent)
-      # --> use current TkFrame class
-      @frame = TkFrame.new(parent)
-    end
+    @classname = keys.delete('class') || keys.delete('classname') || self.class.name || 'Composite'
+    @frame = TkFrame.new(parent, :class => @classname)
     @path = @epath = @frame.path
 
     args.push(keys) unless keys.empty?
@@ -121,19 +107,51 @@ module TkComposite
   # Tk database class name for the base frame.
   # @return [String]
   def database_classname
-    @frame.database_classname
+    @classname
   end
 
-  # Tk database class for the base frame.
-  # @return [String]
   def database_class
-    @frame.database_class
+    @classname
   end
 
   # The widget's evaluation path (same as widget path for composites).
   # @return [String]
   def epath
     @epath
+  end
+
+  # Geometry management operates on the outer frame (@epath), not
+  # the inner component (@path). Without this, packing a composite
+  # widget tries to pack the inner component that's already managed
+  # inside the frame.
+  def pack(keys = {})
+    @frame.pack(keys)
+    self
+  end
+
+  def grid(keys = {})
+    @frame.grid(keys)
+    self
+  end
+
+  def place(keys = {})
+    @frame.place(keys)
+    self
+  end
+
+  def pack_forget
+    @frame.pack_forget
+    self
+  end
+
+  def grid_forget
+    @frame.grid_forget
+    self
+  end
+
+  def place_forget
+    @frame.place_forget
+    self
   end
 
   # Hook for subclasses to set up child widgets.
@@ -277,7 +295,7 @@ module TkComposite
   # (see TkConfigMethod#cget_tkstring)
   def cget_tkstring(slot)
     if (ret = cget_delegates(slot)) == None
-      super(slot)
+      @frame.cget_tkstring(slot)
     else
       _get_eval_string(ret)
     end
@@ -295,7 +313,7 @@ module TkComposite
   #   widget.cget(:width)  # => 100
   def cget(slot)
     if (ret = cget_delegates(slot)) == None
-      super(slot)
+      @frame.cget(slot)
     else
       ret
     end
@@ -304,7 +322,7 @@ module TkComposite
   # (see #cget)
   def cget_strict(slot)
     if (ret = cget_delegates(slot)) == None
-      super(slot)
+      @frame.cget_strict(slot)
     else
       ret
     end
@@ -359,7 +377,12 @@ module TkComposite
         "TkComposite#configure failed for '#{slot}' on delegate: #{e.message}")
     end
 
-    super(slot, value)
+    # Component fallback: @path may point to an inner widget (e.g. text)
+    # that supports options the frame doesn't. Try it first.
+    if defined?(@component) && @component
+      return @component.configure(slot, value)
+    end
+    @frame.configure(slot, value)
   end
 
   # Get configuration information.
@@ -412,10 +435,10 @@ module TkComposite
           "TkComposite#configinfo failed for '#{slot}' on delegate: #{e.message}")
       end
 
-      super(slot)
+      @frame.configinfo(slot)
 
     else # slot == nil
-      info_list = super(slot)
+      info_list = @frame.configinfo
 
       tbl = @delegates['DEFAULT']
       if tbl
@@ -460,66 +483,6 @@ module TkComposite
   end
 
   private
-
-  # Determine the Tk class name for the base frame.
-  def choice_classname_of_baseframe
-    base_class_name = nil
-
-    klass = WidgetClassNames[self.class::WidgetClassName]
-
-    if klass
-      # WidgetClassName is a known class
-      if klass <= TkFrame || klass < Tk::Frame || klass < TkComposite
-        # klass is valid for the base frame
-        if self.class <= klass
-          # use my classname
-          base_class_name = self.class.name
-          if base_class_name == ''
-            # anonymous class -> use ancestor's name
-            base_class_name = klass.name
-          end
-        else
-          # not subclass -> use WidgetClassName
-          base_class_name = klass.name
-        end
-
-      else
-        # klass is invalid for the base frame
-        if valid_baseframe_class?
-          # my class name is valid for the base frame -> use my classname
-          base_class_name = self.class.name
-          base_class_name = nil if base_class_name == ''
-        else
-          # no idea for the base frame -> use TkFrame
-          base_class_name = nil
-        end
-      end
-
-    elsif self.class::WidgetClassName && ! self.class::WidgetClassName.empty?
-      # unknown WidgetClassName is defined -> use it for the base frame
-      base_class_name = self.class::WidgetClassName
-
-    else
-      # no valid WidgetClassName
-      if valid_baseframe_class?
-        # my class name is valid for the base frame -> use my classname
-        base_class_name = self.class.name
-        base_class_name = nil if base_class_name == ''
-      else
-        # no idea for the base frame -> use TkFrame
-        base_class_name = nil
-      end
-    end
-
-    base_class_name
-  end
-
-  # Check if this class is valid for use as a base frame class.
-  def valid_baseframe_class?
-    self.class < TkFrame ||
-      self.class.superclass < Tk::Frame ||
-      self.class.superclass < TkComposite
-  end
 
   # Parse option method specification into [setter, getter, info] tuple.
   def get_opt_method_list(arg)

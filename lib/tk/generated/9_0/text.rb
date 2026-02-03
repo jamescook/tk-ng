@@ -15,7 +15,7 @@ module Tk
           option :autoseparators, type: :boolean
           option :background, alias: :bg
           option :blockcursor, type: :boolean
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :endline
           option :exportselection, type: :boolean  # export selection to X clipboard

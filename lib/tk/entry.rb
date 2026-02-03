@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/label'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 require 'tk/scrollable'
 require 'tk/validation'
 require 'tk/option_dsl'
@@ -39,8 +42,13 @@ require 'tk/option_dsl'
 # @see Tk::Text for multi-line text editing
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/entry.html Tcl/Tk entry manual
 #
-class Tk::Entry<Tk::Label
-  include X_Scrollable
+class Tk::Entry
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
+  include TkUtil  # for bool, number, _get_eval_enc_str
+  include Tk::XScrollable
   include TkValidation
   include Tk::Generated::Entry
   # @generated:options:start
@@ -85,14 +93,6 @@ class Tk::Entry<Tk::Label
 
   TkCommandNames = ['entry'.freeze].freeze
   WidgetClassName = 'Entry'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
-
-  #def create_self(keys)
-  #  super(__conv_vcmd_on_hash_kv(keys))
-  #end
-  #private :create_self
-
-  # NOTE: __strval_optkeys override for 'show', 'disabledbackground', 'readonlybackground' removed - now declared via OptionDSL
 
   def bbox(index)
     list(tk_send_without_enc('bbox', index))

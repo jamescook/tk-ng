@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/button'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # A radio button for one-of-many selection.
 #
@@ -29,7 +32,11 @@ require 'tk/button'
 # @see Tk::CheckButton for independent on/off toggles
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/radiobutton.html Tcl/Tk radiobutton manual
 #
-class Tk::RadioButton<Tk::Button
+class Tk::RadioButton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Generated::Radiobutton
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -75,34 +82,34 @@ class Tk::RadioButton<Tk::Button
 
   TkCommandNames = ['radiobutton'.freeze].freeze
   WidgetClassName = 'Radiobutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def deselect
-    tk_send_without_enc('deselect')
+    tk_send('deselect')
     self
   end
+
   def select
-    tk_send_without_enc('select')
+    tk_send('select')
+    self
+  end
+
+  def invoke
+    tk_send('invoke')
+  end
+
+  def flash
+    tk_send('flash')
     self
   end
 
   def get_value
-    var = tk_send_without_enc('cget', '-variable')
-    if TkVariable::USE_TCLs_SET_VARIABLE_FUNCTIONS
-      INTERP._get_global_var(var)
-    else
-      INTERP._eval(Kernel.format('global %s; set %s', var, var))
-    end
+    var = tk_send('cget', '-variable')
+    TkCore::INTERP._get_global_var(var)
   end
 
   def set_value(val)
-    var = tk_send_without_enc('cget', '-variable')
-    if TkVariable::USE_TCLs_SET_VARIABLE_FUNCTIONS
-      INTERP._set_global_var(var, _get_eval_string(val, true))
-    else
-      s = '"' + _get_eval_string(val).gsub(/[\[\]$"\\]/, '\\\\\&') + '"'
-      INTERP._eval(Kernel.format('global %s; set %s %s', var, var, s))
-    end
+    var = tk_send('cget', '-variable')
+    TkCore::INTERP._set_global_var(var, val.to_s)
   end
 end
 

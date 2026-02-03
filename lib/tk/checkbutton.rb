@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/radiobutton'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # A checkbox widget that toggles between on/off states.
 #
@@ -32,7 +35,11 @@ require 'tk/radiobutton'
 # @see Tk::RadioButton for one-of-many selection
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/checkbutton.html Tcl/Tk checkbutton manual
 #
-class Tk::CheckButton<Tk::RadioButton
+class Tk::CheckButton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Generated::Checkbutton
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -79,10 +86,28 @@ class Tk::CheckButton<Tk::RadioButton
 
   TkCommandNames = ['checkbutton'.freeze].freeze
   WidgetClassName = 'Checkbutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+
+  def deselect
+    tk_send('deselect')
+    self
+  end
+
+  def select
+    tk_send('select')
+    self
+  end
 
   def toggle
-    tk_send_without_enc('toggle')
+    tk_send('toggle')
+    self
+  end
+
+  def invoke
+    tk_send('invoke')
+  end
+
+  def flash
+    tk_send('flash')
     self
   end
 end

@@ -17,7 +17,7 @@ module Tk
           option :background
           option :bd
           option :bg
-          option :borderwidth, type: :integer
+          option :borderwidth, type: :integer, alias: :border
           option :command, type: :callback
           option :cursor  # mouse cursor name
           option :elementborderwidth, type: :integer

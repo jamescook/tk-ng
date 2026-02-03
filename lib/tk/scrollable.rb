@@ -44,6 +44,7 @@ module Tk
       # Tk.update  # avoid scrollbar trouble
       self
     end
+    alias yscroll yscrollcommand
 
     def yview(*index)
       if index.size == 0

@@ -13,7 +13,7 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :background, alias: :bg
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :class
           option :colormap
           option :container, type: :boolean  # embed other windows

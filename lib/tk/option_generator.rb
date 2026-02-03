@@ -195,6 +195,12 @@ module Tk
 
     private
 
+    # Ruby-side aliases that old-world supported via method_missing.
+    # These are added on top of Tcl's own aliases (like bd -> borderwidth).
+    LEGACY_ALIASES = {
+      'borderwidth' => ['border'],
+    }.freeze
+
     def build_options_with_aliases(entries)
       alias_map = {}
       entries.select(&:alias?).each do |entry|
@@ -204,6 +210,10 @@ module Tk
 
       entries.reject(&:alias?).sort_by(&:name).map do |entry|
         aliases = (alias_map[entry.name] || []).sort
+        # Add legacy Ruby-side aliases
+        if LEGACY_ALIASES.key?(entry.name)
+          aliases = (aliases + LEGACY_ALIASES[entry.name]).uniq.sort
+        end
         { entry: entry, aliases: aliases }
       end
     end

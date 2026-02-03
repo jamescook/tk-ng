@@ -115,7 +115,15 @@ module Tk
     # Access via `OptionType::Types::Boolean` or `OptionType[:boolean]`.
     module Types
       String = OptionType.new(:string,
-        to_tcl: :to_s,
+        to_tcl: ->(v) {
+          if v.respond_to?(:path)
+            v.path
+          elsif v.respond_to?(:to_eval)
+            v.to_eval
+          else
+            v.to_s
+          end
+        },
         from_tcl: :itself
       )
 

@@ -323,7 +323,7 @@ class TestTkComposite < Minitest::Test
     raise "TkComposite hash configure test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
 
-  # Tests for choice_classname_of_baseframe branches
+  # Tests for base frame class naming
 
   def test_composite_named_class
     assert_tk_app("TkComposite named class", method(:composite_named_class_app))
@@ -381,9 +381,9 @@ class TestTkComposite < Minitest::Test
     widget = TestCustomWidgetClassName.new(root)
     widget.pack
 
-    # database_classname should use the custom WidgetClassName
+    # database_classname now uses self.class.name (WidgetClassName const is ignored)
     classname = widget.database_classname
-    errors << "custom WidgetClassName: expected 'MyCustomClassName', got '#{classname}'" unless classname == 'MyCustomClassName'
+    errors << "custom WidgetClassName: expected 'TestCustomWidgetClassName', got '#{classname}'" unless classname == 'TestCustomWidgetClassName'
 
     raise "TkComposite custom WidgetClassName test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end
@@ -398,7 +398,7 @@ class TestTkComposite < Minitest::Test
 
     errors = []
 
-    # Anonymous class should fall back (empty name -> nil -> TkFrame)
+    # Anonymous class should fall back (nil name -> 'Composite')
     anon_class = Class.new(TkFrame) do
       include TkComposite
 
@@ -410,10 +410,9 @@ class TestTkComposite < Minitest::Test
     widget = anon_class.new(root)
     widget.pack
 
-    # For anonymous class, database_classname falls back to Frame
+    # For anonymous class, self.class.name is nil, so falls back to 'Composite'
     classname = widget.database_classname
-    # Should be 'Frame' or 'TkFrame' - the default
-    errors << "anonymous class: expected Frame-like classname, got '#{classname}'" unless classname =~ /Frame/i
+    errors << "anonymous class: expected 'Composite', got '#{classname}'" unless classname == 'Composite'
 
     raise "TkComposite anonymous fallback test failures:\n  " + errors.join("\n  ") unless errors.empty?
   end

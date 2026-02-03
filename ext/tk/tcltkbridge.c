@@ -1228,6 +1228,55 @@ lib_merge_tklist(int argc, VALUE *argv, VALUE self)
 }
 
 /* ---------------------------------------------------------
+ * TclTkLib._split_tklist(str) - Split Tcl list into Ruby array
+ *
+ * Parses a Tcl list string using Tcl's native list parser.
+ * Handles braces, quotes, backslashes correctly.
+ * Module function (no interpreter needed).
+ * --------------------------------------------------------- */
+
+static VALUE
+lib_split_tklist(VALUE self, VALUE list_str)
+{
+    Tcl_Obj *listobj;
+    Tcl_Size objc;
+    Tcl_Obj **objv;
+    VALUE ary;
+    Tcl_Size i;
+    Tcl_Size len;
+    const char *str;
+
+    if (NIL_P(list_str)) {
+        return rb_ary_new();
+    }
+
+    StringValue(list_str);
+    if (RSTRING_LEN(list_str) == 0) {
+        return rb_ary_new();
+    }
+
+    /* Create Tcl object from Ruby string */
+    listobj = Tcl_NewStringObj(RSTRING_PTR(list_str), RSTRING_LEN(list_str));
+    Tcl_IncrRefCount(listobj);
+
+    /* Parse as list - pass NULL for interp (no error reporting needed) */
+    if (Tcl_ListObjGetElements(NULL, listobj, &objc, &objv) != TCL_OK) {
+        Tcl_DecrRefCount(listobj);
+        rb_raise(rb_eArgError, "malformed Tcl list");
+    }
+
+    /* Build Ruby array from list elements */
+    ary = rb_ary_new2(objc);
+    for (i = 0; i < objc; i++) {
+        str = Tcl_GetStringFromObj(objv[i], &len);
+        rb_ary_push(ary, rb_utf8_str_new(str, len));
+    }
+
+    Tcl_DecrRefCount(listobj);
+    return ary;
+}
+
+/* ---------------------------------------------------------
  * Interp#create_slave(name, safe=false) - Create child interpreter
  *
  * Creates a Tcl slave interpreter with the given name.
@@ -1422,8 +1471,9 @@ Init_tcltklib(void)
     eTkCallbackContinue = rb_define_class("TkCallbackContinue", rb_eStandardError);
     eTkCallbackReturn = rb_define_class("TkCallbackReturn", rb_eStandardError);
 
-    /* Module function for list operations */
+    /* Module functions for list operations (no interpreter needed) */
     rb_define_module_function(mTclTkLib, "_merge_tklist", lib_merge_tklist, -1);
+    rb_define_module_function(mTclTkLib, "_split_tklist", lib_split_tklist, 1);
 
     /* Global event loop functions - don't require an interpreter */
     rb_define_module_function(mTclTkLib, "mainloop", lib_mainloop, -1);

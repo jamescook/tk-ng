@@ -326,7 +326,7 @@ class TkWorker
       @root.winfo_children.each do |child|
         begin
           Tk.tk_call_without_enc('grid', 'forget', child.path)
-        rescue TclError
+        rescue TclTkLib::TclError
           # Widget might not be managed by grid
         end
         child.destroy

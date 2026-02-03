@@ -66,9 +66,9 @@ module Tk
 
     def configure(slot, value=TkComm::None)
       if slot.kind_of?(Hash)
-        super(__conv_vcmd_on_hash_kv(slot))
+        __conv_vcmd_on_hash_kv(slot).each { |k, v| super(k, v) }
       else
-        super(__conv_vcmd_on_hash_kv(slot=>value))
+        __conv_vcmd_on_hash_kv(slot=>value).each { |k, v| super(k, v) }
       end
       self
     end

@@ -139,7 +139,8 @@ class << Tk::Busy
   end
 end
 
-# Instance methods mixed into TkWindow for convenient busy control.
+# @deprecated Instance methods are now on Tk::Core::Widget directly.
+#   This mixin is only used by old-world TkWindow and will be removed.
 # @see Tk::Busy Module-level documentation
 module Tk::Busy
   # @!group Instance Methods (mixed into TkWindow)

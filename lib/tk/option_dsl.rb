@@ -152,11 +152,13 @@ module Tk
         next if method_defined?(method_name) || private_method_defined?(method_name)
 
         # Getter that also works as setter: widget.text or widget.text("value")
-        define_method(method_name) do |*args|
-          if args.empty?
+        # Also handles blocks for callback options: widget.command { ... }
+        define_method(method_name) do |*args, &block|
+          if args.empty? && block.nil?
             cget(method_name)
           else
-            configure(method_name, args[0])
+            # Prefer positional arg over block (args[0] could be false/nil)
+            configure(method_name, args.empty? ? block : args[0])
             self
           end
         end

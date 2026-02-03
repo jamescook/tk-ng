@@ -1,8 +1,11 @@
 # frozen_string_literal: false
 require 'tk/scrollable'
-require 'tk/txtwin_abst'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # A scrollable list of selectable text items.
 #
@@ -34,9 +37,13 @@ require 'tk/item_option_dsl'
 #
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/listbox.html Tcl/Tk listbox manual
 #
-class Tk::Listbox<TkTextWin
+class Tk::Listbox
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   extend Tk::ItemOptionDSL
-  include Scrollable
+  include Tk::Scrollable
   include Tk::Generated::Listbox
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -72,7 +79,6 @@ class Tk::Listbox<TkTextWin
 
   TkCommandNames = ['listbox'.freeze].freeze
   WidgetClassName = 'Listbox'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   # Item options (for listbox items)
   item_option :background,        type: :string
@@ -80,19 +86,43 @@ class Tk::Listbox<TkTextWin
   item_option :selectbackground,  type: :string
   item_option :selectforeground,  type: :string
 
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('listbox', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('listbox', @path)
-  #  end
-  #end
-  #private :create_self
-
   def tagid(id)
     #id.to_s
     _get_eval_string(id)
   end
+
+  # -- Methods from TkTextWin (shared with Text) --
+
+  def bbox(index)
+    list(tk_send_without_enc('bbox', index))
+  end
+
+  def delete(first, last=None)
+    tk_send_without_enc('delete', first, last)
+    self
+  end
+
+  def insert(index, *args)
+    tk_send('insert', index, *args)
+    self
+  end
+
+  def scan_mark(x, y)
+    tk_send_without_enc('scan', 'mark', x, y)
+    self
+  end
+
+  def scan_dragto(x, y)
+    tk_send_without_enc('scan', 'dragto', x, y)
+    self
+  end
+
+  def see(index)
+    tk_send_without_enc('see', index)
+    self
+  end
+
+  # -- Listbox-specific methods --
 
   def activate(y)
     tk_send_without_enc('activate', y)

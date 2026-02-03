@@ -14,7 +14,7 @@ module Tk
         base.class_eval do
           option :activestyle
           option :background, alias: :bg
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :disabledforeground
           option :exportselection, type: :boolean  # export selection to X clipboard
@@ -35,8 +35,8 @@ module Tk
           option :state  # normal, active, disabled
           option :takefocus  # include in keyboard traversal
           option :width, type: :integer
-          option :xscrollcommand
-          option :yscrollcommand
+          option :xscrollcommand, type: :callback
+          option :yscrollcommand, type: :callback
         end
       end
     end

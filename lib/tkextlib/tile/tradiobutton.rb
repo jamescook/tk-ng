@@ -7,18 +7,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TRadioButton < Tk::RadioButton
-    end
-    TRadiobutton = TRadioButton
-    RadioButton  = TRadioButton
-    Radiobutton  = TRadioButton
-  end
-end
-
-class Tk::Tile::TRadioButton < Tk::RadioButton
+class Tk::Tile::TRadioButton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkRadiobutton
 
@@ -28,10 +26,31 @@ class Tk::Tile::TRadioButton < Tk::RadioButton
     TkCommandNames = ['::tradiobutton'.freeze].freeze
   end
   WidgetClassName = 'TRadiobutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+  end
+
+  def deselect
+    tk_send('deselect')
+    self
+  end
+
+  def select
+    tk_send('select')
+    self
+  end
+
+  def invoke
+    tk_send('invoke')
+  end
+end
+
+module Tk
+  module Tile
+    TRadiobutton = TRadioButton
+    RadioButton  = TRadioButton
+    Radiobutton  = TRadioButton
   end
 end
 

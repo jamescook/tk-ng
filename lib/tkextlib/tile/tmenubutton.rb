@@ -7,18 +7,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TMenubutton < Tk::Menubutton
-    end
-    TMenuButton = TMenubutton
-    Menubutton  = TMenubutton
-    MenuButton  = TMenubutton
-  end
-end
-
-class Tk::Tile::TMenubutton < Tk::Menubutton
+class Tk::Tile::TMenubutton
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkMenubutton
 
@@ -28,10 +26,17 @@ class Tk::Tile::TMenubutton < Tk::Menubutton
     TkCommandNames = ['::tmenubutton'.freeze].freeze
   end
   WidgetClassName = 'TMenubutton'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+  end
+end
+
+module Tk
+  module Tile
+    TMenuButton = TMenubutton
+    Menubutton  = TMenubutton
+    MenuButton  = TMenubutton
   end
 end
 

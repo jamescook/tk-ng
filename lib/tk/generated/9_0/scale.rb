@@ -15,7 +15,7 @@ module Tk
           option :activebackground
           option :background, alias: :bg
           option :bigincrement, type: :float
-          option :borderwidth, type: :integer, alias: :bd
+          option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :command, type: :callback
           option :cursor  # mouse cursor name
           option :digits, type: :integer

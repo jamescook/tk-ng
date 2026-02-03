@@ -6,9 +6,12 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/text.html
 #
 require 'tk/scrollable'
-require 'tk/txtwin_abst'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 module TkTextTagConfig
   include Tk::ItemOptionDSL::InstanceMethods
@@ -89,7 +92,7 @@ end
 # @see TkTextTag for text styling
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/text.html Tcl/Tk text manual
 #
-class Tk::Text<TkTextWin
+class Tk::Text
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
   #
@@ -136,11 +139,15 @@ class Tk::Text<TkTextWin
   #   :yscrollcommand
   # @generated:options:end
 
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
 
   ItemConfCMD = ['tag'.freeze, 'configure'.freeze].freeze
   #include TkTreatTextTagFont
   include TkTextTagConfig
-  include Scrollable
+  include Tk::Scrollable
 
   #######################################
 
@@ -333,7 +340,6 @@ class Tk::Text<TkTextWin
 
   TkCommandNames = ['text'.freeze].freeze
   WidgetClassName = 'Text'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
   # Item options (for text tags)
 
@@ -364,33 +370,16 @@ class Tk::Text<TkTextWin
   # List options
   item_option :tabs,            type: :list
 
-  def self.new(*args, &block)
-    obj = super(*args){}
-    obj.init_instance_variable
-    obj.instance_exec(obj, &block) if block_given?
-    obj
+  def initialize(parent = nil, keys = {}, &block)
+    @cmdtbl = []
+    @tags = {}
+    super
   end
 
   def init_instance_variable
     @cmdtbl ||= []
     @tags ||= {}
   end
-
-  def create_self(keys)
-    #if keys and keys != None
-    #  #tk_call_without_enc('text', @path, *hash_kv(keys, true))
-    #  tk_call_without_enc(self.class::TkCommandNames[0], @path,
-    #                     *hash_kv(keys, true))
-    #else
-    #  #tk_call_without_enc('text', @path)
-    #  tk_call_without_enc(self.class::TkCommandNames[0], @path)
-    #end
-    super(keys)
-    init_instance_variable
-  end
-  private :create_self
-
-  # NOTE: __strval_optkeys override removed - had typo 'inactiveseletcionbackground', now correctly declared as 'inactiveselectbackground' via OptionDSL
 
   def self.at(x, y)
     Tk::Text::IndexString.at(x, y)
@@ -399,6 +388,38 @@ class Tk::Text<TkTextWin
   def at(x, y)
     Tk::Text::IndexString.at(x, y)
   end
+
+  # -- Methods from TkTextWin (shared with Listbox) --
+
+  def bbox(index)
+    list(tk_send_without_enc('bbox', _get_eval_enc_str(index)))
+  end
+
+  def delete(first, last=None)
+    tk_send_without_enc('delete', first, last)
+    self
+  end
+
+  def get(*index)
+    tk_send_without_enc('get', *index)
+  end
+
+  def scan_mark(x, y)
+    tk_send_without_enc('scan', 'mark', x, y)
+    self
+  end
+
+  def scan_dragto(x, y)
+    tk_send_without_enc('scan', 'dragto', x, y)
+    self
+  end
+
+  def see(index)
+    tk_send_without_enc('see', index)
+    self
+  end
+
+  # -- Text-specific methods --
 
   def index(idx)
     Tk::Text::IndexString.new(tk_send_without_enc('index',
@@ -452,11 +473,16 @@ class Tk::Text<TkTextWin
     @tags[tagid] || tagid
   end
 
-  def tag_names(index=None)
-    #tk_split_simplelist(_fromUTF8(tk_send_without_enc('tag', 'names', _get_eval_enc_str(index)))).collect{|elt|
-    tk_split_simplelist(tk_send_without_enc('tag', 'names', _get_eval_enc_str(index)), false, true).collect{|elt|
-      tagid2obj(elt)
-    }
+  def tag_names(index=nil)
+    if index
+      tk_split_simplelist(tk_send_without_enc('tag', 'names', index), false, true).collect{|elt|
+        tagid2obj(elt)
+      }
+    else
+      tk_split_simplelist(tk_send_without_enc('tag', 'names'), false, true).collect{|elt|
+        tagid2obj(elt)
+      }
+    end
   end
 
   def mark_names
@@ -586,15 +612,16 @@ class Tk::Text<TkTextWin
         args << tags.shift.collect{|x|_get_eval_string(x)}.join(' ')  # taglist
         args << tags.shift if tags.size > 0                           # chars
       end
-      super(index, *args)
+      tk_send('insert', index, *args)
     else
       # single chars-taglist argument :: str, tag, tag, ...
       if tags.size == 0
-        super(index, chars)
+        tk_send('insert', index, chars)
       else
-        super(index, chars, tags.collect{|x|_get_eval_string(x)}.join(' '))
+        tk_send('insert', index, chars, tags.collect{|x|_get_eval_string(x)}.join(' '))
       end
     end
+    self
   end
 
   def destroy
@@ -607,10 +634,6 @@ class Tk::Text<TkTextWin
 
   def backspace
     self.delete 'insert - 1 char', 'insert'
-  end
-
-  def bbox(index)
-    list(tk_send_without_enc('bbox', _get_eval_enc_str(index)))
   end
 
   def compare(idx1, op, idx2)
@@ -761,35 +784,62 @@ class Tk::Text<TkTextWin
   alias deltag tag_delete
   alias delete_tag tag_delete
 
-  def tag_bind(tag, seq, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
-      cmd = args.shift
+  def tag_bind(tag, seq, cmd = nil, args = nil, &block)
+    cmd ||= block
+    return self unless cmd
+    seq = seq.start_with?('<') ? seq : "<#{seq}>"
+    if args
+      cb_id = install_cmd(cmd)
+      script = "#{cb_id} #{args}"
+    elsif cmd.arity != 0
+      wrapper = proc { |*cb_args|
+        evt = Tk::Core::Bindable.parse_event_args(cb_args)
+        cmd.call(evt)
+      }
+      cb_id = install_cmd(wrapper)
+      script = "#{cb_id} #{Tk::Core::Bindable::EVENT_SUBST.values.join(' ')}"
     else
-      cmd = block
+      script = install_cmd(cmd)
     end
-    _bind([@path, 'tag', 'bind', tag], seq, cmd, *args)
+    tk_call(@path, 'tag', 'bind', tag, seq, script)
     self
   end
 
-  def tag_bind_append(tag, seq, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
-      cmd = args.shift
+  def tag_bind_append(tag, seq, cmd = nil, args = nil, &block)
+    cmd ||= block
+    return self unless cmd
+    seq = seq.start_with?('<') ? seq : "<#{seq}>"
+    if args
+      cb_id = install_cmd(cmd)
+      script = "+#{cb_id} #{args}"
+    elsif cmd.arity != 0
+      wrapper = proc { |*cb_args|
+        evt = Tk::Core::Bindable.parse_event_args(cb_args)
+        cmd.call(evt)
+      }
+      cb_id = install_cmd(wrapper)
+      script = "+#{cb_id} #{Tk::Core::Bindable::EVENT_SUBST.values.join(' ')}"
     else
-      cmd = block
+      script = '+' + install_cmd(cmd)
     end
-    _bind_append([@path, 'tag', 'bind', tag], seq, cmd, *args)
+    tk_call(@path, 'tag', 'bind', tag, seq, script)
     self
   end
 
   def tag_bind_remove(tag, seq)
-    _bind_remove([@path, 'tag', 'bind', tag], seq)
+    seq = seq.start_with?('<') ? seq : "<#{seq}>"
+    tk_call(@path, 'tag', 'bind', tag, seq, '')
     self
   end
 
-  def tag_bindinfo(tag, context=nil)
-    _bindinfo([@path, 'tag', 'bind', tag], context)
+  def tag_bindinfo(tag, context = nil)
+    if context
+      context = context.start_with?('<') ? context : "<#{context}>"
+      tk_call(@path, 'tag', 'bind', tag, context)
+    else
+      result = tk_call(@path, 'tag', 'bind', tag)
+      TclTkLib._split_tklist(result)
+    end
   end
 
   def tag_raise(tag, above=None)
@@ -1196,13 +1246,20 @@ class Tk::Text::Peer < Tk::Text
     super(parent, keys)
   end
 
-  def create_self(keys)
-    if keys and keys != None
-      tk_call_without_enc(@src_text.path, 'peer', 'create',
-                          @path, *hash_kv(keys, true))
-    else
-      tk_call_without_enc(@src_text.path, 'peer', 'create', @path)
+  private
+
+  def create_widget(keys)
+    args = [@src_text.path, 'peer', 'create', @path]
+    keys.each do |k, v|
+      args << "-#{k}"
+      if v.respond_to?(:path)
+        args << v.path
+      elsif v.respond_to?(:to_eval)
+        args << v.to_eval
+      else
+        args << v.to_s
+      end
     end
+    tk_call(*args)
   end
-  private :create_self
 end
