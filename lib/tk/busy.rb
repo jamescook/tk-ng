@@ -3,6 +3,7 @@
 # tk/busy.rb: support 'tk busy' command (Tcl/Tk8.6 or later)
 #
 require 'tk/item_option_dsl'
+require_relative 'core/callable'
 
 # Blocks mouse pointer events while displaying a busy cursor.
 #
@@ -37,8 +38,9 @@ require 'tk/item_option_dsl'
 #
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/busy.htm Tcl/Tk busy manual
 module Tk::Busy
-  include TkCore
-  extend TkCore
+  include Tk::Core::Callable
+  extend Tk::Core::Callable
+  extend TkUtil
   extend Tk::ItemOptionDSL
 
   # Declare item command structure for tk busy
@@ -112,7 +114,7 @@ class << Tk::Busy
   # @note You must call `Tk.update` after hold for the busy window to appear
   #   immediately.
   def hold(win, keys={})
-    tk_call_without_enc('tk', 'busy', 'hold', win, *hash_kv(keys))
+    tk_call('tk', 'busy', 'hold', win, *hash_kv(keys))
     win
   end
 
@@ -120,22 +122,24 @@ class << Tk::Busy
   # @param wins [Array<TkWindow>] Windows to release
   # @return [self]
   def forget(*wins)
-    tk_call_without_enc('tk', 'busy', 'forget', *wins)
+    tk_call('tk', 'busy', 'forget', *wins)
     self
   end
 
   # Returns pathnames of all currently busy widgets.
   # @param pat [String, nil] Optional glob pattern to filter results
-  # @return [Array<String>] List of busy widget paths
-  def current(pat=None)
-    list(tk_call('tk', 'busy', 'current', pat))
+  # @return [Array<TkWindow, String>] List of busy widgets
+  def current(pat=TkUtil::None)
+    TclTkLib._split_tklist(tk_call('tk', 'busy', 'current', pat)).map { |path|
+      TkCore::INTERP.tk_windows[path] || path
+    }
   end
 
   # Checks if a widget is currently busy.
   # @param win [TkWindow] The window to check
   # @return [Boolean] true if the widget cannot receive user interactions
   def status(win)
-    bool(tk_call_without_enc('tk', 'busy', 'status', win))
+    TkUtil.bool(tk_call('tk', 'busy', 'status', win))
   end
 end
 
@@ -163,7 +167,7 @@ module Tk::Busy
   # @param option [String] Option name
   # @param value [Object] Option value
   # @return [self]
-  def busy_configure(option, value=None)
+  def busy_configure(option, value=TkUtil::None)
     Tk::Busy.configure(self, option, value)
     self
   end

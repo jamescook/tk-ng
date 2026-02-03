@@ -3,9 +3,11 @@
 #  tkbgerror -- bgerror ( tkerror ) module
 #                     1998/07/16 by Hidetoshi Nagai <nagai@ai.kyutech.ac.jp>
 #
+require_relative 'core/callable'
+require_relative 'callback'
 
 module TkBgError
-  extend Tk
+  extend Tk::Core::Callable
 
   TkCommandNames = ['bgerror'.freeze].freeze
 
@@ -17,7 +19,7 @@ module TkBgError
   module_function :bgerror, :tkerror, :show
 
   def set_handler(hdlr = nil, &block) #==> handler :: proc{|msg| ...body... }
-    tk_call('proc', 'bgerror', 'msg', install_cmd(hdlr || block) + ' $msg')
+    tk_call('proc', 'bgerror', 'msg', TkCallback.install_cmd(hdlr || block) + ' $msg')
   end
   def set_default
     begin

@@ -2,10 +2,11 @@
 #
 # tk/clipboard.rb : methods to treat clipboard
 #
+require_relative 'core/callable'
 
 module TkClipboard
-  include Tk
-  extend Tk
+  extend Tk::Core::Callable
+  extend TkUtil
 
   TkCommandNames = ['clipboard'.freeze].freeze
 

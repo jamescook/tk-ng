@@ -3,9 +3,11 @@
 # tk/fontchooser.rb -- "tk fontchooser" support (Tcl/Tk8.6 or later)
 #
 require 'tk'
+require_relative 'core/callable'
+require_relative 'callback'
 
 module TkFont::Chooser
-  extend TkCore
+  extend Tk::Core::Callable
 
   class << self
     def configure(options)
@@ -15,7 +17,8 @@ module TkFont::Chooser
     end
 
     def parent
-      window(tk_call('tk', 'fontchooser', 'configure', '-parent'))
+      val = tk_call('tk', 'fontchooser', 'configure', '-parent')
+      (val =~ /^\./) ? (TkCore::INTERP.tk_windows[val] || val) : nil
     end
 
     def parent=(val)
@@ -39,13 +42,13 @@ module TkFont::Chooser
     end
 
     def visible
-      bool(tk_call('tk', 'fontchooser', 'configure', '-visible'))
+      TkUtil.bool(tk_call('tk', 'fontchooser', 'configure', '-visible'))
     end
     alias visible? visible
 
     def command(cmd = nil, &block)
       if cmd || block
-        tk_call('tk', 'fontchooser', 'configure', '-command', install_cmd(cmd || block))
+        tk_call('tk', 'fontchooser', 'configure', '-command', TkCallback.install_cmd(cmd || block))
       else
         tk_call('tk', 'fontchooser', 'configure', '-command')
       end
