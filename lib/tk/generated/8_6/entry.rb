@@ -12,14 +12,14 @@ module Tk
       def self.included(base)
         base.extend Tk::OptionDSL
         base.class_eval do
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :disabledbackground
           option :disabledforeground
           option :exportselection, type: :boolean  # export selection to X clipboard
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :highlightbackground
           option :highlightcolor
           option :highlightthickness, type: :integer
@@ -28,7 +28,7 @@ module Tk
           option :insertofftime, type: :integer  # cursor blink off time (ms)
           option :insertontime, type: :integer  # cursor blink on time (ms)
           option :insertwidth, type: :integer
-          option :invalidcommand, type: :validate_callback, alias: :invcmd
+          option :invalidcommand, type: :validate_callback, aliases: [:invcmd]
           option :justify  # left, center, right
           option :readonlybackground
           option :relief  # flat, raised, sunken, groove, ridge, solid
@@ -40,7 +40,7 @@ module Tk
           option :takefocus  # include in keyboard traversal
           option :textvariable, type: :tkvariable
           option :validate  # none, focus, focusin, focusout, key, all
-          option :validatecommand, type: :validate_callback, alias: :vcmd
+          option :validatecommand, type: :validate_callback, aliases: [:vcmd]
           option :width, type: :integer
           option :xscrollcommand, type: :callback
           future_option :placeholder, min_version: '9.0'

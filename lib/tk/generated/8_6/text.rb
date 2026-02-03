@@ -13,14 +13,14 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :autoseparators, type: :boolean
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :blockcursor, type: :boolean
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :endline
           option :exportselection, type: :boolean  # export selection to X clipboard
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :height, type: :integer
           option :highlightbackground
           option :highlightcolor

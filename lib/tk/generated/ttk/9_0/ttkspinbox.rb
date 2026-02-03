@@ -13,7 +13,7 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :background
-          option :class, alias: :classname
+          option :class, aliases: [:classname]
           option :command, type: :callback
           option :cursor  # mouse cursor name
           option :exportselection, type: :boolean  # export selection to X clipboard

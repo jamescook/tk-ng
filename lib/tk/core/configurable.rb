@@ -41,11 +41,17 @@ module Tk
           opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
           slot = opt.tcl_name if opt
 
-          # Convert value to Tcl string via Option type system or fallback
+          # Convert value to Tcl string via Option type system or fallback.
+          # Use opt.to_tcl only for non-default types (:string just does .to_s
+          # which breaks Arrays, booleans, widgets, etc.)
           tcl_value = if value.is_a?(Array)
             TclTkLib._merge_tklist(*value.map(&:to_s))
-          elsif opt
+          elsif opt && opt.type.name != :string
             opt.to_tcl(value, widget: self)
+          elsif value == true
+            '1'
+          elsif value == false
+            '0'
           elsif value.respond_to?(:path)
             value.path
           elsif value.respond_to?(:to_eval)

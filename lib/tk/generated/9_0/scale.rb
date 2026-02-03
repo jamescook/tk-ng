@@ -13,14 +13,14 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :activebackground
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :bigincrement, type: :float
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :command, type: :callback
           option :cursor  # mouse cursor name
           option :digits, type: :integer
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :from, type: :float
           option :highlightbackground
           option :highlightcolor

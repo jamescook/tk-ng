@@ -8,17 +8,25 @@
 require 'tk'
 require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
 module Tk
   module Tile
-    class TPaned < TkWindow
+    class TPaned
     end
     PanedWindow = Panedwindow = Paned = TPaned
   end
 end
 
-class Tk::Tile::TPaned < TkWindow
-  extend Tk::OptionDSL
+class Tk::Tile::TPaned
+  include TkUtil
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkPanedwindow
 
@@ -38,6 +46,20 @@ class Tk::Tile::TPaned < TkWindow
     [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
+  private
+
+  def _epath(win)
+    if win.respond_to?(:epath)
+      win.epath
+    elsif win.respond_to?(:path)
+      win.path
+    else
+      win
+    end
+  end
+
+  public
+
   def add(*args)
     keys = args.pop
     fail ArgumentError, "no window in arguments" unless keys
@@ -51,32 +73,32 @@ class Tk::Tile::TPaned < TkWindow
     end
 
     args.each{|win|
-      tk_send_without_enc('add', _epath(win), *opts)
+      tk_send('add', _epath(win), *opts)
     }
     self
   end
 
   def forget(pane)
     pane = _epath(pane)
-    tk_send_without_enc('forget', pane)
+    tk_send('forget', pane)
     self
   end
 
   def insert(pos, win, keys)
     win = _epath(win)
-    tk_send_without_enc('insert', pos, win, *hash_kv(keys))
+    tk_send('insert', pos, win, *hash_kv(keys))
     self
   end
 
   def panecget_tkstring(pane, slot)
     pane = _epath(pane)
-    tk_send_without_enc('pane', pane, "-#{slot}")
+    tk_send('pane', pane, "-#{slot}")
   end
   alias pane_cget_tkstring panecget_tkstring
 
   def panecget_strict(pane, slot)
     pane = _epath(pane)
-    tk_tcl2ruby(tk_send_without_enc('pane', pane, "-#{slot}"))
+    value_from_tcl(tk_send('pane', pane, "-#{slot}"))
   end
   alias pane_cget_strict panecget_strict
 
@@ -91,120 +113,61 @@ class Tk::Tile::TPaned < TkWindow
       params = []
       key.each{|k, v|
         params.push("-#{k}")
-        # params.push((v.kind_of?(TkObject))? v.epath: v)
         params.push(_epath(v))
       }
-      tk_send_without_enc('pane', pane, *params)
+      tk_send('pane', pane, *params)
     else
-      # value = value.epath if value.kind_of?(TkObject)
       value = _epath(value)
-      tk_send_without_enc('pane', pane, "-#{key}", value)
+      tk_send('pane', pane, "-#{key}", value)
     end
     self
   end
   alias pane_config paneconfigure
   alias pane_configure paneconfigure
 
-  def paneconfiginfo(win)
-    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
-      win = _epath(win)
-      if key
-        conf = tk_split_list(tk_send_without_enc('pane', win, "-#{key}"))
+  def paneconfiginfo(win, key=nil)
+    win = _epath(win)
+    if key
+      conf = TclTkLib._split_tklist(tk_send('pane', win, "-#{key}"))
+      conf[0] = conf[0][1..-1]
+      if conf[0] == 'hide'
+        conf[3] = bool(conf[3]) unless conf[3].empty?
+        conf[4] = bool(conf[4]) unless conf[4].empty?
+      end
+      conf
+    else
+      TclTkLib._split_tklist(tk_send('pane', win)).collect{|conflist|
+        conf = TclTkLib._split_tklist(conflist)
         conf[0] = conf[0][1..-1]
-        if conf[0] == 'hide'
-          conf[3] = bool(conf[3]) unless conf[3].empty?
-          conf[4] = bool(conf[4]) unless conf[4].empty?
-        end
-        conf
-      else
-        tk_split_simplelist(tk_send_without_enc('pane',
-                                                win)).collect{|conflist|
-          conf = tk_split_simplelist(conflist)
-          conf[0] = conf[0][1..-1]
-          if conf[3]
-            if conf[0] == 'hide'
-              conf[3] = bool(conf[3]) unless conf[3].empty?
-            elsif conf[3].index('{')
-              conf[3] = tk_split_list(conf[3])
-            else
-              conf[3] = tk_tcl2ruby(conf[3])
-            end
-          end
-          if conf[4]
-            if conf[0] == 'hide'
-              conf[4] = bool(conf[4]) unless conf[4].empty?
-            elsif conf[4].index('{')
-              conf[4] = tk_split_list(conf[4])
-            else
-              conf[4] = tk_tcl2ruby(conf[4])
-            end
-          end
-          conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
-          conf
-        }
-      end
-    else # ! true
-      win = _epath(win)
-      if key
-        conf = tk_split_list(tk_send_without_enc('pane', win, "-#{key}"))
-        key = conf.shift[1..-1]
-        if key == 'hide'
-          conf[2] = bool(conf[2]) unless conf[2].empty?
-          conf[3] = bool(conf[3]) unless conf[3].empty?
-        end
-        { key => conf }
-      else
-        ret = {}
-        tk_split_simplelist(tk_send_without_enc('pane',
-                                                win)).each{|conflist|
-          conf = tk_split_simplelist(conflist)
-          key = conf.shift[1..-1]
-          if key
-            if key == 'hide'
-              conf[2] = bool(conf[2]) unless conf[2].empty?
-            elsif conf[2].index('{')
-              conf[2] = tk_split_list(conf[2])
-            else
-              conf[2] = tk_tcl2ruby(conf[2])
-            end
-          end
-          if conf[3]
-            if key == 'hide'
-              conf[3] = bool(conf[3]) unless conf[3].empty?
-            elsif conf[3].index('{')
-              conf[3] = tk_split_list(conf[3])
-            else
-              conf[3] = tk_tcl2ruby(conf[3])
-            end
-          end
-          if conf.size == 1
-            ret[key] = conf[0][1..-1]  # alias info
+        if conf[3]
+          if conf[0] == 'hide'
+            conf[3] = bool(conf[3]) unless conf[3].empty?
           else
-            ret[key] = conf
+            conf[3] = value_from_tcl(conf[3])
           end
-        }
-        ret
-      end
+        end
+        if conf[4]
+          if conf[0] == 'hide'
+            conf[4] = bool(conf[4]) unless conf[4].empty?
+          else
+            conf[4] = value_from_tcl(conf[4])
+          end
+        end
+        conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
+        conf
+      }
     end
   end
   alias pane_configinfo paneconfiginfo
 
   def current_paneconfiginfo(win, key=nil)
-    if true # FIXME: Forced true after GET_CONFIGINFO_AS_ARRAY removal - needs cleanup
-      if key
-        conf = paneconfiginfo(win, key)
-        {conf[0] => conf[4]}
-      else
-        ret = {}
-        paneconfiginfo(win).each{|conf|
-          ret[conf[0]] = conf[4] if conf.size > 2
-        }
-        ret
-      end
-    else # ! true
+    if key
+      conf = paneconfiginfo(win, key)
+      {conf[0] => conf[4]}
+    else
       ret = {}
-      paneconfiginfo(win, key).each{|k, conf|
-        ret[k] = conf[-1] if conf.kind_of?(Array)
+      paneconfiginfo(win).each{|conf|
+        ret[conf[0]] = conf[4] if conf.size > 2
       }
       ret
     end
@@ -212,17 +175,17 @@ class Tk::Tile::TPaned < TkWindow
   alias current_pane_configinfo current_paneconfiginfo
 
   def panes
-    tk_split_simplelist(tk_send_without_enc('panes')).map{|w|
-      (obj = window(w))? obj: w
+    TclTkLib._split_tklist(tk_send('panes')).map{|w|
+      TkCore::INTERP.tk_windows[w] || w
     }
   end
 
   def identify(x, y)
-    num_or_nil(tk_send_without_enc('identify', x, y))
+    num_or_nil(tk_send('identify', x, y))
   end
 
-  def sashpos(idx, newpos=None)
-    num_or_str(tk_send_without_enc('sashpos', idx, newpos))
+  def sashpos(idx, newpos=NONE)
+    num_or_str(tk_send('sashpos', idx, newpos))
   end
 end
 

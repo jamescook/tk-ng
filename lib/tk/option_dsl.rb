@@ -17,7 +17,7 @@ module Tk
   #
   #       option :text                           # String (default)
   #       option :width, type: :integer          # With type
-  #       option :background, alias: :bg         # With alias
+  #       option :background, aliases: [:bg]      # With alias
   #       option :font, type: :font              # Returns TkFont object
   #     end
   #
@@ -39,7 +39,7 @@ module Tk
   #
   # Short names for convenience:
   #
-  #     option :background, alias: :bg
+  #     option :background, aliases: [:bg]
   #     option :foreground, aliases: [:fg, :fgcolor]
   #
   # Both cget(:bg) and cget(:background) will work.
@@ -83,7 +83,7 @@ module Tk
   #     option :show               # Password masking character
   #     option :state              # normal, disabled, readonly
   #     option :validate           # none, focus, focusin, focusout, key, all
-  #     option :validatecommand, type: :callback, alias: :vcmd
+  #     option :validatecommand, type: :callback, aliases: [:vcmd]
   #   end
   #
   # @see Option Metadata for individual options
@@ -117,12 +117,11 @@ module Tk
     # @param from_tcl [Proc, nil] Custom converter for Tcl->Ruby (receives value, widget: keyword)
     # @param to_tcl [Proc, nil] Custom converter for Ruby->Tcl (receives value, widget: keyword)
     #
-    def option(name, type: :string, tcl_name: nil, alias: nil, aliases: [], min_version: nil,
+    def option(name, type: :string, tcl_name: nil, aliases: [], min_version: nil,
                from_tcl: nil, to_tcl: nil)
       @options ||= {}
 
-      # Support both alias: :foo (single) and aliases: [:foo, :bar] (multiple)
-      all_aliases = Array(binding.local_variable_get(:alias)) + Array(aliases)
+      all_aliases = Array(aliases)
       all_aliases.compact!
 
       # Check for conflicts with existing option (e.g., from parent class)

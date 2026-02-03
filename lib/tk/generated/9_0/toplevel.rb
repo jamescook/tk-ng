@@ -12,10 +12,10 @@ module Tk
       def self.included(base)
         base.extend Tk::OptionDSL
         base.class_eval do
-          option :background, alias: :bg
-          option :backgroundimage, alias: :bgimg
+          option :background, aliases: [:bg]
+          option :backgroundimage, aliases: [:bgimg]
           option :borderwidth, type: :integer, aliases: [:bd, :border]
-          option :class, alias: :classname
+          option :class, aliases: [:classname]
           option :colormap
           option :container, type: :boolean  # embed other windows
           option :cursor  # mouse cursor name

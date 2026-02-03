@@ -15,7 +15,7 @@ module Tk
           option :activebackground
           option :activeforeground
           option :anchor  # n, ne, e, se, s, sw, w, nw, center
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :bitmap
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :command, type: :callback
@@ -23,7 +23,7 @@ module Tk
           option :cursor  # mouse cursor name
           option :disabledforeground
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :height, type: :integer
           option :highlightbackground
           option :highlightcolor

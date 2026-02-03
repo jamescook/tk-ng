@@ -15,7 +15,7 @@ module Tk
           option :background
           option :bd
           option :bg
-          option :borderwidth, type: :integer, alias: :border
+          option :borderwidth, type: :integer, aliases: [:border]
           option :closeenough, type: :float  # mouse proximity threshold (float)
           option :confine, type: :boolean  # restrict view to scroll region
           option :cursor  # mouse cursor name

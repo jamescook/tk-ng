@@ -90,9 +90,12 @@ module Tk
         keys.each do |k, v|
           args << "-#{k}"
 
-          # Use OptionDSL type conversion when available (e.g., validate_callback)
+          # Use OptionDSL type conversion when the option has a non-default
+          # converter (e.g., validate_callback, :boolean, :integer).
+          # Skip for plain :string type — its to_tcl is just .to_s which
+          # breaks Arrays, Procs, etc. that need the fallback case below.
           opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(k)
-          if opt
+          if opt && opt.type.name != :string
             args << opt.to_tcl(v, widget: self)
             next
           end
@@ -127,6 +130,10 @@ module Tk
 
         # Auto-register in widget registry on first instantiation
         Tk::Core::Widget.registry[self.class::WidgetClassName] ||= self.class
+        # Also register in old-world TkComm::WidgetClassNames for compatibility
+        if defined?(TkComm::WidgetClassNames)
+          TkComm::WidgetClassNames[self.class::WidgetClassName] ||= self.class
+        end
       end
 
       # @deprecated Override initialize instead.

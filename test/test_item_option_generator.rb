@@ -91,7 +91,7 @@ class TestItemOptionGenerator < Minitest::Test
   def test_option_entry_to_item_dsl_with_single_alias
     raw = "-background background Background white white"
     entry = Tk::OptionGenerator::OptionEntry.parse(raw)
-    assert_equal "item_option :background, alias: :bg", entry.to_item_dsl(aliases: ["bg"])
+    assert_equal "item_option :background, aliases: [:bg]", entry.to_item_dsl(aliases: ["bg"])
   end
 
   def test_option_entry_to_item_dsl_with_multiple_aliases
@@ -122,7 +122,7 @@ class TestItemOptionGenerator < Minitest::Test
     assert_includes output, "item_option :fill"
     assert_includes output, "item_option :outline"
     assert_includes output, "item_option :smooth, type: :boolean"
-    assert_includes output, "item_option :background, alias: :bg"
+    assert_includes output, "item_option :background, aliases: [:bg]"
     # Aliases should NOT appear as separate entries
     refute_match(/item_option :bg\b/, output)
   end

@@ -15,12 +15,12 @@ module Tk
           option :activebackground
           option :activeborderwidth, type: :integer
           option :activeforeground
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :disabledforeground
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :postcommand, type: :callback
           option :relief  # flat, raised, sunken, groove, ridge, solid
           option :selectcolor

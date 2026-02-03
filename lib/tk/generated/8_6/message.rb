@@ -14,11 +14,11 @@ module Tk
         base.class_eval do
           option :anchor  # n, ne, e, se, s, sw, w, nw, center
           option :aspect, type: :integer
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :font, type: :font
-          option :foreground, alias: :fg
+          option :foreground, aliases: [:fg]
           option :highlightbackground
           option :highlightcolor
           option :highlightthickness, type: :integer

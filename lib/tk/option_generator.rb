@@ -72,9 +72,7 @@ module Tk
           parts << "type: :#{type}"
         end
 
-        if aliases.size == 1
-          parts << "alias: :#{aliases.first}"
-        elsif aliases.size > 1
+        if aliases.size > 0
           parts << "aliases: [#{aliases.map { |a| ":#{a}" }.join(', ')}]"
         end
 
@@ -99,9 +97,7 @@ module Tk
           parts << "type: :#{effective_type}"
         end
 
-        if aliases.size == 1
-          parts << "alias: :#{aliases.first}"
-        elsif aliases.size > 1
+        if aliases.size > 0
           parts << "aliases: [#{aliases.map { |a| ":#{a}" }.join(', ')}]"
         end
 

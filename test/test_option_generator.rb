@@ -77,7 +77,7 @@ class TestOptionGenerator < Minitest::Test
     raw = "-borderwidth borderWidth BorderWidth 2 2"
     entry = Tk::OptionGenerator::OptionEntry.parse(raw)
     # BorderWidth dbClass maps to :integer in TypeRegistry
-    assert_equal "option :borderwidth, type: :integer, alias: :bd", entry.to_dsl(aliases: ["bd"])
+    assert_equal "option :borderwidth, type: :integer, aliases: [:bd]", entry.to_dsl(aliases: ["bd"])
   end
 
   def test_option_entry_to_dsl_with_multiple_aliases
@@ -89,7 +89,7 @@ class TestOptionGenerator < Minitest::Test
   def test_option_entry_to_dsl_with_type_and_alias
     raw = "-textvariable textVariable Variable {} {}"
     entry = Tk::OptionGenerator::OptionEntry.parse(raw)
-    assert_equal "option :textvariable, type: :tkvariable, alias: :tv", entry.to_dsl(aliases: ["tv"])
+    assert_equal "option :textvariable, type: :tkvariable, aliases: [:tv]", entry.to_dsl(aliases: ["tv"])
   end
 
   # Test generating output for a widget
@@ -113,8 +113,8 @@ class TestOptionGenerator < Minitest::Test
 
     assert_includes output, "module Button"
     assert_includes output, "option :activebackground"
-    assert_includes output, "option :background, alias: :bg"
-    assert_includes output, "option :borderwidth, type: :integer, alias: :bd"
+    assert_includes output, "option :background, aliases: [:bg]"
+    assert_includes output, "option :borderwidth, type: :integer, aliases: [:bd, :border]"
     assert_includes output, "option :command, type: :callback"
     assert_includes output, "option :state"
     assert_includes output, "option :text"

@@ -12,8 +12,8 @@ module Tk
       def self.included(base)
         base.extend Tk::ItemOptionDSL
         base.class_eval do
-          item_option :background, alias: :bg
-          item_option :foreground, alias: :fg
+          item_option :background, aliases: [:bg]
+          item_option :foreground, aliases: [:fg]
           item_option :selectbackground
           item_option :selectforeground
         end

@@ -12,7 +12,7 @@ module Tk
       def self.included(base)
         base.extend Tk::OptionDSL
         base.class_eval do
-          option :background, alias: :bg
+          option :background, aliases: [:bg]
           option :borderwidth, type: :integer, aliases: [:bd, :border]
           option :cursor  # mouse cursor name
           option :handlepad, type: :integer

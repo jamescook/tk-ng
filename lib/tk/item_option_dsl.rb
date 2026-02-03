@@ -99,12 +99,10 @@ module Tk
     # @param name [Symbol] Ruby-facing option name
     # @param type [Symbol] Type converter (:string, :integer, :boolean, etc.)
     # @param tcl_name [String, nil] Tcl option name if different from Ruby name
-    # @param alias [Symbol, nil] Single alias for this option
     # @param aliases [Array<Symbol>] Alternative names for this option
     #
-    def item_option(name, type: :string, tcl_name: nil, alias: nil, aliases: [])
-      # Support both alias: :foo (single) and aliases: [:foo, :bar] (multiple)
-      all_aliases = Array(binding.local_variable_get(:alias)) + Array(aliases)
+    def item_option(name, type: :string, tcl_name: nil, aliases: [])
+      all_aliases = Array(aliases)
       all_aliases.compact!
 
       opt = Option.new(name: name, tcl_name: tcl_name, type: type, aliases: all_aliases)
