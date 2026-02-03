@@ -60,48 +60,23 @@
 # @see TkPlace For absolute positioning
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/grid.htm Tcl/Tk grid manual
 module TkGrid
-  include Tk
-  extend Tk
-
   TkCommandNames = ['grid'.freeze].freeze
 
-  def anchor(master, anchor=None)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    tk_call_without_enc('grid', 'anchor', master, anchor)
+  NONE = TkUtil::None
+
+  def anchor(master, anchor=NONE)
+    if anchor.equal?(NONE)
+      _invoke('grid', 'anchor', _epath(master))
+    else
+      _invoke('grid', 'anchor', _epath(master), anchor.to_s)
+    end
   end
 
   def bbox(master, *args)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    args.unshift(master)
-    list(tk_call_without_enc('grid', 'bbox', *args))
+    result = _invoke('grid', 'bbox', _epath(master), *args.map(&:to_s))
+    result.split.map(&:to_i)
   end
 
-=begin
-  def configure(win, *args)
-    if args[-1].kind_of?(Hash)
-      opts = args.pop
-    else
-      opts = {}
-    end
-    params = []
-    params.push(_epath(win))
-    args.each{|win|
-      case win
-      when '-', 'x', '^'  # RELATIVE PLACEMENT
-        params.push(win)
-      else
-        params.push(_epath(win))
-      end
-    }
-    opts.each{|k, v|
-      params.push("-#{k}")
-      params.push((v.kind_of?(TkObject))? v.epath: v)
-    }
-    tk_call_without_enc('grid', 'configure', *params)
-  end
-=end
   def configure(*args)
     if args[-1].kind_of?(Hash)
       opts = args.pop
@@ -130,9 +105,9 @@ module TkGrid
     }
     opts.each{|k, v|
       params.push("-#{k}")
-      params.push(_epath(v))  # have to use 'epath' (hash_kv() is unavailable)
+      params.push(_epath(v))
     }
-    tk_call_without_enc('grid', 'configure', *params)
+    _invoke('grid', 'configure', *params)
   end
   alias grid configure
 
@@ -146,10 +121,7 @@ module TkGrid
   # @option args [Integer] :pad Extra padding added to largest widget
   # @return [void]
   def columnconfigure(master, index, args)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    tk_call_without_enc("grid", 'columnconfigure',
-                        master, index, *hash_kv(args))
+    _invoke("grid", 'columnconfigure', _epath(master), index.to_s, *_hash_to_args(args))
   end
 
   # Configures row properties.
@@ -158,34 +130,28 @@ module TkGrid
   # @param args [Hash] Row options (same as columnconfigure)
   # @return [void]
   def rowconfigure(master, index, args)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    tk_call_without_enc("grid", 'rowconfigure', master, index, *hash_kv(args))
+    _invoke("grid", 'rowconfigure', _epath(master), index.to_s, *_hash_to_args(args))
   end
 
   def columnconfiginfo(master, index, slot=nil)
-    # master = master.epath if master.kind_of?(TkObject)
     master = _epath(master)
     if slot
       case slot
       when 'uniform', :uniform
-        tk_call_without_enc('grid', 'columnconfigure',
-                            master, index, "-#{slot}")
+        _invoke('grid', 'columnconfigure', master, index.to_s, "-#{slot}")
       else
-        num_or_str(tk_call_without_enc('grid', 'columnconfigure',
-                                       master, index, "-#{slot}"))
+        _num_or_str(_invoke('grid', 'columnconfigure', master, index.to_s, "-#{slot}"))
       end
     else
-      #ilist = list(tk_call_without_enc('grid','columnconfigure',master,index))
-      ilist = simplelist(tk_call_without_enc('grid', 'columnconfigure',
-                                             master, index))
+      ilist = TclTkLib._split_tklist(
+        _invoke('grid', 'columnconfigure', master, index.to_s))
       info = {}
       while key = ilist.shift
         case key
-        when 'uniform'
+        when '-uniform'
           info[key[1..-1]] = ilist.shift
         else
-          info[key[1..-1]] = tk_tcl2ruby(ilist.shift)
+          info[key[1..-1]] = _num_or_str(ilist.shift)
         end
       end
       info
@@ -193,28 +159,24 @@ module TkGrid
   end
 
   def rowconfiginfo(master, index, slot=nil)
-    # master = master.epath if master.kind_of?(TkObject)
     master = _epath(master)
     if slot
       case slot
       when 'uniform', :uniform
-        tk_call_without_enc('grid', 'rowconfigure',
-                            master, index, "-#{slot}")
+        _invoke('grid', 'rowconfigure', master, index.to_s, "-#{slot}")
       else
-        num_or_str(tk_call_without_enc('grid', 'rowconfigure',
-                                       master, index, "-#{slot}"))
+        _num_or_str(_invoke('grid', 'rowconfigure', master, index.to_s, "-#{slot}"))
       end
     else
-      #ilist = list(tk_call_without_enc('grid', 'rowconfigure', master, index))
-      ilist = simplelist(tk_call_without_enc('grid', 'rowconfigure',
-                                             master, index))
+      ilist = TclTkLib._split_tklist(
+        _invoke('grid', 'rowconfigure', master, index.to_s))
       info = {}
       while key = ilist.shift
         case key
-        when 'uniform'
+        when '-uniform'
           info[key[1..-1]] = ilist.shift
         else
-          info[key[1..-1]] = tk_tcl2ruby(ilist.shift)
+          info[key[1..-1]] = _num_or_str(ilist.shift)
         end
       end
       info
@@ -243,30 +205,23 @@ module TkGrid
 
   def forget(*args)
     return '' if args.size == 0
-    wins = args.collect{|win|
-      # (win.kind_of?(TkObject))? win.epath: win
-      _epath(win)
-    }
-    tk_call_without_enc('grid', 'forget', *wins)
+    wins = args.collect{|win| _epath(win) }
+    _invoke('grid', 'forget', *wins)
   end
 
   def info(slave)
-    # slave = slave.epath if slave.kind_of?(TkObject)
-    slave = _epath(slave)
-    #ilist = list(tk_call_without_enc('grid', 'info', slave))
-    ilist = simplelist(tk_call_without_enc('grid', 'info', slave))
+    ilist = TclTkLib._split_tklist(_invoke('grid', 'info', _epath(slave)))
     info = {}
     while key = ilist.shift
-      #info[key[1..-1]] = ilist.shift
-      info[key[1..-1]] = tk_tcl2ruby(ilist.shift)
+      val = ilist.shift
+      info[key[1..-1]] = val =~ /\A-?\d+\z/ ? val.to_i : val
     end
-    return info
+    info
   end
 
   def location(master, x, y)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    list(tk_call_without_enc('grid', 'location', master, x, y))
+    result = _invoke('grid', 'location', _epath(master), x.to_s, y.to_s)
+    result.split.map(&:to_i)
   end
 
   # Gets or sets geometry propagation.
@@ -277,41 +232,64 @@ module TkGrid
   # @param master [TkWindow] Container window
   # @param mode [Boolean, nil] true/false to set, nil to query
   # @return [Boolean, void] Current state if querying
-  def propagate(master, mode=None)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    if mode == None
-      bool(tk_call_without_enc('grid', 'propagate', master))
+  def propagate(master, mode=NONE)
+    if mode.equal?(NONE)
+      _invoke('grid', 'propagate', _epath(master)) == '1'
     else
-      tk_call_without_enc('grid', 'propagate', master, mode)
+      _invoke('grid', 'propagate', _epath(master), mode.to_s)
     end
   end
 
   def remove(*args)
     return '' if args.size == 0
-    wins = args.collect{|win|
-      # (win.kind_of?(TkObject))? win.epath: win
-      _epath(win)
-    }
-    tk_call_without_enc('grid', 'remove', *wins)
+    wins = args.collect{|win| _epath(win) }
+    _invoke('grid', 'remove', *wins)
   end
 
   def size(master)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    list(tk_call_without_enc('grid', 'size', master))
+    result = _invoke('grid', 'size', _epath(master))
+    result.split.map(&:to_i)
   end
 
   def slaves(master, args=nil)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    list(tk_call_without_enc('grid', 'slaves', master, *hash_kv(args)))
+    cmd = ['grid', 'slaves', _epath(master)]
+    cmd.concat(_hash_to_args(args)) if args
+    TclTkLib._split_tklist(_invoke(*cmd))
+  end
+
+  private
+
+  def _epath(win)
+    win.respond_to?(:epath) ? win.epath :
+      win.respond_to?(:path) ? win.path : win.to_s
+  end
+
+  def _invoke(*args)
+    TkCore::INTERP._invoke(*args.map { |a|
+      a.respond_to?(:epath) ? a.epath :
+        a.respond_to?(:path) ? a.path : a.to_s
+    })
+  end
+
+  def _hash_to_args(hash)
+    return [] unless hash
+    result = []
+    hash.each do |k, v|
+      result << "-#{k}" << v.to_s
+    end
+    result
+  end
+
+  def _num_or_str(val)
+    return val unless val.is_a?(String)
+    val =~ /\A-?\d+\z/ ? val.to_i : val
   end
 
   module_function :anchor, :bbox, :add, :forget, :propagate, :info
   module_function :remove, :size, :slaves, :location
   module_function :grid, :configure, :columnconfigure, :rowconfigure
   module_function :column, :row, :columnconfiginfo, :rowconfiginfo
+  module_function :_epath, :_invoke, :_hash_to_args, :_num_or_str
 end
 =begin
 def TkGrid(win, *args)

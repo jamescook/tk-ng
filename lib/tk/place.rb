@@ -68,27 +68,21 @@
 # @see TkGrid For table-like layouts
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/place.htm Tcl/Tk place manual
 module TkPlace
-  include Tk
-  extend Tk
-
   TkCommandNames = ['place'.freeze].freeze
 
-  def configure(win, slot, value=None)
-    # for >= Tk8.4a2 ?
-    # win = win.epath if win.kind_of?(TkObject)
+  NONE = TkUtil::None
+
+  def configure(win, slot, value=NONE)
     win = _epath(win)
     if slot.kind_of? Hash
       params = []
       slot.each{|k, v|
         params.push("-#{k}")
-        # params.push((v.kind_of?(TkObject))? v.epath: v)
         params.push(_epath(v))
       }
-      tk_call_without_enc('place', 'configure', win, *params)
+      _invoke('place', 'configure', win, *params)
     else
-      # value = value.epath if value.kind_of?(TkObject)
-      value = _epath(value)
-      tk_call_without_enc('place', 'configure', win, "-#{slot}", value)
+      _invoke('place', 'configure', win, "-#{slot}", _epath(value))
     end
   end
   alias place configure
@@ -96,13 +90,13 @@ module TkPlace
   def configinfo(win, slot = nil)
     win = _epath(win)
     if slot
-      conf = tk_split_simplelist(tk_call_without_enc('place', 'configure', win, "-#{slot}"))
+      conf = TclTkLib._split_tklist(_invoke('place', 'configure', win, "-#{slot}"))
       conf[0] = conf[0][1..-1]
-      conf.map! { |v| tk_tcl2ruby(v) }
+      conf.map! { |v| _tcl2ruby(v) }
       conf
     else
-      tk_split_simplelist(tk_call_without_enc('place', 'configure', win)).map do |conflist|
-        conf = simplelist(conflist).map { |inf| tk_tcl2ruby(inf) }
+      TclTkLib._split_tklist(_invoke('place', 'configure', win)).map do |conflist|
+        conf = TclTkLib._split_tklist(conflist).map { |inf| _tcl2ruby(inf) }
         conf[0] = conf[0][1..-1]
         conf
       end
@@ -110,55 +104,71 @@ module TkPlace
   end
 
   def current_configinfo(win, slot = nil)
-    # win = win.epath if win.kind_of?(TkObject)
     win = _epath(win)
     if slot
-      #conf = tk_split_list(tk_call_without_enc('place', 'configure',
-      #                                         win, "-#{slot}") )
-      conf = tk_split_simplelist(tk_call_without_enc('place', 'configure',
-                                                     win, "-#{slot}") )
-      # { conf[0][1..-1] => conf[1] }
-      { conf[0][1..-1] => tk_tcl2ruby(conf[4]) }
+      conf = TclTkLib._split_tklist(_invoke('place', 'configure', win, "-#{slot}"))
+      { conf[0][1..-1] => _tcl2ruby(conf[4]) }
     else
       ret = {}
-      #tk_split_list(tk_call_without_enc('place','configure',win)).each{|conf|
-      tk_split_simplelist(tk_call_without_enc('place', 'configure',
-                                              win)).each{|conf_list|
-        #ret[conf[0][1..-1]] = conf[1]
-        conf = simplelist(conf_list)
-        ret[conf[0][1..-1]] = tk_tcl2ruby(conf[4])
+      TclTkLib._split_tklist(_invoke('place', 'configure', win)).each{|conf_list|
+        conf = TclTkLib._split_tklist(conf_list)
+        ret[conf[0][1..-1]] = _tcl2ruby(conf[4])
       }
       ret
     end
   end
 
   def forget(win)
-    # win = win.epath if win.kind_of?(TkObject)
-    win = _epath(win)
-    tk_call_without_enc('place', 'forget', win)
+    _invoke('place', 'forget', _epath(win))
   end
 
   def info(win)
-    # win = win.epath if win.kind_of?(TkObject)
-    win = _epath(win)
-    #ilist = list(tk_call_without_enc('place', 'info', win))
-    ilist = simplelist(tk_call_without_enc('place', 'info', win))
+    ilist = TclTkLib._split_tklist(_invoke('place', 'info', _epath(win)))
     info = {}
     while key = ilist.shift
-      #info[key[1..-1]] = ilist.shift
-      info[key[1..-1]] = tk_tcl2ruby(ilist.shift)
+      info[key[1..-1]] = _tcl2ruby(ilist.shift)
     end
-    return info
+    info
   end
 
   def slaves(master)
-    # master = master.epath if master.kind_of?(TkObject)
-    master = _epath(master)
-    list(tk_call('place', 'slaves', master))
+    TclTkLib._split_tklist(_invoke('place', 'slaves', _epath(master)))
+  end
+
+  private
+
+  def _epath(win)
+    win.respond_to?(:epath) ? win.epath :
+      win.respond_to?(:path) ? win.path : win.to_s
+  end
+
+  def _invoke(*args)
+    TkCore::INTERP._invoke(*args.map { |a|
+      a.respond_to?(:epath) ? a.epath :
+        a.respond_to?(:path) ? a.path : a.to_s
+    })
+  end
+
+  # Convert a Tcl string to an appropriate Ruby value.
+  def _tcl2ruby(val)
+    return val unless val.is_a?(String)
+    case val
+    when '' then val
+    when /\A-?\d+\z/ then val.to_i
+    when /\A-?\d+\.\d+\z/ then val.to_f
+    else
+      # Check for widget path
+      if val.start_with?('.')
+        TkCore::INTERP.tk_windows[val] || val
+      else
+        val
+      end
+    end
   end
 
   module_function :place, :configure, :configinfo, :current_configinfo
   module_function :forget, :info, :slaves
+  module_function :_epath, :_invoke, :_tcl2ruby
 end
 =begin
 def TkPlace(win, slot, value=None)
