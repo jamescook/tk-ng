@@ -13,7 +13,7 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :anchor  # n, ne, e, se, s, sw, w, nw, center
-          option :class
+          option :class, alias: :classname
           option :cursor  # mouse cursor name
           option :font, type: :font
           option :foreground

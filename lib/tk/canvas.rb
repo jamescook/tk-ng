@@ -1041,6 +1041,22 @@ class TkcItem
     value
   end
 
+  # Stopgap: delegate unknown methods to cget/configure.
+  # TODO: Replace with per-item-type option accessors (see beads).
+  def method_missing(name, *args)
+    if name.to_s.end_with?('=')
+      configure(name.to_s.chomp('='), args[0])
+    elsif args.empty?
+      cget(name)
+    else
+      super
+    end
+  end
+
+  def respond_to_missing?(name, include_private = false)
+    true
+  end
+
   def exist?
     # find_withtag returns array - empty array [] is truthy in Ruby
     !@c.find_withtag(@id).empty?

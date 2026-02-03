@@ -27,7 +27,7 @@ module Tk
           option :selectcolor
           option :takefocus  # include in keyboard traversal
           option :tearoff, type: :boolean
-          option :tearoffcommand
+          option :tearoffcommand, type: :callback
           option :title
           option :type
         end

@@ -40,6 +40,9 @@ module Tk
       # Callback options - need to register proc and return callback id
       "Command" => :callback,
       "ScrollCommand" => :callback,
+      "ValidateCommand" => :validate_callback,
+      "InvalidCommand" => :validate_callback,
+      "TearOffCommand" => :callback,
 
       # Font options - wrap in TkFont for backwards compatibility
       "Font" => :font,

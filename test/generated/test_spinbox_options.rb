@@ -244,13 +244,12 @@ class TestGeneratedSpinboxOptions < Minitest::Test
     end
     end
 
-    # :format (string)
+    # :format (string) - Kernel#format conflict; use get_format/set_format/format=
     if Tk::OptionTestSupport.option_testable?('spinbox', 'format')
     begin
-      # Round-trip: get via cget, set via accessor, get via accessor
       original = w.cget(:format)
       w.format = original
-      result = w.format
+      result = w.get_format
       unless result == original
         errors << ":format accessor mismatch: cget=#{original.inspect}, accessor=#{result.inspect}"
       end

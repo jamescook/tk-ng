@@ -38,6 +38,7 @@ module Tk
       end
 
       attr_reader :path
+      alias epath path
 
       # Standard widget initialization.
       #
@@ -150,6 +151,89 @@ module Tk
         true
       end
 
+      # Apply a font to this widget.
+      def apply_font(font_name)
+        configure('font', font_name)
+      end
+
+      # @deprecated Use Tk.update instead.
+      def update(idle = nil)
+        Tk::Warnings.warn_once(:instance_update,
+          "Calling #update on a Tk widget instance is deprecated. Use Tk.update instead.")
+        Tk.update(idle)
+        self
+      end
+
+      # Wait for this widget to be destroyed (tkwait window).
+      def wait_destroy(on_thread = true)
+        on_thread &= (Thread.list.size != 1)
+        if on_thread
+          TkCore::INTERP._thread_tkwait('window', @path)
+        else
+          TkCore::INTERP._invoke('tkwait', 'window', @path)
+        end
+      end
+      alias wait_window wait_destroy
+      alias tkwait_destroy wait_destroy
+      alias tkwait_window wait_destroy
+
+      # Wait for this widget to become visible (tkwait visibility).
+      def wait_visibility(on_thread = true)
+        on_thread &= (Thread.list.size != 1)
+        if on_thread
+          TkCore::INTERP._thread_tkwait('visibility', @path)
+        else
+          TkCore::INTERP._invoke('tkwait', 'visibility', @path)
+        end
+      end
+      alias tkwait_visibility wait_visibility
+
+      # Grab management
+      def grab(opt = nil)
+        case opt
+        when nil, 'set', :set
+          tk_call('grab', 'set', @path)
+          self
+        when 'global', :global
+          tk_call('grab', 'set', '-global', @path)
+          self
+        when 'release', :release
+          tk_call('grab', 'release', @path)
+          self
+        when 'current', :current
+          path = tk_call('grab', 'current', @path)
+          TkCore::INTERP.tk_windows[path]
+        when 'status', :status
+          tk_call('grab', 'status', @path)
+        else
+          tk_call('grab', opt, @path)
+        end
+      end
+
+      def grab_set
+        grab('set')
+      end
+      alias set_grab grab_set
+
+      def grab_set_global
+        grab('global')
+      end
+      alias set_global_grab grab_set_global
+
+      def grab_release
+        grab('release')
+      end
+      alias release_grab grab_release
+
+      def grab_current
+        grab('current')
+      end
+      alias current_grab grab_current
+
+      def grab_status
+        grab('status')
+      end
+
       # Destroy this widget and remove from Tk.
       def destroy
         tk_call('destroy', @path)
@@ -162,7 +246,10 @@ module Tk
       # @param keys [Hash] Optional event fields (x:, y:, etc.)
       #
       def event_generate(event, keys = nil)
-        event = "<#{event}>" unless event.start_with?('<')
+        # Always wrap with <> — matches old-world tk_event_sequence behavior.
+        # Regular events: "ButtonPress-1" → "<ButtonPress-1>"
+        # Virtual events: "<VirtEvent00003>" → "<<VirtEvent00003>>" (Tcl syntax)
+        event = "<#{event}>"
         if keys
           args = ['event', 'generate', @path, event]
           keys.each { |k, v| args << "-#{k}" << v.to_s }
@@ -344,6 +431,36 @@ module Tk
       end
 
       public
+
+      # Lower this widget in the stacking order.
+      def lower(below = nil)
+        if below
+          tk_call('lower', @path, below.respond_to?(:path) ? below.path : below.to_s)
+        else
+          tk_call('lower', @path)
+        end
+        self
+      end
+      alias lower_window lower
+
+      # Raise this widget in the stacking order.
+      def raise(above = nil)
+        if above
+          tk_call('raise', @path, above.respond_to?(:path) ? above.path : above.to_s)
+        else
+          tk_call('raise', @path)
+        end
+        self
+      end
+      alias raise_window raise
+      public :raise
+
+      # Grid widget inside a target container
+      def grid_in(target, keys = {})
+        keys = keys.dup
+        keys[:in] = target
+        grid(keys)
+      end
 
       # Place widget inside a target container
       def place_in(target, keys = {})

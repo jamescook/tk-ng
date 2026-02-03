@@ -83,7 +83,7 @@ module TkComposite
   #
   # @example
   #   widget = MyComposite.new(root, text: 'Hello', width: 100)
-  def initialize(*args)
+  def initialize(*args, &block)
     @delegates = {}
     @option_methods = {}
     @option_setting = {}
@@ -102,6 +102,8 @@ module TkComposite
 
     args.push(keys) unless keys.empty?
     initialize_composite(*args)
+
+    instance_eval(&block) if block
   end
 
   # Tk database class name for the base frame.

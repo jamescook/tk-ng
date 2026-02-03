@@ -92,7 +92,7 @@ module Tk
   module OptionDSL
     # Method names that conflict with Ruby builtins - can't generate accessors.
     # These options must use cget/configure or [] syntax instead.
-    RESERVED_METHODS = %i[class type method send id].to_set.freeze
+    RESERVED_METHODS = %i[class method send id].to_set.freeze
 
     # Called when module is extended into a class
     # Merge with existing options (from parent) instead of resetting
@@ -158,6 +158,35 @@ module Tk
             cget(method_name)
           else
             # Prefer positional arg over block (args[0] could be false/nil)
+            configure(method_name, args.empty? ? block : args[0])
+            self
+          end
+        end
+        define_method(:"#{method_name}=") { |v| configure(method_name, v); v }
+      end
+    end
+
+    # Add an alias for an existing option without redefining it.
+    # Use when the generator doesn't detect an alias (e.g., vcmd → validatecommand
+    # on TTK widgets).
+    #
+    # @param alias_name [Symbol] The alias to register
+    # @param target [Symbol] The existing option name
+    #
+    def option_alias(alias_name, target)
+      @options ||= {}
+      opt = @options[target.to_sym]
+      raise ArgumentError, "No option :#{target} declared to alias" unless opt
+
+      @options[alias_name.to_sym] = opt
+
+      method_name = alias_name
+      unless RESERVED_METHODS.include?(method_name.to_sym) ||
+             method_defined?(method_name) || private_method_defined?(method_name)
+        define_method(method_name) do |*args, &block|
+          if args.empty? && block.nil?
+            cget(method_name)
+          else
             configure(method_name, args.empty? ? block : args[0])
             self
           end

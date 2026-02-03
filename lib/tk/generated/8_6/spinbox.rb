@@ -37,7 +37,7 @@ module Tk
           option :insertofftime, type: :integer  # cursor blink off time (ms)
           option :insertontime, type: :integer  # cursor blink on time (ms)
           option :insertwidth, type: :integer
-          option :invalidcommand, alias: :invcmd
+          option :invalidcommand, type: :validate_callback, alias: :invcmd
           option :justify  # left, center, right
           option :readonlybackground
           option :relief  # flat, raised, sunken, groove, ridge, solid
@@ -51,7 +51,7 @@ module Tk
           option :textvariable, type: :tkvariable
           option :to, type: :float
           option :validate  # none, focus, focusin, focusout, key, all
-          option :validatecommand, alias: :vcmd
+          option :validatecommand, type: :validate_callback, alias: :vcmd
           option :values, type: :list
           option :width, type: :integer
           option :wrap  # none, char, word

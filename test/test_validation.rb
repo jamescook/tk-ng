@@ -430,6 +430,77 @@ class TestTkValidation < Minitest::Test
     raise errors.join("\n") unless errors.empty?
   end
 
+  # --- TTK Entry validation (vcmd/invcmd aliases) ---
+
+  def test_ttk_entry_with_vcmd_shorthand
+    assert_tk_app("TTK Entry with vcmd shorthand", method(:app_ttk_entry_vcmd))
+  end
+
+  def app_ttk_entry_vcmd
+    require 'tk'
+    require 'tkextlib/tile/tentry'
+
+    errors = []
+
+    # vcmd is an alias for validatecommand on TTK entry
+    entry = Tk::Tile::TEntry.new(root)
+    entry.configure(validate: 'key', vcmd: proc { true })
+    entry.pack
+
+    entry.insert(0, 'hello')
+    value = entry.value
+    errors << "TTK Entry should have 'hello', got '#{value}'" unless value == 'hello'
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_ttk_entry_with_invcmd_shorthand
+    assert_tk_app("TTK Entry with invcmd shorthand", method(:app_ttk_entry_invcmd))
+  end
+
+  def app_ttk_entry_invcmd
+    require 'tk'
+    require 'tkextlib/tile/tentry'
+
+    errors = []
+
+    invalid_called = false
+    entry = Tk::Tile::TEntry.new(root)
+    entry.configure(
+      validate: 'key',
+      validatecommand: proc { false },
+      invcmd: proc { invalid_called = true }
+    )
+    entry.pack
+
+    entry.insert(0, 'test')
+    value = entry.value
+    errors << "TTK Entry should be empty, got '#{value}'" unless value == ''
+    errors << "invcmd should have been called" unless invalid_called
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_ttk_entry_cget_vcmd_alias
+    assert_tk_app("TTK Entry cget resolves vcmd alias", method(:app_ttk_entry_cget_vcmd))
+  end
+
+  def app_ttk_entry_cget_vcmd
+    require 'tk'
+    require 'tkextlib/tile/tentry'
+
+    errors = []
+
+    entry = Tk::Tile::TEntry.new(root)
+    entry.configure(:validatecommand, "myvalidator")
+
+    # cget via alias should resolve to the real option
+    result = entry.cget(:vcmd)
+    errors << "cget(:vcmd) should return 'myvalidator', got #{result.inspect}" unless result == "myvalidator"
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
   # --- Array form of validation commands ---
 
   def test_entry_validatecommand_array_form

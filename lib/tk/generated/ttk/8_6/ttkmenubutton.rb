@@ -12,7 +12,7 @@ module Tk
       def self.included(base)
         base.extend Tk::OptionDSL
         base.class_eval do
-          option :class
+          option :class, alias: :classname
           option :compound  # none, bottom, top, left, right, center
           option :cursor  # mouse cursor name
           option :direction

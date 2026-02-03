@@ -13,13 +13,13 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :background
-          option :class
+          option :class, alias: :classname
           option :cursor  # mouse cursor name
           option :exportselection, type: :boolean  # export selection to X clipboard
           option :font, type: :font
           option :foreground
           option :height, type: :integer
-          option :invalidcommand
+          option :invalidcommand, type: :validate_callback
           option :justify  # left, center, right
           option :placeholder
           option :placeholderforeground
@@ -30,10 +30,10 @@ module Tk
           option :takefocus  # include in keyboard traversal
           option :textvariable, type: :tkvariable
           option :validate  # none, focus, focusin, focusout, key, all
-          option :validatecommand
+          option :validatecommand, type: :validate_callback
           option :values, type: :list
           option :width, type: :integer
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
         end
       end
     end

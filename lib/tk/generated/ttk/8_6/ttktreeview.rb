@@ -12,7 +12,7 @@ module Tk
       def self.included(base)
         base.extend Tk::OptionDSL
         base.class_eval do
-          option :class
+          option :class, alias: :classname
           option :columns
           option :cursor  # mouse cursor name
           option :displaycolumns
@@ -23,8 +23,8 @@ module Tk
           option :style
           option :takefocus  # include in keyboard traversal
           option :tree
-          option :xscrollcommand
-          option :yscrollcommand
+          option :xscrollcommand, type: :callback
+          option :yscrollcommand, type: :callback
           future_option :selecttype, min_version: '9.0'
           future_option :striped, min_version: '9.0'
           future_option :titlecolumns, min_version: '9.0'

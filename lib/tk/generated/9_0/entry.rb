@@ -28,7 +28,7 @@ module Tk
           option :insertofftime, type: :integer  # cursor blink off time (ms)
           option :insertontime, type: :integer  # cursor blink on time (ms)
           option :insertwidth, type: :integer
-          option :invalidcommand, alias: :invcmd
+          option :invalidcommand, type: :validate_callback, alias: :invcmd
           option :justify  # left, center, right
           option :placeholder
           option :placeholderforeground
@@ -42,7 +42,7 @@ module Tk
           option :takefocus  # include in keyboard traversal
           option :textvariable, type: :tkvariable
           option :validate  # none, focus, focusin, focusout, key, all
-          option :validatecommand, alias: :vcmd
+          option :validatecommand, type: :validate_callback, alias: :vcmd
           option :width, type: :integer
           option :xscrollcommand, type: :callback
         end

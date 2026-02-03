@@ -25,6 +25,10 @@ class Tk::Tile::TEntry
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkEntry
 
+  # Standard Tk aliases not detected by the option generator for TTK widgets
+  option_alias :vcmd, :validatecommand
+  option_alias :invcmd, :invalidcommand
+
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::entry'.freeze].freeze
   else

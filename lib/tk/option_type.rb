@@ -47,6 +47,14 @@ module Tk
     # @return [Symbol] Type name (e.g., :string, :boolean, :widget)
     attr_reader :name
 
+    # Tcl 9.0 uses empty string for "unset" numeric options (e.g. -underline)
+    # where Tcl 8.6 used -1. Cached on first call (Tk::TK_VERSION is set at
+    # interpreter startup, which always happens before any cget/configure).
+    def self.tcl9?
+      @tcl9 = (Tk::TK_VERSION.to_f >= 9.0) unless defined?(@tcl9)
+      @tcl9
+    end
+
     # Create a new type converter.
     #
     # @param name [Symbol] Type name for registry lookup
@@ -128,14 +136,28 @@ module Tk
       )
 
       Integer = OptionType.new(:integer,
-        to_tcl: ->(v) { v.to_i.to_s },
-        # Use to_i to handle Tcl dimension strings like "10c" (centimeters)
+        to_tcl: ->(v) {
+          if v.nil?
+            # Tcl 9.0 defaults some integer options to "" (empty = unset);
+            # Tcl 8.6 used -1 for the same purpose. Preserve the appropriate sentinel.
+            OptionType.tcl9? ? '' : '-1'
+          else
+            v.to_i.to_s
+          end
+        },
+        # Tcl 9.0 returns "" for unset integer options; map to nil.
+        # Use to_i to handle Tcl dimension strings like "10c" (centimeters).
         from_tcl: ->(v) { v.to_s.empty? ? nil : v.to_s.to_i }
       )
 
       Float = OptionType.new(:float,
-        to_tcl: ->(v) { v.to_f.to_s },
-        # Use to_f to handle Tcl dimension strings like "1.5i" (inches)
+        to_tcl: ->(v) {
+          if v.nil?
+            OptionType.tcl9? ? '' : v.to_f.to_s
+          else
+            v.to_f.to_s
+          end
+        },
         from_tcl: ->(v) { v.to_s.empty? ? nil : v.to_s.to_f }
       )
 
@@ -230,6 +252,29 @@ module Tk
           if v.respond_to?(:call)
             # Register the proc and return callback ID
             widget.install_cmd(v) if widget
+          else
+            v.to_s
+          end
+        },
+        from_tcl: ->(v) { v.to_s }
+      )
+
+      # Validation callback - wraps procs in ValidateCmd for proper Tcl
+      # substitution args (%P, %d, etc.) and boolean return value conversion.
+      # Handles: plain procs, [proc, :value, :action] arrays, ValidateCmd objects, strings.
+      ValidateCallback = OptionType.new(:validate_callback,
+        to_tcl: ->(v, widget:) {
+          require 'tk/validation'
+          if v.is_a?(Array)
+            # [proc, :value, :action] form
+            cmd, *args = v
+            TkValidation::ValidateCmd.new(cmd, *args).to_eval
+          elsif v.respond_to?(:call)
+            # Plain proc/lambda - wrap in ValidateCmd for ret_val and substitution
+            TkValidation::ValidateCmd.new(v).to_eval
+          elsif v.respond_to?(:to_eval)
+            # Already a ValidateCmd or similar
+            v.to_eval
           else
             v.to_s
           end

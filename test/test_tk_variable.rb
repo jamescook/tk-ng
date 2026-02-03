@@ -1493,7 +1493,7 @@ class TestTkVariable < Minitest::Test
     var = TkVariable.new(btn.path)
 
     win = var.window
-    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+    raise "expected widget, got #{win.class}" unless win.respond_to?(:path)
     raise "paths should match" unless win.path == btn.path
   end
 
@@ -1508,7 +1508,7 @@ class TestTkVariable < Minitest::Test
     var["widget"] = btn.path
 
     win = var.window_element("widget")
-    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+    raise "expected widget, got #{win.class}" unless win.respond_to?(:path)
     raise "paths should match" unless win.path == btn.path
   end
 
@@ -1525,7 +1525,7 @@ class TestTkVariable < Minitest::Test
 
     raise "type should be :window" unless var.default_element_value_type("ref") == :window
     win = var["ref"]
-    raise "expected TkWindow, got #{win.class}" unless win.is_a?(TkWindow)
+    raise "expected widget, got #{win.class}" unless win.respond_to?(:path)
   end
 
   def test_window_type_coercion
@@ -1539,7 +1539,7 @@ class TestTkVariable < Minitest::Test
     var.default_value_type = :window
 
     val = var.value
-    raise "expected TkWindow, got #{val.class}" unless val.is_a?(TkWindow)
+    raise "expected widget, got #{val.class}" unless val.respond_to?(:path)
     raise "paths should match" unless val.path == btn.path
   end
 
@@ -1601,6 +1601,6 @@ class TestTkVariable < Minitest::Test
     raise "type should be :window" unless var.default_value_type == :window
 
     val = var.value
-    raise "expected TkWindow, got #{val.class}" unless val.is_a?(TkWindow)
+    raise "expected widget, got #{val.class}" unless val.respond_to?(:path)
   end
 end

@@ -275,6 +275,28 @@ class Tk::Spinbox
   def set(str)
     tk_send_without_enc('set', _get_eval_enc_str(str))
   end
+
+  # Kernel#format (sprintf) shadows the Tk -format option.
+  # Use set_format/get_format/format= for the Tk option.
+  def format(*args)
+    Tk::Warnings.warn_once(:spinbox_format,
+      "Spinbox#format calls Kernel#format (sprintf), not the Tk -format option. " \
+      "Use get_format/set_format/format= for the Tk option.")
+    super
+  end
+
+  def get_format
+    cget(:format)
+  end
+
+  def set_format(val)
+    configure(:format, val)
+  end
+
+  def format=(val)
+    configure(:format, val)
+    val
+  end
 end
 
 #TkSpinbox = Tk::Spinbox unless Object.const_defined? :TkSpinbox

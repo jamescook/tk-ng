@@ -13,7 +13,7 @@ module Tk
         base.extend Tk::OptionDSL
         base.class_eval do
           option :background
-          option :class
+          option :class, alias: :classname
           option :command, type: :callback
           option :cursor  # mouse cursor name
           option :exportselection, type: :boolean  # export selection to X clipboard
@@ -22,7 +22,7 @@ module Tk
           option :format
           option :from, type: :float
           option :increment, type: :float
-          option :invalidcommand
+          option :invalidcommand, type: :validate_callback
           option :justify  # left, center, right
           option :placeholder
           option :placeholderforeground
@@ -33,11 +33,11 @@ module Tk
           option :textvariable, type: :tkvariable
           option :to, type: :float
           option :validate  # none, focus, focusin, focusout, key, all
-          option :validatecommand
+          option :validatecommand, type: :validate_callback
           option :values, type: :list
           option :width, type: :integer
           option :wrap  # none, char, word
-          option :xscrollcommand
+          option :xscrollcommand, type: :callback
         end
       end
     end

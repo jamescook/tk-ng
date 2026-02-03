@@ -67,17 +67,21 @@ module Tk
 
       # Query configuration info for one or all options.
       # Returns [name, dbname, dbclass, default, current] arrays.
+      # Alias entries (2 elements) are returned as [name, target].
+      # Full entries have their current value (last element) type-converted
+      # via the Option registry when a declaration exists.
       def configinfo(slot = nil)
         if slot
           slot = slot.to_s
+          # Resolve via OptionDSL registry if available
+          opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
+          slot = opt.tcl_name if opt
           info = TclTkLib._split_tklist(tk_call(path, 'configure', "-#{slot}"))
-          info[0] = info[0].sub(/\A-/, '') if info[0]
-          info
+          convert_configinfo(info)
         else
           TclTkLib._split_tklist(tk_call(path, 'configure')).map { |item|
             info = TclTkLib._split_tklist(item)
-            info[0] = info[0].sub(/\A-/, '') if info[0]
-            info
+            convert_configinfo(info)
           }
         end
       end
@@ -94,6 +98,41 @@ module Tk
           end
           result
         end
+      end
+
+      private
+
+      # Strip leading dash from option name, convert current value via Option registry.
+      def convert_configinfo(info)
+        info[0] = info[0].sub(/\A-/, '') if info[0]
+        if info.size > 2
+          # Full entry: [name, dbname, dbclass, default, current]
+          # Type-convert the current value (last element)
+          opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(info[0])
+          info[-1] = opt.from_tcl(info[-1], widget: self) if opt
+        elsif info.size == 2
+          # Alias entry: strip dash from target
+          info[1] = info[1].sub(/\A-/, '') if info[1]&.start_with?('-')
+        end
+        info
+      end
+
+      public
+
+      # @deprecated Use {#cget} instead, which returns typed Ruby values via
+      #   the Option registry. If you need the raw string for debugging, use
+      #   `tk_call(path, 'cget', '-optionname')` directly.
+      def cget_tkstring(slot)
+        Tk::Warnings.warn_once(:"cget_tkstring_#{self.class}",
+          "#{self.class}#cget_tkstring is deprecated. Use #cget (returns typed values) " \
+          "or tk_call(path, 'cget', '-option') for raw strings.")
+        slot = slot.to_s
+        raise ArgumentError, "Invalid option `#{slot.inspect}'" if slot.empty?
+
+        opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(slot)
+        slot = opt.tcl_name if opt
+
+        tk_call(path, 'cget', "-#{slot}")
       end
 
       alias cget_strict cget

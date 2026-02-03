@@ -37,6 +37,10 @@ module Tk
         tk_call('winfo', 'rooty', @path).to_i
       end
 
+      def winfo_geometry
+        tk_call('winfo', 'geometry', @path)
+      end
+
       def winfo_exists?
         tk_call('winfo', 'exists', @path) == '1'
       end
@@ -50,22 +54,36 @@ module Tk
       def winfo_viewable?
         tk_call('winfo', 'viewable', @path) == '1'
       end
+      alias winfo_viewable winfo_viewable?
 
       def winfo_toplevel
-        tk_call('winfo', 'toplevel', @path)
+        path = tk_call('winfo', 'toplevel', @path)
+        TkCore::INTERP.tk_windows[path]
       end
 
       def winfo_parent
-        tk_call('winfo', 'parent', @path)
+        parent_path = tk_call('winfo', 'parent', @path)
+        TkCore::INTERP.tk_windows[parent_path]
       end
 
       def winfo_children
         result = tk_call('winfo', 'children', @path)
-        TclTkLib._split_tklist(result)
+        TclTkLib._split_tklist(result).map { |p| TkCore::INTERP.tk_windows[p] }.compact
       end
 
       def winfo_class
         tk_call('winfo', 'class', @path)
+      end
+      alias database_classname winfo_class
+      alias winfo_classname winfo_class
+
+      # Returns the Ruby class used for class-level bindings.
+      def bind_class
+        @db_class || self.class
+      end
+
+      def winfo_appname
+        tk_call('winfo', 'name', @path)
       end
 
       def winfo_id
