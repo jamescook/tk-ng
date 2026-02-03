@@ -199,6 +199,7 @@ module Tk
     # These are added on top of Tcl's own aliases (like bd -> borderwidth).
     LEGACY_ALIASES = {
       'borderwidth' => ['border'],
+      'class' => ['classname'],
     }.freeze
 
     def build_options_with_aliases(entries)

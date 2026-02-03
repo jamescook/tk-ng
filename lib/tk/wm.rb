@@ -1,6 +1,9 @@
 # frozen_string_literal: false
 
 module Tk
+  # @deprecated Use {Tk::Core::Wm} instead. This module extends TkCore
+  #   and will be removed in a future release.
+  #
   # Window Manager interface for toplevel windows.
   #
   # The Wm module provides methods to control window behavior through

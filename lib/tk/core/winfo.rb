@@ -72,6 +72,10 @@ module Tk
         tk_call('winfo', 'id', @path)
       end
 
+      def winfo_screen
+        tk_call('winfo', 'screen', @path)
+      end
+
       def winfo_screenwidth
         tk_call('winfo', 'screenwidth', @path).to_i
       end

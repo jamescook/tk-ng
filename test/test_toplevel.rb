@@ -24,7 +24,7 @@ class TestToplevel < Minitest::Test
     top = Tk::Toplevel.new(root)
     Tk.update
     errors << "toplevel should exist" unless top.winfo_exist?
-    errors << "toplevel should be a TkWindow" unless top.is_a?(TkWindow)
+    errors << "toplevel should be a widget" unless top.tk_widget?
 
     top.destroy
     raise errors.join("\n") unless errors.empty?

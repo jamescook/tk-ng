@@ -15,7 +15,7 @@ module Tk
           option :background, alias: :bg
           option :backgroundimage, alias: :bgimg
           option :borderwidth, type: :integer, aliases: [:bd, :border]
-          option :class
+          option :class, alias: :classname
           option :colormap
           option :container, type: :boolean  # embed other windows
           option :cursor  # mouse cursor name
