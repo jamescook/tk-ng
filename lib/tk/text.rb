@@ -392,38 +392,39 @@ class Tk::Text
   # -- Methods from TkTextWin (shared with Listbox) --
 
   def bbox(index)
-    list(tk_send_without_enc('bbox', _get_eval_enc_str(index)))
+    result = tk_send('bbox', index)
+    return [] if result.empty?
+    result.split.map(&:to_i)
   end
 
   def delete(first, last=None)
-    tk_send_without_enc('delete', first, last)
+    tk_send('delete', first, last)
     self
   end
 
   def get(*index)
-    tk_send_without_enc('get', *index)
+    tk_send('get', *index)
   end
 
   def scan_mark(x, y)
-    tk_send_without_enc('scan', 'mark', x, y)
+    tk_send('scan', 'mark', x, y)
     self
   end
 
   def scan_dragto(x, y)
-    tk_send_without_enc('scan', 'dragto', x, y)
+    tk_send('scan', 'dragto', x, y)
     self
   end
 
   def see(index)
-    tk_send_without_enc('see', index)
+    tk_send('see', index)
     self
   end
 
   # -- Text-specific methods --
 
   def index(idx)
-    Tk::Text::IndexString.new(tk_send_without_enc('index',
-                                                  _get_eval_enc_str(idx)))
+    Tk::Text::IndexString.new(tk_send('index', idx))
   end
 
   def get_displaychars(*index)
@@ -432,17 +433,17 @@ class Tk::Text
   end
 
   def value
-    tk_send_without_enc('get', "1.0", "end - 1 char")
+    tk_send('get', "1.0", "end - 1 char")
   end
 
   def value=(val)
-    tk_send_without_enc('delete', "1.0", 'end')
-    tk_send_without_enc('insert', "1.0", _get_eval_enc_str(val))
+    tk_send('delete', "1.0", 'end')
+    tk_send('insert', "1.0", val)
     val
   end
 
   def clear
-    tk_send_without_enc('delete', "1.0", 'end')
+    tk_send('delete', "1.0", 'end')
     self
   end
   alias erase clear
@@ -475,63 +476,59 @@ class Tk::Text
 
   def tag_names(index=nil)
     if index
-      tk_split_simplelist(tk_send_without_enc('tag', 'names', index), false, true).collect{|elt|
+      TclTkLib._split_tklist(tk_send('tag', 'names', index)).collect{|elt|
         tagid2obj(elt)
       }
     else
-      tk_split_simplelist(tk_send_without_enc('tag', 'names'), false, true).collect{|elt|
+      TclTkLib._split_tklist(tk_send('tag', 'names')).collect{|elt|
         tagid2obj(elt)
       }
     end
   end
 
   def mark_names
-    #tk_split_simplelist(_fromUTF8(tk_send_without_enc('mark', 'names'))).collect{|elt|
-    tk_split_simplelist(tk_send_without_enc('mark', 'names'), false, true).collect{|elt|
+    TclTkLib._split_tklist(tk_send('mark', 'names')).collect{|elt|
       tagid2obj(elt)
     }
   end
 
   def mark_gravity(mark, direction=nil)
     if direction
-      tk_send_without_enc('mark', 'gravity',
-                          _get_eval_enc_str(mark), direction)
+      tk_send('mark', 'gravity', mark, direction)
       self
     else
-      tk_send_without_enc('mark', 'gravity', _get_eval_enc_str(mark))
+      tk_send('mark', 'gravity', mark)
     end
   end
 
   def mark_set(mark, index)
-    tk_send_without_enc('mark', 'set', _get_eval_enc_str(mark),
-                        _get_eval_enc_str(index))
+    tk_send('mark', 'set', mark, index)
     self
   end
   alias set_mark mark_set
 
   def mark_unset(*marks)
-    tk_send_without_enc('mark', 'unset',
-                        *(marks.collect{|mark| _get_eval_enc_str(mark)}))
+    tk_send('mark', 'unset', *marks)
     self
   end
   alias unset_mark mark_unset
 
   def mark_next(index)
-    tagid2obj(tk_send_without_enc('mark', 'next', _get_eval_enc_str(index)))
+    tagid2obj(tk_send('mark', 'next', index))
   end
   alias next_mark mark_next
 
   def mark_previous(index)
-    tagid2obj(tk_send_without_enc('mark', 'previous', _get_eval_enc_str(index)))
+    tagid2obj(tk_send('mark', 'previous', index))
   end
   alias previous_mark mark_previous
 
   def image_cget_strict(index, slot)
     case slot.to_s
     when 'text', 'label', 'show', 'data', 'file'
-      tk_send_without_enc('image', 'cget', _get_eval_enc_str(index), "-#{slot}")
+      tk_send('image', 'cget', index, "-#{slot}")
     else
-      tk_tcl2ruby(tk_send_without_enc('image', 'cget', _get_eval_enc_str(index), "-#{slot}"))
+      value_from_tcl(tk_send('image', 'cget', index, "-#{slot}"))
     end
   end
 
@@ -541,32 +538,33 @@ class Tk::Text
 
   def image_configure(index, slot, value=None)
     if slot.kind_of?(Hash)
-      tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), *hash_kv(slot, true))
+      tk_send('image', 'configure', index, *hash_to_args(slot))
     else
-      tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}", _get_eval_enc_str(value))
+      tk_send('image', 'configure', index, "-#{slot}", value)
     end
     self
   end
 
   def image_configinfo(index, slot = nil)
     if slot
-      case slot.to_s
-      when 'text', 'label', 'show', 'data', 'file'
-        conf = tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), false, true)
-      else
-        conf = tk_split_list(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index), "-#{slot}"), 0, false, true)
-      end
+      conf = TclTkLib._split_tklist(tk_send('image', 'configure', index, "-#{slot}"))
       conf[0] = conf[0][1..-1]
+      case conf[0]
+      when 'text', 'label', 'show', 'data', 'file'
+      else
+        conf[3] = value_from_tcl(conf[3]) if conf[3]
+        conf[4] = value_from_tcl(conf[4]) if conf[4]
+      end
       conf
     else
-      tk_split_simplelist(tk_send_without_enc('image', 'configure', _get_eval_enc_str(index)), false, false).collect{|conflist|
-        conf = tk_split_simplelist(conflist, false, true)
+      TclTkLib._split_tklist(tk_send('image', 'configure', index)).collect{|conflist|
+        conf = TclTkLib._split_tklist(conflist)
         conf[0] = conf[0][1..-1]
         case conf[0]
         when 'text', 'label', 'show', 'data', 'file'
         else
-          conf[3] = conf[3].index('{') ? tk_split_list(conf[3]) : tk_tcl2ruby(conf[3]) if conf[3]
-          conf[4] = conf[4].index('{') ? tk_split_list(conf[4]) : tk_tcl2ruby(conf[4]) if conf[4]
+          conf[3] = value_from_tcl(conf[3]) if conf[3]
+          conf[4] = value_from_tcl(conf[4]) if conf[4]
         end
         conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
         conf
@@ -588,19 +586,18 @@ class Tk::Text
   end
 
   def image_names
-    #tk_split_simplelist(_fromUTF8(tk_send_without_enc('image', 'names'))).collect{|elt|
-    tk_split_simplelist(tk_send_without_enc('image', 'names'), false, true).collect{|elt|
+    TclTkLib._split_tklist(tk_send('image', 'names')).collect{|elt|
       tagid2obj(elt)
     }
   end
 
   def set_insert(index)
-    tk_send_without_enc('mark','set','insert', _get_eval_enc_str(index))
+    tk_send('mark', 'set', 'insert', index)
     self
   end
 
   def set_current(index)
-    tk_send_without_enc('mark','set','current', _get_eval_enc_str(index))
+    tk_send('mark', 'set', 'current', index)
     self
   end
 
@@ -609,7 +606,7 @@ class Tk::Text
       # multiple chars-taglist argument :: str, [tag,...], str, [tag,...], ...
       args = [chars]
       while tags.size > 0
-        args << tags.shift.collect{|x|_get_eval_string(x)}.join(' ')  # taglist
+        args << tags.shift.collect{|x| x.respond_to?(:to_eval) ? x.to_eval : x.to_s }.join(' ')  # taglist
         args << tags.shift if tags.size > 0                           # chars
       end
       tk_send('insert', index, *args)
@@ -618,7 +615,7 @@ class Tk::Text
       if tags.size == 0
         tk_send('insert', index, chars)
       else
-        tk_send('insert', index, chars, tags.collect{|x|_get_eval_string(x)}.join(' '))
+        tk_send('insert', index, chars, tags.collect{|x| x.respond_to?(:to_eval) ? x.to_eval : x.to_s }.join(' '))
       end
     end
     self
@@ -637,8 +634,7 @@ class Tk::Text
   end
 
   def compare(idx1, op, idx2)
-    bool(tk_send_without_enc('compare', _get_eval_enc_str(idx1),
-                             op, _get_eval_enc_str(idx2)))
+    tk_send('compare', idx1, op, idx2) == '1'
   end
 
   def count(idx1, idx2, *opts)
@@ -649,11 +645,12 @@ class Tk::Text
       cnt += 1 if str != 'update'
       '-' + str
     }
-    args << _get_eval_enc_str(idx1) << _get_eval_enc_str(idx2)
+    args << idx1 << idx2
     if cnt <= 1
-      number(tk_send_without_enc('count', *args))
+      tk_send('count', *args).to_i
     else
-      list(tk_send_without_enc('count', *args))
+      result = tk_send('count', *args)
+      result.split.map(&:to_i)
     end
   end
 
@@ -675,7 +672,8 @@ class Tk::Text
 
   def peer_names()
     # Tk8.5 feature
-    list(tk_send_without_enc('peer', 'names'))
+    result = tk_send('peer', 'names')
+    result.empty? ? [] : result.split
   end
 
   def replace(idx1, idx2, *opts)
@@ -684,23 +682,25 @@ class Tk::Text
   end
 
   def debug
-    bool(tk_send_without_enc('debug'))
+    tk_send('debug') == '1'
   end
   def debug=(boolean)
-    tk_send_without_enc('debug', boolean)
+    tk_send('debug', boolean)
     #self
     boolean
   end
 
   def dlineinfo(index)
-    list(tk_send_without_enc('dlineinfo', _get_eval_enc_str(index)))
+    result = tk_send('dlineinfo', index)
+    return [] if result.empty?
+    result.split.map(&:to_i)
   end
 
   def modified?
-    bool(tk_send_without_enc('edit', 'modified'))
+    tk_send('edit', 'modified') == '1'
   end
   def modified(mode)
-    tk_send_without_enc('edit', 'modified', mode)
+    tk_send('edit', 'modified', mode)
     self
   end
   def modified=(mode)
@@ -709,19 +709,19 @@ class Tk::Text
   end
 
   def edit_redo
-    tk_send_without_enc('edit', 'redo')
+    tk_send('edit', 'redo')
     self
   end
   def edit_reset
-    tk_send_without_enc('edit', 'reset')
+    tk_send('edit', 'reset')
     self
   end
   def edit_separator
-    tk_send_without_enc('edit', 'separator')
+    tk_send('edit', 'separator')
     self
   end
   def edit_undo
-    tk_send_without_enc('edit', 'undo')
+    tk_send('edit', 'undo')
     self
   end
 
@@ -744,41 +744,38 @@ class Tk::Text
         "Using 'see' instead. Update your code to use: widget.see(index)")
       see(index)
     else
-      tk_send_without_enc('yview', '-pickplace', _get_eval_enc_str(index))
+      tk_send('yview', '-pickplace', index)
     end
     self
   end
 
   def text_copy
     # Tk8.4 feature
-    tk_call_without_enc('tk_textCopy', @path)
+    tk_call('tk_textCopy', @path)
     self
   end
 
   def text_cut
     # Tk8.4 feature
-    tk_call_without_enc('tk_textCut', @path)
+    tk_call('tk_textCut', @path)
     self
   end
 
   def text_paste
     # Tk8.4 feature
-    tk_call_without_enc('tk_textPaste', @path)
+    tk_call('tk_textPaste', @path)
     self
   end
 
   def tag_add(tag, index1, index2=None)
-    tk_send_without_enc('tag', 'add', _get_eval_enc_str(tag),
-                        _get_eval_enc_str(index1),
-                        _get_eval_enc_str(index2))
+    tk_send('tag', 'add', tag, index1, index2)
     self
   end
   alias addtag tag_add
   alias add_tag tag_add
 
   def tag_delete(*tags)
-    tk_send_without_enc('tag', 'delete',
-                        *(tags.collect{|tag| _get_eval_enc_str(tag)}))
+    tk_send('tag', 'delete', *tags)
     self
   end
   alias deltag tag_delete
@@ -843,29 +840,22 @@ class Tk::Text
   end
 
   def tag_raise(tag, above=None)
-    tk_send_without_enc('tag', 'raise', _get_eval_enc_str(tag),
-                        _get_eval_enc_str(above))
+    tk_send('tag', 'raise', tag, above)
     self
   end
 
   def tag_lower(tag, below=None)
-    tk_send_without_enc('tag', 'lower', _get_eval_enc_str(tag),
-                        _get_eval_enc_str(below))
+    tk_send('tag', 'lower', tag, below)
     self
   end
 
   def tag_remove(tag, *indices)
-    tk_send_without_enc('tag', 'remove', _get_eval_enc_str(tag),
-                        *(indices.collect{|idx| _get_eval_enc_str(idx)}))
+    tk_send('tag', 'remove', tag, *indices)
     self
   end
 
   def tag_ranges(tag)
-    #l = tk_split_simplelist(tk_send_without_enc('tag', 'ranges',
-    #                                            _get_eval_enc_str(tag)))
-    l = tk_split_simplelist(tk_send_without_enc('tag', 'ranges',
-                                                _get_eval_enc_str(tag)),
-                            false, true)
+    l = TclTkLib._split_tklist(tk_send('tag', 'ranges', tag))
     r = []
     while key=l.shift
       r.push [Tk::Text::IndexString.new(key), Tk::Text::IndexString.new(l.shift)]
@@ -874,26 +864,19 @@ class Tk::Text
   end
 
   def tag_nextrange(tag, first, last=None)
-    simplelist(tk_send_without_enc('tag', 'nextrange',
-                                   _get_eval_enc_str(tag),
-                                   _get_eval_enc_str(first),
-                                   _get_eval_enc_str(last))).collect{|idx|
+    TclTkLib._split_tklist(tk_send('tag', 'nextrange', tag, first, last)).collect{|idx|
       Tk::Text::IndexString.new(idx)
     }
   end
 
   def tag_prevrange(tag, first, last=None)
-    simplelist(tk_send_without_enc('tag', 'prevrange',
-                                   _get_eval_enc_str(tag),
-                                   _get_eval_enc_str(first),
-                                   _get_eval_enc_str(last))).collect{|idx|
+    TclTkLib._split_tklist(tk_send('tag', 'prevrange', tag, first, last)).collect{|idx|
       Tk::Text::IndexString.new(idx)
     }
   end
 
   def window_names
-    # tk_split_simplelist(_fromUTF8(tk_send_without_enc('window', 'names'))).collect{|elt|
-    tk_split_simplelist(tk_send_without_enc('window', 'names'), false, true).collect{|elt|
+    TclTkLib._split_tklist(tk_send('window', 'names')).collect{|elt|
       tagid2obj(elt)
     }
   end
@@ -1133,7 +1116,7 @@ class Tk::Text
           when 'anchor'
             result.push TkTextMarkAnchor.new(self)
           else
-            result.push tk_tcl2ruby(val)
+            result.push tagid2obj(val)
           end
         when 'tagon'
           if val == 'sel'
@@ -1143,14 +1126,14 @@ class Tk::Text
               result.push TkTextTagSel.new(self)
             end
           else
-            result.push tk_tcl2ruby(val)
+            result.push tagid2obj(val)
           end
         when 'tagoff'
-            result.push tk_tcl2ruby(val)
+            result.push tagid2obj(val)
         when 'window'
-          result.push tk_tcl2ruby(val)
+          result.push(TkCore::INTERP.tk_windows[val] || val)
         when 'image'
-          result.push tk_tcl2ruby(val)
+          result.push tagid2obj(val)
         end
         i = idx + 1
       end
