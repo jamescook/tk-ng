@@ -77,6 +77,7 @@ WORKDIR /app
 # This way lib/ changes don't invalidate the bundle install cache
 # Note: Gemfile.lock is gitignored (gem convention), Docker generates its own
 COPY Gemfile *.gemspec ./
+COPY lib/tk/version.rb lib/tk/version.rb
 
 ENV BUNDLE_PATH=/usr/local/bundle
 RUN --mount=type=cache,target=/bundle-cache \
