@@ -54,7 +54,7 @@ module Tk
     alias default_encoding encoding_name
 
     def tk_encoding_names
-      TkComm.simplelist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
+      TclTkLib._split_tklist(TkCore::INTERP._invoke_without_enc('encoding', 'names'))
     end
 
     def encoding_names
@@ -99,7 +99,7 @@ module Tk
     alias encoding_convert_to encoding_convertto
 
     def encoding_dirs
-      TkComm.simplelist(Tk.tk_call_without_enc('encoding', 'dirs'))
+      TclTkLib._split_tklist(Tk.tk_call_without_enc('encoding', 'dirs'))
     end
 
     def encoding_dirs=(dir_list)

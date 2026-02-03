@@ -73,8 +73,8 @@ class Tk::Menu
   include TkMenuEntryConfig
   extend TkMenuSpec
 
-  # TkMenuSpec methods call _symbolkey2str (old TkComm utility).
-  # Provide it here since we no longer inherit TkWindow/TkComm.
+  # TkMenuSpec methods call _symbolkey2str.
+  # Provide it here since Tk::Menu doesn't inherit TkWindow.
   def self._symbolkey2str(hash)
     hash.transform_keys(&:to_s)
   end
@@ -465,7 +465,6 @@ class Tk::OptionMenubutton<Tk::Menubutton
   class OptionMenu<TkMenu
     def initialize(path)  #==> return value of tk_optionMenu
       @path = path
-      #TkComm::Tk_WINDOWS[@path] = self
       TkCore::INTERP.tk_windows[@path] = self
     end
   end

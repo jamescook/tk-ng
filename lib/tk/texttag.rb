@@ -4,6 +4,7 @@
 #
 require 'tk/text'
 require 'tk/tagfont'
+require_relative 'callback'
 
 # A named style that can be applied to text ranges in a Text widget.
 #
@@ -201,7 +202,7 @@ class TkTextTag<TkObject
 
   def bind(seq, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
@@ -212,7 +213,7 @@ class TkTextTag<TkObject
 
   def bind_append(seq, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block

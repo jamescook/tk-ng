@@ -154,7 +154,7 @@ class TkDialogObj
   # @return [Integer] The button index (0 for leftmost, 1 for next, etc.)
   # @note Returns -1 if the dialog window is destroyed before a button is clicked.
   def show
-    if TkComm._callback_entry?(@command)
+    if TkCallback._callback_entry?(@command)
       @command.call(self)
     end
 

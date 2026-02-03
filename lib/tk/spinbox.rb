@@ -113,10 +113,10 @@ class Tk::Spinbox
       ]
 
       PROC_TBL = [
-        [ ?s, TkComm.method(:string) ],
-        [ ?w, TkComm.method(:window) ],
+        [ ?s, TkUtil.method(:string) ],
+        [ ?w, proc{|val| val =~ /^\./ ? (TkCore::INTERP.tk_windows[val] || val) : nil } ],
 
-        [ ?e, proc{|val| TkComm::string(val) } ],
+        [ ?e, proc{|val| TkUtil.string(val) } ],
 
         nil
       ]

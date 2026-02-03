@@ -2,6 +2,7 @@
 #
 #   tk/timer.rb : methods for Tcl/Tk after command
 #
+require_relative 'callback'
 
 # Schedule callbacks to run after a delay or repeatedly.
 #
@@ -215,7 +216,7 @@ class TkTimer
     @current_args = args
 
     # if @sleep_time.kind_of?(Proc)
-    if TkComm._callback_entry?(@sleep_time)
+    if TkCallback._callback_entry?(@sleep_time)
       sleep = @sleep_time.call(self)
     else
       sleep = @sleep_time
@@ -372,7 +373,7 @@ class TkTimer
     #if interval != 'idle' && interval != :idle \
     #  && !interval.kind_of?(Integer) && !interval.kind_of?(Proc)
     if interval != 'idle' && interval != :idle \
-      && !interval.kind_of?(Integer) && !TkComm._callback_entry?(interval)
+      && !interval.kind_of?(Integer) && !TkCallback._callback_entry?(interval)
       fail ArgumentError, "expect Integer or Proc"
     end
     @sleep_time = interval
@@ -382,7 +383,7 @@ class TkTimer
     #if interval != 'idle' && interval != :idle \
     #   && !interval.kind_of?(Integer) && !interval.kind_of?(Proc)
     if interval != 'idle' && interval != :idle \
-      && !interval.kind_of?(Integer) && !TkComm._callback_entry?(interval)
+      && !interval.kind_of?(Integer) && !TkCallback._callback_entry?(interval)
       fail ArgumentError, "expect Integer or Proc for 1st argument"
     end
     @sleep_time = interval
@@ -390,7 +391,7 @@ class TkTimer
     @loop_proc = []
     procs.each{|e|
       # if e.kind_of?(Proc)
-      if TkComm._callback_entry?(e)
+      if TkCallback._callback_entry?(e)
         @loop_proc.push([e])
       else
         @loop_proc.push(e)
@@ -419,7 +420,7 @@ class TkTimer
   def add_procs(*procs)
     procs.each{|e|
       # if e.kind_of?(Proc)
-      if TkComm._callback_entry?(e)
+      if TkCallback._callback_entry?(e)
         @loop_proc.push([e])
       else
         @loop_proc.push(e)
@@ -433,7 +434,7 @@ class TkTimer
   def delete_procs(*procs)
     procs.each{|e|
       # if e.kind_of?(Proc)
-      if TkComm._callback_entry?(e)
+      if TkCallback._callback_entry?(e)
         @loop_proc.delete([e])
       else
         @loop_proc.delete(e)
@@ -510,7 +511,7 @@ class TkTimer
     @running = true
     if @init_proc
       # if not @init_proc.kind_of?(Proc)
-      if !TkComm._callback_entry?(@init_proc)
+      if !TkCallback._callback_entry?(@init_proc)
         fail ArgumentError, "Argument '#{@init_proc}' need to be Proc"
       end
       @current_proc = @init_proc
@@ -774,7 +775,7 @@ class TkRTTimer < TkTimer
 
     @offset_s, @offset_u = _offset_ave
 
-    if TkComm._callback_entry?(@sleep_time)
+    if TkCallback._callback_entry?(@sleep_time)
       sleep = @sleep_time.call(self)
     else
       sleep = @sleep_time

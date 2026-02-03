@@ -2,6 +2,7 @@
 #
 # tk/variable.rb : treat Tk variable object
 #
+require_relative 'callback'
 
 # A Ruby wrapper for Tcl variables with automatic widget binding.
 #
@@ -245,7 +246,7 @@ class TkVariable
         type = :variable
       elsif type <= TkWindow
         type = :window
-      elsif TkComm._callback_entry_class?(type)
+      elsif TkCallback._callback_entry_class?(type)
         type = :procedure
       else
         type = nil
@@ -322,7 +323,7 @@ class TkVariable
         when :numeric
           number(val)
         when :bool
-          TkComm.bool(val)
+          TkUtil.bool(val)
         when :string
           val
         when :symbol
@@ -334,9 +335,13 @@ class TkVariable
         when :variable
           TkVarAccess.new(val)
         when :window
-          TkComm.window(val)
+          (val =~ /^\./) ? (TkCore::INTERP.tk_windows[val] || val) : nil
         when :procedure
-          TkComm.procedure(val)
+          if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+            TkCore::INTERP.tk_cmd_tbl[$4].cmd
+          else
+            val
+          end
         else
           val
         end
@@ -494,7 +499,7 @@ class TkVariable
     #ITNERP._eval("global #{@id}; array exist #{@id}") == '1'
     INTERP._invoke_without_enc('global', @id)
     # INTERP._invoke_without_enc('array', 'exist', @id) == '1'
-    TkComm.bool(INTERP._invoke_without_enc('array', 'exist', @id))
+    TkUtil.bool(INTERP._invoke_without_enc('array', 'exist', @id))
   end
 
   def is_scalar?
@@ -504,12 +509,12 @@ class TkVariable
   def exist?(*elems)
     INTERP._invoke_without_enc('global', @id)
     if elems.empty?
-      TkComm.bool(tk_call('info', 'exist', @id))
+      TkUtil.bool(tk_call('info', 'exist', @id))
     else
       # array
       index = elems.collect{|idx| _get_eval_string(idx, true)}.join(',')
-      TkComm.bool(tk_call('info', 'exist', "#{@id}")) &&
-        TkComm.bool(tk_call('info', 'exist', "#{@id}(#{index})"))
+      TkUtil.bool(tk_call('info', 'exist', "#{@id}")) &&
+        TkUtil.bool(tk_call('info', 'exist', "#{@id}(#{index})"))
     end
   end
 
@@ -526,7 +531,7 @@ class TkVariable
 
   def size
     INTERP._invoke_without_enc('global', @id)
-    TkComm.number(INTERP._invoke_without_enc('array', 'size', @id))
+    TkUtil.number(INTERP._invoke_without_enc('array', 'size', @id))
   end
 
   def clear
@@ -549,7 +554,7 @@ class TkVariable
     #if INTERP._eval("global #{@id}; array exist #{@id}") == '1'
     INTERP._invoke_without_enc('global', @id)
     # if INTERP._invoke('array', 'exist', @id) == '1'
-    if TkComm.bool(INTERP._invoke('array', 'exist', @id))
+    if TkUtil.bool(INTERP._invoke('array', 'exist', @id))
       #Hash[*tk_split_simplelist(INTERP._eval("global #{@id}; array get #{@id}"))]
       Hash[*tk_split_simplelist(INTERP._invoke('array', 'get', @id))]
     else
@@ -738,7 +743,7 @@ class TkVariable
   end
 
   def bool
-    TkComm.bool(_value)
+    TkUtil.bool(_value)
 =begin
     # see Tcl_GetBoolean man-page
     case _value.downcase
@@ -750,7 +755,7 @@ class TkVariable
 =end
   end
   def bool_element(*idxs)
-    TkComm.bool(_element_value(*idxs))
+    TkUtil.bool(_element_value(*idxs))
   end
   def set_bool(val)
     if ! val
@@ -830,10 +835,12 @@ class TkVariable
   end
 
   def window
-    TkComm.window(self._value)
+    val = self._value
+    (val =~ /^\./) ? (TkCore::INTERP.tk_windows[val] || val) : nil
   end
   def window_element(*idxs)
-    TkComm.window(_element_value(*idxs))
+    val = _element_value(*idxs)
+    (val =~ /^\./) ? (TkCore::INTERP.tk_windows[val] || val) : nil
   end
   def set_window(win)
     win = win._value if win.kind_of?(TkVariable)
@@ -862,10 +869,20 @@ class TkVariable
   end
 
   def procedure
-    TkComm.procedure(self._value)
+    val = self._value
+    if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+      TkCore::INTERP.tk_cmd_tbl[$4].cmd
+    else
+      val
+    end
   end
   def procedure_element(*idxs)
-    TkComm.procedure(_element_value(*idxs))
+    val = _element_value(*idxs)
+    if val =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+      TkCore::INTERP.tk_cmd_tbl[$4].cmd
+    else
+      val
+    end
   end
   def set_procedure(cmd)
     self.value = cmd

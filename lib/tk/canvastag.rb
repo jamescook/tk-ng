@@ -3,6 +3,7 @@
 # tk/canvastag.rb - methods for treating canvas tags
 #
 require 'tk/tagfont'
+require_relative 'callback'
 
 # Shared methods for canvas items and tags.
 #
@@ -31,7 +32,7 @@ module TkcTagAccess
 
   def bind(seq, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
@@ -42,7 +43,7 @@ module TkcTagAccess
 
   def bind_append(seq, *args, &block)
     # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block

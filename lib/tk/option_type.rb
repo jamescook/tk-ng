@@ -213,12 +213,7 @@ module Tk
         from_tcl: ->(v, widget:) {
           path = v.to_s
           return nil unless path =~ /^\./
-          found = TkCore::INTERP.tk_windows[path]
-          unless found
-            warn "Widget type: '#{path}' not in Ruby widget table, generating wrapper (this may indicate a problem)"
-            found = TkComm._genobj_for_tkwidget(path)
-          end
-          found
+          TkCore::INTERP.tk_windows[path] || path
         }
       )
 

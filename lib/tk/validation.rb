@@ -53,7 +53,7 @@ module Tk
           #keys[key] = klass.new(cmd, args.join(' '))
           keys[key] = klass.new(cmd, *args)
         # elsif keys[key].kind_of?(Proc) ||  keys[key].kind_of?(Method)
-        elsif TkComm._callback_entry?(keys[key])
+        elsif TkCallback._callback_entry?(keys[key])
           keys[key] = klass.new(keys[key])
         end
       }
@@ -65,7 +65,7 @@ module Tk
     end
     private :create_self
 
-    def configure(slot, value=TkComm::None)
+    def configure(slot, value=TkUtil::None)
       if slot.kind_of?(Hash)
         __conv_vcmd_on_hash_kv(slot).each { |k, v| super(k, v) }
       else
@@ -155,14 +155,14 @@ module Tk
           #keys[key] = klass.new(cmd, args.join(' '))
           keys[key] = klass.new(cmd, *args)
         # elsif keys[key].kind_of?(Proc) || keys[key].kind_of?(Method)
-        elsif TkComm._callback_entry?(keys[key])
+        elsif TkCallback._callback_entry?(keys[key])
           keys[key] = klass.new(keys[key])
         end
       }
       keys
     end
 
-    def itemconfigure(tagOrId, slot, value=TkComm::None)
+    def itemconfigure(tagOrId, slot, value=TkUtil::None)
       if slot.kind_of?(Hash)
         super(__conv_item_vcmd_on_hash_kv(slot))
       else

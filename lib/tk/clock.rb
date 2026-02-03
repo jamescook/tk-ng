@@ -1,10 +1,10 @@
 # frozen_string_literal: false
+require_relative 'core/callable'
 
 module Tk
   # Methods for the Tcl clock command.
   module Clock
-    include Tk
-    extend TkCore
+    extend Tk::Core::Callable
 
     def self.add(clk, *args)
       tk_call_without_enc('clock','add', clk, *args).to_i

@@ -2,6 +2,7 @@
 #
 # tk/bind_core.rb - Mixin for event binding on Tk objects
 #
+require_relative 'callback'
 
 # Mixin providing event binding methods.
 #
@@ -66,7 +67,7 @@ module TkBindCore
   # @example With specific fields
   #   canvas.bind('<Button-1>', :x, :y) { |x, y| click_at(x, y) }
   def bind(context, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
@@ -90,7 +91,7 @@ module TkBindCore
   #   # Second binding (both will run)
   #   button.bind_append('<Enter>') { puts "Hovering!" }
   def bind_append(context, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block

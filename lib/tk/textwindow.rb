@@ -3,6 +3,7 @@
 # tk/textwindow.rb - treat Tk text window object
 #
 require 'tk/text'
+require_relative 'callback'
 
 # A widget embedded within a Text widget.
 #
@@ -77,7 +78,7 @@ class TkTextWindow<TkObject
     if keys['create']
       @p_create = keys['create']
       # if @p_create.kind_of?(Proc)
-      if TkComm._callback_entry?(@p_create)
+      if TkCallback._callback_entry?(@p_create)
 =begin
         keys['create'] = install_cmd(proc{
                                        @id = @p_create.call
@@ -177,7 +178,7 @@ class TkTextWindow<TkObject
   def create=(value)
     @p_create = value
     # if @p_create.kind_of?(Proc)
-    if TkComm._callback_entry?(@p_create)
+    if TkCallback._callback_entry?(@p_create)
       value = install_cmd(proc{
                             @id = @p_create.call
                             if @id.kind_of?(TkWindow)

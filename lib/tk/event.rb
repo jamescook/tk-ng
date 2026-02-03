@@ -70,8 +70,6 @@ end
 
 ########################
 
-# TkComm.window is accessed lazily via lambda in PROC_TBL, so no eager require needed
-
 ########################
 
 module TkEvent
@@ -468,7 +466,7 @@ module TkEvent
       [ ?n, TkUtil.method(:num_or_str) ],
       [ ?s, TkUtil.method(:string) ],
       [ ?b, TkUtil.method(:bool) ],
-      [ ?w, ->(val) { TkComm.window(val) } ],  # TkComm.window needs lazy lookup
+      [ ?w, ->(val) { (val =~ /^\./) ? (TkCore::INTERP.tk_windows[val] || val) : nil } ],
 
       [ ?x, proc{|val|
           begin
