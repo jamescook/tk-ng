@@ -622,6 +622,8 @@ namespace :docker do
 
     puts "Running tests in Docker (Ruby #{ruby_version}, Tcl #{tcl_version})..."
     cmd = "docker run --rm --init"
+    # Add -it for interactive TTY if we're in a terminal (helps with Ctrl+C)
+    cmd += " -it" if $stdin.tty?
     cmd += " -v #{Dir.pwd}/screenshots:/app/screenshots"
     cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
     cmd += " -e TCL_VERSION=#{tcl_version}"
@@ -635,7 +637,15 @@ namespace :docker do
     end
     cmd += " #{image_name}"
 
-    sh cmd
+    # Use system instead of sh for better signal handling
+    # This allows Ctrl+C to propagate to docker and show partial results
+    unless system(cmd)
+      exit_code = $?.exitstatus || 1
+      if $?.signaled? && $?.termsig == Signal.list['INT']
+        puts "\n\nTest run interrupted (Ctrl+C)"
+      end
+      exit exit_code
+    end
   end
 
   namespace :test do
