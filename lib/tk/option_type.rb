@@ -140,7 +140,14 @@ module Tk
       )
 
       Boolean = OptionType.new(:boolean,
-        to_tcl: ->(v) { v ? "1" : "0" },
+        to_tcl: ->(v) {
+          case v
+          when ::String
+            v.match?(/^(0|false|no|off)$/i) ? "0" : "1"
+          else
+            v ? "1" : "0"
+          end
+        },
         from_tcl: ->(v) { !v.to_s.match?(/^(0|false|no|off|)$/i) }
       )
 

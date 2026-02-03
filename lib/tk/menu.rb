@@ -65,42 +65,42 @@ end
 # @see Tk::Menubutton for a button that displays a menu
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/menu.html Tcl/Tk menu manual
 #
-class Tk::Menu<TkWindow
-  include Wm
+class Tk::Menu
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include TkMenuEntryConfig
   extend TkMenuSpec
+
+  # TkMenuSpec methods call _symbolkey2str (old TkComm utility).
+  # Provide it here since we no longer inherit TkWindow/TkComm.
+  def self._symbolkey2str(hash)
+    hash.transform_keys(&:to_s)
+  end
+  private_class_method :_symbolkey2str
   include Tk::Generated::Menu
   include Tk::Generated::MenuItems
 
   # Declare item command structure (menu entries use 'entry*' commands)
   item_commands cget: 'entrycget', configure: 'entryconfigure'
 
+  None = TkUtil::None
+
   TkCommandNames = ['menu'.freeze].freeze
   WidgetClassName = 'Menu'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
-
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('menu', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('menu', @path)
-  #  end
-  #end
-  #private :create_self
-
-  # NOTE: __strval_optkeys override for 'selectcolor', 'title' removed - now declared via OptionDSL
-  # NOTE: __boolval_optkeys override for 'tearoff' removed - now declared via OptionDSL
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.new_menuspec(menu_spec, parent = nil, tearoff = false, keys = nil)
     if parent.kind_of?(Hash)
-      keys = _symbolkey2str(parent)
+      keys = parent.transform_keys(&:to_s)
       parent = keys.delete('parent')
       tearoff = keys.delete('tearoff')
     elsif tearoff.kind_of?(Hash)
-      keys = _symbolkey2str(tearoff)
+      keys = tearoff.transform_keys(&:to_s)
       tearoff = keys.delete('tearoff')
     elsif keys
-      keys = _symbolkey2str(keys)
+      keys = keys.transform_keys(&:to_s)
     else
       keys = {}
     end
@@ -110,18 +110,27 @@ class Tk::Menu<TkWindow
   end
 
   def tagid(id)
-    #id.to_s
-    _get_eval_string(id)
+    if id.respond_to?(:path)
+      id.path
+    elsif id.respond_to?(:to_eval)
+      id.to_eval
+    else
+      id.to_s
+    end
   end
 
   def activate(index)
-    tk_send_without_enc('activate', _get_eval_enc_str(index))
+    tk_send('activate', index.to_s)
     self
   end
+
   def add(type, keys=nil)
-    tk_send_without_enc('add', type, *hash_kv(keys, true))
+    args = ['add', type.to_s]
+    _menu_hash_kv(keys, args) if keys
+    tk_send(*args)
     self
   end
+
   def add_cascade(keys=nil)
     add('cascade', keys)
   end
@@ -139,26 +148,25 @@ class Tk::Menu<TkWindow
   end
 
   def clone_menu(*args)
-    if args[0].kind_of?(TkWindow)
+    if args[0].respond_to?(:path)
       parent = args.shift
     else
       parent = self
     end
 
-    if args[0].kind_of?(String) || args[0].kind_of?(Symbol) # menu type
+    if args[0].kind_of?(String) || args[0].kind_of?(Symbol)
       type = args.shift
     else
-      type = None # 'normal'
+      type = None
     end
 
     if args[0].kind_of?(Hash)
-      keys = _symbolkey2str(args.shift)
+      keys = args.shift
+      parent = keys.delete(:parent) || keys.delete('parent') || parent
+      type = keys.delete(:type) || keys.delete('type') || type
     else
       keys = {}
     end
-
-    parent = keys.delete('parent') if keys.has_key?('parent')
-    type = keys.delete('type') if keys.has_key?('type')
 
     if keys.empty?
       Tk::MenuClone.new(self, parent, type)
@@ -168,66 +176,104 @@ class Tk::Menu<TkWindow
   end
 
   def index(idx)
-    ret = tk_send_without_enc('index', _get_eval_enc_str(idx))
-    (ret == 'none')? nil: number(ret)
+    ret = tk_send('index', idx.to_s)
+    ret == 'none' ? nil : ret.to_i
   end
+
   def invoke(index)
-    tk_send_without_enc('invoke', _get_eval_enc_str(index))
+    tk_send('invoke', index.to_s)
   end
+
   def insert(index, type, keys=nil)
-    tk_send_without_enc('insert', _get_eval_enc_str(index),
-                        type, *hash_kv(keys, true))
+    args = ['insert', index.to_s, type.to_s]
+    _menu_hash_kv(keys, args) if keys
+    tk_send(*args)
     self
   end
+
   def delete(first, last=nil)
     if last
-      tk_send_without_enc('delete', _get_eval_enc_str(first),
-                          _get_eval_enc_str(last))
+      tk_send('delete', first.to_s, last.to_s)
     else
-      tk_send_without_enc('delete', _get_eval_enc_str(first))
+      tk_send('delete', first.to_s)
     end
     self
   end
+
   def popup(x, y, index=nil)
     if index
-      tk_call_without_enc('tk_popup', path, x, y,
-                          _get_eval_enc_str(index))
+      tk_call('tk_popup', path, x, y, index.to_s)
     else
-      tk_call_without_enc('tk_popup', path, x, y)
+      tk_call('tk_popup', path, x, y)
     end
     self
   end
+
   def post(x, y)
-    tk_send_without_enc('post', x, y)
+    tk_send('post', x, y)
   end
+
   def postcascade(index)
-    tk_send_without_enc('postcascade', _get_eval_enc_str(index))
+    tk_send('postcascade', index.to_s)
     self
   end
+
   def postcommand(cmd=nil, &block)
     configure_cmd('postcommand', cmd || block)
     self
   end
+
   def set_focus
-    tk_call_without_enc('tk_menuSetFocus', path)
+    tk_call('tk_menuSetFocus', path)
     self
   end
+
   def tearoffcommand(cmd=nil, &block)
     configure_cmd('tearoffcommand', cmd || block)
     self
   end
+
   def menutype(index)
-    tk_send_without_enc('type', _get_eval_enc_str(index))
+    tk_send('type', index.to_s)
   end
+
   def unpost
-    tk_send_without_enc('unpost')
+    tk_send('unpost')
     self
   end
+
   def xposition(index)
-    number(tk_send_without_enc('xposition', _get_eval_enc_str(index)))
+    tk_send('xposition', index.to_s).to_i
   end
+
   def yposition(index)
-    number(tk_send_without_enc('yposition', _get_eval_enc_str(index)))
+    tk_send('yposition', index.to_s).to_i
+  end
+
+  private
+
+  # Convert a hash of menu entry options to -key value args.
+  # Handles Proc values (install as callbacks) and widget/variable objects.
+  def _menu_hash_kv(keys, args)
+    keys.each do |k, v|
+      args << "-#{k}"
+      case v
+      when Proc
+        args << install_cmd(v)
+      when TrueClass
+        args << '1'
+      when FalseClass
+        args << '0'
+      else
+        if v.respond_to?(:path)
+          args << v.path
+        elsif v.respond_to?(:to_eval)
+          args << v.to_eval
+        else
+          args << v.to_s
+        end
+      end
+    end
   end
 end
 
@@ -260,43 +306,23 @@ class << Tk::Menu::TkInternalFunction
 end
 
 class Tk::MenuClone<Tk::Menu
-=begin
-  def initialize(parent, type=None)
-    widgetname = nil
-    if parent.kind_of? Hash
-      keys = _symbolkey2str(parent)
-      parent = keys.delete('parent')
-      widgetname = keys.delete('widgetname')
-      type = keys.delete('type'); type = None unless type
-    end
-    #unless parent.kind_of?(TkMenu)
-    #  fail ArgumentError, "parent must be TkMenu"
-    #end
-    @parent = parent
-    install_win(@parent.path, widgetname)
-    tk_call_without_enc(@parent.path, 'clone', @path, type)
-  end
-=end
   def initialize(src_menu, *args)
-    widgetname = nil
-
-    if args[0].kind_of?(TkWindow)  # parent window
+    if args[0].respond_to?(:path)
       parent = args.shift
     else
       parent = src_menu
     end
 
-    if args[0].kind_of?(String) || args[0].kind_of?(Symbol)  # menu type
+    if args[0].kind_of?(String) || args[0].kind_of?(Symbol)
       type = args.shift
     else
-      type = None  # 'normal'
+      type = None
     end
 
     if args[0].kind_of?(Hash)
-      keys = _symbolkey2str(args.shift)
-      parent = keys.delete('parent') if keys.has_key?('parent')
-      widgetname = keys.delete('widgetname')
-      type = keys.delete('type') if keys.has_key?('type')
+      keys = args.shift
+      parent = keys.delete(:parent) || keys.delete('parent') || parent
+      type = keys.delete(:type) || keys.delete('type') || type
     else
       keys = nil
     end
@@ -304,8 +330,15 @@ class Tk::MenuClone<Tk::Menu
     @src_menu = src_menu
     @parent = parent
     @type = type
-    install_win(@parent.path, widgetname)
-    tk_call_without_enc(@src_menu.path, 'clone', @path, @type)
+
+    # Generate path under parent and register
+    id = Tk::Core::Widget.next_id
+    parent_path = @parent.respond_to?(:path) ? @parent.path : '.'
+    @path = parent_path == '.' ? ".w#{id}" : "#{parent_path}.w#{id}"
+    TkCore::INTERP.tk_windows[@path] = self
+
+    # Clone the source menu
+    tk_call(@src_menu.path, 'clone', @path, @type)
     configure(keys) if keys && !keys.empty?
   end
 
@@ -322,25 +355,15 @@ Tk.__set_loaded_toplevel_aliases__('tk/menu.rb', :Tk, Tk::MenuClone,
 
 module Tk::SystemMenu
   def initialize(parent, keys=nil)
-    if parent.kind_of? Hash
-      keys = _symbolkey2str(parent)
-      parent = keys.delete('parent')
+    if parent.kind_of?(Hash)
+      keys = parent
+      parent = keys.delete(:parent) || keys.delete('parent')
     end
-    #unless parent.kind_of? TkMenu
-    #  fail ArgumentError, "parent must be a TkMenu object"
-    #end
-    # @path = Kernel.format("%s.%s", parent.path, self.class::SYSMENU_NAME)
+
     @path = parent.path + '.' + self.class::SYSMENU_NAME
-    #TkComm::Tk_WINDOWS[@path] = self
     TkCore::INTERP.tk_windows[@path] = self
-    if self.method(:create_self).arity == 0
-      p 'create_self has no arg' if $DEBUG
-      create_self
-      configure(keys) if keys
-    else
-      p 'create_self has an arg' if $DEBUG
-      create_self(keys)
-    end
+    tk_call('menu', @path)
+    configure(keys) if keys && !keys.empty?
   end
 end
 TkSystemMenu = Tk::SystemMenu

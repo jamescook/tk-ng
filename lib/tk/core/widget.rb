@@ -245,6 +245,88 @@ module Tk
         self
       end
 
+      # Configure grid row properties (weight, minsize, pad, uniform)
+      def grid_rowconfigure(index, keys = {})
+        args = ['grid', 'rowconfigure', @path, index]
+        keys.each do |k, v|
+          args << "-#{k}"
+          args << v.to_s
+        end
+        tk_call(*args)
+        self
+      end
+
+      # Configure grid column properties (weight, minsize, pad, uniform)
+      def grid_columnconfigure(index, keys = {})
+        args = ['grid', 'columnconfigure', @path, index]
+        keys.each do |k, v|
+          args << "-#{k}"
+          args << v.to_s
+        end
+        tk_call(*args)
+        self
+      end
+
+      # Return grid placement info for this widget
+      def grid_info
+        result = tk_call('grid', 'info', @path)
+        info = {}
+        list = TclTkLib._split_tklist(result)
+        while (key = list.shift)
+          val = list.shift
+          k = key.sub(/\A-/, '')
+          info[k] = val =~ /\A-?\d+\z/ ? val.to_i : val
+        end
+        info
+      end
+
+      # Return list of grid slave widgets
+      def grid_slaves(keys = {})
+        args = ['grid', 'slaves', @path]
+        keys.each do |k, v|
+          args << "-#{k}"
+          args << v.to_s
+        end
+        result = tk_call(*args)
+        TclTkLib._split_tklist(result).map do |path|
+          TkCore::INTERP.tk_windows[path]
+        end.compact
+      end
+
+      # Return grid size as [columns, rows]
+      def grid_size
+        result = tk_call('grid', 'size', @path)
+        result.split.map(&:to_i)
+      end
+
+      # Return bounding box for grid cell(s)
+      def grid_bbox(*args)
+        result = tk_call('grid', 'bbox', @path, *args)
+        result.split.map(&:to_i)
+      end
+
+      # Return grid cell [column, row] at pixel coordinates x, y
+      def grid_location(x, y)
+        result = tk_call('grid', 'location', @path, x, y)
+        result.split.map(&:to_i)
+      end
+
+      # Get or set grid anchor for this container
+      def grid_anchor(anchor = nil)
+        if anchor
+          tk_call('grid', 'anchor', @path, anchor)
+          self
+        else
+          tk_call('grid', 'anchor', @path)
+        end
+      end
+
+      # Remove from grid, remembering configuration
+      def grid_remove
+        tk_call('grid', 'remove', @path)
+        self
+      end
+
       private
 
       # Convert a geometry manager option value to a Tcl string.

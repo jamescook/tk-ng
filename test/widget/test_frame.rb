@@ -70,4 +70,88 @@ class TestFrameWidget < Minitest::Test
     end
 
   end
+
+  def test_grid_instance_methods
+    assert_tk_app("Frame grid instance methods", method(:grid_instance_app))
+  end
+
+  def grid_instance_app
+    require 'tk'
+    require 'tk/frame'
+
+    errors = []
+
+    container = TkFrame.new(root, width: 300, height: 200)
+    container.pack
+
+    lbl1 = TkLabel.new(container, text: "A")
+    lbl2 = TkLabel.new(container, text: "B")
+    lbl3 = TkLabel.new(container, text: "C")
+
+    lbl1.grid(row: 0, column: 0)
+    lbl2.grid(row: 0, column: 1)
+    lbl3.grid(row: 1, column: 0)
+
+    # --- grid_rowconfigure ---
+    container.grid_rowconfigure(0, weight: 1, minsize: 30)
+    container.grid_rowconfigure(1, weight: 2)
+
+    # --- grid_columnconfigure ---
+    container.grid_columnconfigure(0, weight: 1, minsize: 50)
+    container.grid_columnconfigure(1, weight: 3)
+
+    # --- grid_size ---
+    size = container.grid_size
+    errors << "expected 2 columns, got #{size[0]}" unless size[0] == 2
+    errors << "expected 2 rows, got #{size[1]}" unless size[1] == 2
+
+    # --- grid_slaves ---
+    slaves = container.grid_slaves
+    errors << "expected 3 slaves, got #{slaves.size}" unless slaves.size == 3
+
+    slaves_row0 = container.grid_slaves(row: 0)
+    errors << "expected 2 slaves in row 0, got #{slaves_row0.size}" unless slaves_row0.size == 2
+
+    slaves_col0 = container.grid_slaves(column: 0)
+    errors << "expected 2 slaves in col 0, got #{slaves_col0.size}" unless slaves_col0.size == 2
+
+    # --- grid_info (on a child widget) ---
+    info = lbl1.grid_info
+    errors << "grid_info row should be 0" unless info['row'] == 0
+    errors << "grid_info column should be 0" unless info['column'] == 0
+
+    # --- grid_propagate ---
+    container.grid_propagate(false)
+    errors << "grid_propagate should be false" if container.grid_propagate
+    container.grid_propagate(true)
+    errors << "grid_propagate should be true" unless container.grid_propagate
+
+    # --- grid_anchor ---
+    container.grid_anchor('center')
+    errors << "grid_anchor should be center" unless container.grid_anchor == 'center'
+    container.grid_anchor('nw')
+    errors << "grid_anchor should be nw" unless container.grid_anchor == 'nw'
+
+    # --- grid_bbox ---
+    Tk.update
+    bbox = container.grid_bbox
+    errors << "grid_bbox should return 4 ints" unless bbox.is_a?(Array) && bbox.size == 4
+
+    cell_bbox = container.grid_bbox(0, 0)
+    errors << "cell grid_bbox should return 4 ints" unless cell_bbox.is_a?(Array) && cell_bbox.size == 4
+
+    # --- grid_location ---
+    loc = container.grid_location(5, 5)
+    errors << "grid_location should return [col, row]" unless loc.is_a?(Array) && loc.size == 2
+
+    # --- grid_remove ---
+    lbl3.grid_remove
+    errors << "lbl3 should be removed from grid" unless lbl3.winfo_manager == ""
+
+    # --- grid_forget ---
+    lbl2.grid_forget
+    errors << "lbl2 should be forgotten" unless lbl2.winfo_manager == ""
+
+    raise "Grid instance method failures:\n  " + errors.join("\n  ") unless errors.empty?
+  end
 end

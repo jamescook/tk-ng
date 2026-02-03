@@ -84,6 +84,18 @@ module Tk
         tk_call('winfo', 'screenheight', @path).to_i
       end
 
+      def winfo_manager
+        tk_call('winfo', 'manager', @path)
+      end
+
+      def winfo_mapped?
+        tk_call('winfo', 'ismapped', @path) == '1'
+      end
+
+      def winfo_pixels(val)
+        tk_call('winfo', 'pixels', @path, val).to_i
+      end
+
       def set_focus(force = false)
         if force
           tk_call('focus', '-force', @path)

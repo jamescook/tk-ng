@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'set'
 
 module Tk
   module Core
@@ -61,8 +62,29 @@ module Tk
         private
 
         def normalize_event(event)
-          event.start_with?('<') ? event : "<#{event}>"
+          if event.start_with?('<<')
+            event
+          elsif event.start_with?('<')
+            # Virtual events: <Name> with no modifier → <<Name>>
+            # Physical events contain dashes or known prefixes
+            inner = event[1..-2]
+            if inner && !inner.match?(/[-\s]/) && inner.match?(/\A[A-Z]/) && !PHYSICAL_EVENTS.include?(inner)
+              "<#{event}>"
+            else
+              event
+            end
+          else
+            "<#{event}>"
+          end
         end
+
+        # Known Tcl physical event types (not virtual events)
+        PHYSICAL_EVENTS = %w[
+          Activate ButtonPress ButtonRelease Button Circulate Colormap Configure
+          Deactivate Destroy Enter Expose FocusIn FocusOut Gravity
+          KeyPress KeyRelease Key Leave Map Motion MouseWheel
+          Property Reparent Unmap Visibility
+        ].to_set.freeze
 
         def do_class_bind(event, cmd, args: nil, append: false)
           event = normalize_event(event)
@@ -190,7 +212,18 @@ module Tk
           return "<#{path}>"
         end
 
-        event.start_with?('<') ? event : "<#{event}>"
+        if event.start_with?('<<')
+          event
+        elsif event.start_with?('<')
+          inner = event[1..-2]
+          if inner && !inner.match?(/[-\s]/) && inner.match?(/\A[A-Z]/) && !ClassMethods::PHYSICAL_EVENTS.include?(inner)
+            "<#{event}>"
+          else
+            event
+          end
+        else
+          "<#{event}>"
+        end
       end
 
       def do_bind(event, cmd, args: nil, append: false)
