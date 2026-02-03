@@ -33,7 +33,7 @@ class Tk::Tile::TScale < Tk::Scale
   Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   alias identify ttk_identify
@@ -51,7 +51,7 @@ class Tk::Tile::TProgress < Tk::Tile::TScale
   Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 end
 

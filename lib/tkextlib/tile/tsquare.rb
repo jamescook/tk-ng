@@ -5,16 +5,16 @@
 #
 require 'tk'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TSquare < TkWindow
-    end
-    Square = TSquare
-  end
-end
-
-class Tk::Tile::TSquare < TkWindow
+class Tk::Tile::TSquare
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
 
   if Tk::Tile::USE_TTK_NAMESPACE
@@ -23,9 +23,14 @@ class Tk::Tile::TSquare < TkWindow
     TkCommandNames = ['::tsquare'.freeze].freeze
   end
   WidgetClassName = 'TSquare'.freeze
-  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
+  end
+end
+
+module Tk
+  module Tile
+    Square = TSquare
   end
 end

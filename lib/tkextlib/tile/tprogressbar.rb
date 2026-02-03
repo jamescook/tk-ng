@@ -36,7 +36,7 @@ class Tk::Tile::TProgressbar
   option :phase,   type: :integer
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   def step(amount=None)

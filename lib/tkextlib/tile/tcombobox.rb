@@ -33,7 +33,7 @@ class Tk::Tile::TCombobox
   WidgetClassName = 'TCombobox'.freeze
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   # TODO: Entry-like methods below are duplicated from Tk::Entry.

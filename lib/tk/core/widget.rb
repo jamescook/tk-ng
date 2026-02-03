@@ -89,7 +89,15 @@ module Tk
 
         keys.each do |k, v|
           args << "-#{k}"
-          # Handle special value types
+
+          # Use OptionDSL type conversion when available (e.g., validate_callback)
+          opt = self.class.respond_to?(:resolve_option) && self.class.resolve_option(k)
+          if opt
+            args << opt.to_tcl(v, widget: self)
+            next
+          end
+
+          # Fallback for options not in the DSL registry
           case v
           when Proc
             # Register callback
@@ -500,8 +508,26 @@ module Tk
         else
           result = tk_call('bindtags', @path)
           tags = TclTkLib._split_tklist(result)
-          # Replace own path with self so tags.index(self) works
-          tags.map { |t| t == @path ? self : t }
+          # Resolve Tcl strings back to Ruby objects:
+          # - own path → self
+          # - widget paths → widget objects
+          # - Tcl class names → Ruby classes (via widget registry)
+          # - "all" → TkBindTag::ALL
+          tags.map do |t|
+            if t == @path
+              self
+            elsif (win = TkCore::INTERP.tk_windows[t])
+              win
+            elsif (cls = Tk::Core::Widget.registry[t])
+              cls
+            elsif t == 'all' && defined?(TkBindTag::ALL)
+              TkBindTag::ALL
+            elsif defined?(TkBindTag) && (obj = TkBindTag.id2obj(t)) != t
+              obj
+            else
+              t
+            end
+          end
         end
       end
 

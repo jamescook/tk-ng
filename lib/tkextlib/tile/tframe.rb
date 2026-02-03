@@ -29,7 +29,7 @@ class Tk::Tile::TFrame < Tk::Frame
   Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 end
 

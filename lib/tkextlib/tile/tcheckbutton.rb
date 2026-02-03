@@ -28,7 +28,7 @@ class Tk::Tile::TCheckButton
   WidgetClassName = 'TCheckbutton'.freeze
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   def deselect

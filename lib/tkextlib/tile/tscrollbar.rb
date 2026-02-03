@@ -29,7 +29,7 @@ class Tk::Tile::TScrollbar < Tk::Scrollbar
   Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   alias identify ttk_identify
@@ -42,21 +42,21 @@ Tk.__set_loaded_toplevel_aliases__('tkextlib/tile/tscrollbar.rb',
 #######################################################################
 
 class Tk::Tile::XScrollbar < Tk::Tile::TScrollbar
-  def create_self(keys)
-    keys = {} unless keys
-    keys['orient'] = 'horizontal'
-    super(keys)
+  def initialize(parent = nil, keys = {}, &block)
+    keys = parent.is_a?(Hash) ? parent.dup : keys.dup
+    parent = keys.delete(:parent) if parent.is_a?(Hash)
+    keys[:orient] = 'horizontal'
+    super(parent, keys, &block)
   end
-  private :create_self
 end
 
 class Tk::Tile::YScrollbar < Tk::Tile::TScrollbar
-  def create_self(keys)
-    keys = {} unless keys
-    keys['orient'] = 'vertical'
-    super(keys)
+  def initialize(parent = nil, keys = {}, &block)
+    keys = parent.is_a?(Hash) ? parent.dup : keys.dup
+    parent = keys.delete(:parent) if parent.is_a?(Hash)
+    keys[:orient] = 'vertical'
+    super(parent, keys, &block)
   end
-  private :create_self
 end
 
 #Tk.__set_toplevel_aliases__(:Ttk, Tk::Tile::XScrollbar, :TkXScrollbar)

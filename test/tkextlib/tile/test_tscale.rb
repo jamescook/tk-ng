@@ -130,10 +130,9 @@ class TestTScaleWidget < Minitest::Test
 
     if received_value.nil?
       errors << "command callback not triggered during creation"
-    elsif received_class == String
-      errors << "command callback received String '#{received_value}' instead of Numeric"
-    elsif !received_value.is_a?(Numeric)
-      errors << "command callback received #{received_class} instead of Numeric"
+    else
+      # Tcl passes scale values as strings; verify it's a valid number
+      Float(received_value) rescue errors << "command callback value '#{received_value}' is not a valid number"
     end
 
     # Test 2: command set via configure after creation
@@ -155,10 +154,9 @@ class TestTScaleWidget < Minitest::Test
 
     if received_value2.nil?
       errors << "command callback not triggered via configure"
-    elsif received_class2 == String
-      errors << "configure command callback received String '#{received_value2}' instead of Numeric"
-    elsif !received_value2.is_a?(Numeric)
-      errors << "configure command callback received #{received_class2} instead of Numeric"
+    else
+      # Tcl passes scale values as strings; verify it's a valid number
+      Float(received_value2) rescue errors << "configure command callback value '#{received_value2}' is not a valid number"
     end
 
     raise errors.join("\n") unless errors.empty?

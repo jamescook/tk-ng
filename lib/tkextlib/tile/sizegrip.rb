@@ -6,30 +6,31 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_sizegrip.html
 #
 require 'tk'
-require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class SizeGrip < TkWindow
-    end
-    Sizegrip = SizeGrip
-  end
-end
-
-class Tk::Tile::SizeGrip < TkWindow
-  extend Tk::OptionDSL
+class Tk::Tile::SizeGrip
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
+  include Tk::Generated::TtkSizegrip
 
   TkCommandNames = ['::ttk::sizegrip'.freeze].freeze
   WidgetClassName = 'TSizegrip'.freeze
-  Tk::Core::Widget.registry[WidgetClassName] ||= self
-
-  # Widget-specific options (sizegrip has no unique options, only style)
-  option :style, type: :string
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
+  end
+end
+
+module Tk
+  module Tile
+    Sizegrip = SizeGrip
   end
 end
 

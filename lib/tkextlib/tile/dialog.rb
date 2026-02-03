@@ -37,7 +37,7 @@ class Tk::Tile::Dialog
   end
 
   def self.style(*args)
-    ['Dialog', *(args.map!{|a| _get_eval_string(a)})].join('.')
+    ['Dialog', *(args.map!(&:to_s))].join('.')
   end
 
   #########################

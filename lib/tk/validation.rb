@@ -1,4 +1,5 @@
 # frozen_string_literal: false
+require_relative 'callback'
 
 module Tk
   # @!visibility private
@@ -216,9 +217,6 @@ end
 #
 # @see TkValidation Module included by Entry/Spinbox
 class TkValidateCommand
-  include TkComm
-  extend  TkComm
-
   # Arguments passed to validation callbacks.
   #
   # When your callback receives a ValidateArgs object, you can access
@@ -254,54 +252,22 @@ class TkValidateCommand
     ]
 
     PROC_TBL = [
-      [ ?n, TkComm.method(:number) ],
-      [ ?s, TkComm.method(:string) ],
-      [ ?w, TkComm.method(:window) ],
+      [ ?n, TkUtil.method(:number) ],
+      [ ?s, TkUtil.method(:string) ],
+      [ ?w, proc{|val| val =~ /^\./ ? (TkCore::INTERP.tk_windows[val] || val) : nil } ],
 
-      [ ?e, proc{|val| TkComm::string(val) } ],
+      [ ?e, proc{|val| TkUtil.string(val) } ],
 
       [ ?x, proc{|val|
-          idx = TkComm::number(val)
-          if idx < 0
-            nil
-          else
-            idx
-          end
+          idx = TkUtil.number(val)
+          idx < 0 ? nil : idx
         }
       ],
 
       nil
     ]
 
-=begin
-    # for Ruby m17n :: ?x --> String --> char-code ( getbyte(0) )
-    KEY_TBL.map!{|inf|
-      if inf.kind_of?(Array)
-        inf[0] = inf[0].getbyte(0) if inf[0].kind_of?(String)
-        inf[1] = inf[1].getbyte(0) if inf[1].kind_of?(String)
-      end
-      inf
-    }
-
-    PROC_TBL.map!{|inf|
-      if inf.kind_of?(Array)
-        inf[0] = inf[0].getbyte(0) if inf[0].kind_of?(String)
-      end
-      inf
-    }
-=end
-
     _setup_subst_table(KEY_TBL, PROC_TBL);
-
-    #
-    # NOTE: The order of parameters which passed to callback procedure is
-    #        <extra_arg>, <extra_arg>, ... , <subst_arg>, <subst_arg>, ...
-    #
-
-    #def self._get_extra_args_tbl
-    #  # return an array of convert procs
-    #  []
-    #end
 
     def self.ret_val(val)
       (val)? '1': '0'
@@ -311,7 +277,6 @@ class TkValidateCommand
   ###############################################
 
   def self._config_keys
-    # array of config-option key (string or symbol)
     ['vcmd', 'validatecommand', 'invcmd', 'invalidcommand']
   end
 
@@ -326,9 +291,9 @@ class TkValidateCommand
       if cmd.kind_of?(String)
         @id = cmd
       elsif cmd.kind_of?(TkCallbackEntry)
-        @id = install_cmd(cmd)
+        @id = TkCallback.install_cmd(cmd)
       else
-        @id = install_cmd(proc{|*arg|
+        @id = TkCallback.install_cmd(proc{|*arg|
              ex_args = []
              extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
              klass.ret_val(cmd.call(
@@ -341,9 +306,9 @@ class TkValidateCommand
       if cmd.kind_of?(String)
         @id = cmd
       elsif cmd.kind_of?(TkCallbackEntry)
-        @id = install_cmd(cmd)
+        @id = TkCallback.install_cmd(cmd)
       else
-        @id = install_cmd(proc{|*arg|
+        @id = TkCallback.install_cmd(proc{|*arg|
              ex_args = []
              extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
              klass.ret_val(cmd.call(

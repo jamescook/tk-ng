@@ -6,19 +6,17 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_separator.html
 #
 require 'tk'
-require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
-module Tk
-  module Tile
-    class TSeparator < TkWindow
-    end
-    Separator = TSeparator
-  end
-end
-
-class Tk::Tile::TSeparator < TkWindow
-  extend Tk::OptionDSL
+class Tk::Tile::TSeparator
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkSeparator
 
@@ -28,10 +26,15 @@ class Tk::Tile::TSeparator < TkWindow
     TkCommandNames = ['::tseparator'.freeze].freeze
   end
   WidgetClassName = 'TSeparator'.freeze
-  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
+  end
+end
+
+module Tk
+  module Tile
+    Separator = TSeparator
   end
 end
 

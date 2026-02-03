@@ -96,7 +96,7 @@ class Tk::Tile::TNotebook < TkWindow
   item_option :underline, type: :integer   # underline character index
 
   def self.style(*args)
-    [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
+    [self::WidgetClassName, *(args.map!(&:to_s))].join('.')
   end
 
   def enable_traversal()
