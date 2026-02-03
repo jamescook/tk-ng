@@ -106,7 +106,7 @@ class Tk::PanedWindow
 
   def panecget_strict(win, key)
     val = tk_send('panecget', _pw_path(win), "-#{key}")
-    _tcl_to_ruby(val)
+    value_from_tcl(val)
   end
 
   def panecget(win, key)
@@ -134,16 +134,16 @@ class Tk::PanedWindow
     if key
       conf = TclTkLib._split_tklist(tk_send('paneconfigure', w, "-#{key}"))
       conf[0] = conf[0][1..-1]
-      conf[3] = _tcl_to_ruby(conf[3]) if conf[3]
-      conf[4] = _tcl_to_ruby(conf[4]) if conf[4]
+      conf[3] = value_from_tcl(conf[3]) if conf[3]
+      conf[4] = value_from_tcl(conf[4]) if conf[4]
       conf
     else
       TclTkLib._split_tklist(tk_send('paneconfigure', w)).map do |conflist|
         conf = TclTkLib._split_tklist(conflist)
         conf[0] = conf[0][1..-1]
         conf[1] = conf[1][1..-1] if conf.size == 2 # alias info
-        conf[3] = _tcl_to_ruby(conf[3]) if conf[3]
-        conf[4] = _tcl_to_ruby(conf[4]) if conf[4]
+        conf[3] = value_from_tcl(conf[3]) if conf[3]
+        conf[4] = value_from_tcl(conf[4]) if conf[4]
         conf
       end
     end
@@ -182,17 +182,6 @@ class Tk::PanedWindow
     end
   end
 
-  # Simple Tcl→Ruby value conversion
-  def _tcl_to_ruby(val)
-    return val unless val.is_a?(String)
-    case val
-    when '1', 'true', 'yes' then true
-    when '0', 'false', 'no' then false
-    when /\A-?\d+\z/ then val.to_i
-    when '' then val
-    else val
-    end
-  end
 end
 
 Tk::Panedwindow = Tk::PanedWindow

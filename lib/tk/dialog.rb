@@ -4,6 +4,7 @@
 #
 require 'tk/variable.rb'
 require_relative 'core/callable'
+require_relative 'core/widget'
 require_relative 'callback'
 
 # Creates custom dialog boxes with configurable buttons, message, and bitmap.
@@ -260,18 +261,7 @@ class TkDialogObj
 
   # Convert hash to Tcl list of -key value pairs
   def _hash_to_tcl_list(hash)
-    args = []
-    hash.each do |k, v|
-      args << "-#{k}"
-      if v.respond_to?(:path)
-        args << v.path
-      elsif v.respond_to?(:to_eval)
-        args << v.to_eval
-      else
-        args << v.to_s
-      end
-    end
-    TclTkLib._merge_tklist(*args)
+    TclTkLib._merge_tklist(*hash_to_args(hash))
   end
 end
 TkDialog2 = TkDialogObj

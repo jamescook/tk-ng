@@ -189,60 +189,9 @@ class TkImage
   private
 
   # Convert hash to -key value args for image commands.
-  # Handles complex values like [:gif, {index: 0}] → "gif -index 0"
   def _image_hash_kv(keys)
     return [] unless keys
-    args = []
-    keys.each do |k, v|
-      args << "-#{k}"
-      args << _eval_value(v)
-    end
-    args
-  end
-
-  # Convert a value to its Tcl string representation.
-  # Arrays like [:gif, {index: 0}] become "gif -index 0" (flat Tcl list).
-  def _eval_value(v)
-    case v
-    when Array
-      parts = []
-      v.each do |el|
-        case el
-        when Hash
-          # Flatten hash entries into the same list level
-          el.each do |hk, hv|
-            parts << "-#{hk}"
-            parts << _eval_value(hv)
-          end
-        else
-          parts << _eval_value(el)
-        end
-      end
-      TclTkLib._merge_tklist(*parts)
-    when Hash
-      parts = []
-      v.each do |hk, hv|
-        parts << "-#{hk}"
-        parts << _eval_value(hv)
-      end
-      TclTkLib._merge_tklist(*parts)
-    when Symbol
-      v.to_s
-    when true
-      '1'
-    when false
-      '0'
-    when Integer, Float
-      v.to_s
-    else
-      if v.respond_to?(:path)
-        v.path
-      elsif v.respond_to?(:to_eval)
-        v.to_eval
-      else
-        v.to_s
-      end
-    end
+    hash_to_args(keys)
   end
 end
 
@@ -309,26 +258,14 @@ class TkPhotoImage<TkImage
 
   def _photo_hash_kv(keys)
     keys = keys.transform_keys(&:to_s)
-    NullArgOptionKeys.collect{|opt|
+    NullArgOptionKeys.each do |opt|
       if keys[opt]
-        keys[opt] = None
+        keys[opt] = NONE
       else
         keys.delete(opt)
       end
-    }
-    result = []
-    keys.each do |k, v|
-      next if v.equal?(None)
-      result << "-#{k}"
-      # Flat arrays (e.g. to: [0,0,16,16]) → separate args: -to 0 0 16 16
-      # Complex arrays (e.g. format: [:gif, {index: 0}]) → Tcl list: -format {gif -index 0}
-      if v.is_a?(Array) && v.all? { |el| el.is_a?(Integer) || el.is_a?(String) || el.is_a?(Float) }
-        v.each { |el| result << el.to_s }
-      else
-        result << _eval_value(v)
-      end
     end
-    result
+    hash_to_args(keys, flat_arrays: true)
   end
   private :_photo_hash_kv
 
@@ -371,13 +308,7 @@ class TkPhotoImage<TkImage
     when 'data', 'file'
       tk_send 'cget', '-' << option.to_s
     else
-      val = tk_send('cget', '-' << option.to_s)
-      # Convert numeric strings to appropriate Ruby types
-      case val
-      when /\A-?\d+\z/ then val.to_i
-      when /\A-?\d+\.\d+\z/ then val.to_f
-      else val
-      end
+      value_from_tcl(tk_send('cget', '-' << option.to_s))
     end
   end
 

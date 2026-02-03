@@ -255,25 +255,7 @@ class Tk::Menu
   # Convert a hash of menu entry options to -key value args.
   # Handles Proc values (install as callbacks) and widget/variable objects.
   def _menu_hash_kv(keys, args)
-    keys.each do |k, v|
-      args << "-#{k}"
-      case v
-      when Proc
-        args << install_cmd(v)
-      when TrueClass
-        args << '1'
-      when FalseClass
-        args << '0'
-      else
-        if v.respond_to?(:path)
-          args << v.path
-        elsif v.respond_to?(:to_eval)
-          args << v.to_eval
-        else
-          args << v.to_s
-        end
-      end
-    end
+    args.concat(hash_to_args(keys))
   end
 end
 
