@@ -936,7 +936,7 @@ class TkcItem<TkObject
   ########################################
   def self._parse_create_args(args)
     if args[-1].kind_of? Hash
-      keys = _symbolkey2str(args.pop)
+      keys = args.pop.transform_keys(&:to_s)
       if args.size == 0
         args = keys.delete('coords')
         unless args.kind_of?(Array)
@@ -950,7 +950,7 @@ class TkcItem<TkObject
         keys[real_name.to_s] = keys.delete(alias_name) if keys.key?(alias_name)
       end
 
-      args = args.flatten.concat(hash_kv(keys))
+      args = args.flatten.concat(_keys_to_args(keys))
     else
       args = args.flatten
     end
@@ -963,11 +963,32 @@ class TkcItem<TkObject
     unless self::CItemTypeName
       fail RuntimeError, "#{self} is an abstract class"
     end
-    args = _parse_create_args(args)
-    idnum = tk_call_without_enc(canvas.path, 'create',
-                                self::CItemTypeName, *args)
+    args = _parse_create_args(args).map(&:to_s)
+    idnum = TkCore::INTERP._invoke(canvas.path, 'create',
+                                    self::CItemTypeName, *args)
     idnum.to_i  # 'canvas item id' is an integer number
   end
+
+  # Convert a hash of options to a flat array of -key value Tcl args.
+  def self._keys_to_args(hash)
+    return [] unless hash
+    result = []
+    hash.each do |k, v|
+      next if v.equal?(TkUtil::None)
+      result << "-#{k}"
+      if v.respond_to?(:path)
+        result << v.path
+      elsif v.is_a?(Array)
+        result << TclTkLib._merge_tklist(*v.map { |el|
+          el.respond_to?(:path) ? el.path : el.to_s
+        })
+      else
+        result << v.to_s
+      end
+    end
+    result
+  end
+  private_class_method :_keys_to_args
   ########################################
 
   def initialize(parent, *args)
@@ -1336,9 +1357,9 @@ class TkcText<TkcItem
   CItemTypeToClass[CItemTypeName] = self
   def self.create(canvas, *args)
     if args[-1].kind_of?(Hash)
-      keys = _symbolkey2str(args.pop)
+      keys = args.pop.transform_keys(&:to_s)
       txt = keys['text']
-      keys['text'] = _get_eval_enc_str(txt) if txt
+      keys['text'] = txt.to_s if txt
       args.push(keys)
     end
     super(canvas, *args)
@@ -1396,10 +1417,12 @@ class TkcWindow<TkcItem
 
   def self.create(canvas, *args)
     if args[-1].kind_of?(Hash)
-      keys = _symbolkey2str(args.pop)
+      keys = args.pop.transform_keys(&:to_s)
       win = keys['window']
-      # keys['window'] = win.epath if win.kind_of?(TkWindow)
-      keys['window'] = _epath(win) if win
+      if win
+        keys['window'] = win.respond_to?(:epath) ? win.epath :
+                         win.respond_to?(:path)  ? win.path  : win.to_s
+      end
       args.push(keys)
     end
     super(canvas, *args)

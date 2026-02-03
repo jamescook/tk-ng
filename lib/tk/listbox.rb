@@ -87,18 +87,25 @@ class Tk::Listbox
   item_option :selectforeground,  type: :string
 
   def tagid(id)
-    #id.to_s
-    _get_eval_string(id)
+    if id.respond_to?(:path)
+      id.path
+    elsif id.respond_to?(:to_eval)
+      id.to_eval
+    else
+      id.to_s
+    end
   end
 
   # -- Methods from TkTextWin (shared with Text) --
 
   def bbox(index)
-    list(tk_send_without_enc('bbox', index))
+    result = tk_send('bbox', index)
+    return [] if result.empty?
+    result.split.map(&:to_i)
   end
 
-  def delete(first, last=None)
-    tk_send_without_enc('delete', first, last)
+  def delete(first, last=NONE)
+    tk_send('delete', first, last)
     self
   end
 
@@ -108,60 +115,70 @@ class Tk::Listbox
   end
 
   def scan_mark(x, y)
-    tk_send_without_enc('scan', 'mark', x, y)
+    tk_send('scan', 'mark', x, y)
     self
   end
 
   def scan_dragto(x, y)
-    tk_send_without_enc('scan', 'dragto', x, y)
+    tk_send('scan', 'dragto', x, y)
     self
   end
 
   def see(index)
-    tk_send_without_enc('see', index)
+    tk_send('see', index)
     self
   end
 
   # -- Listbox-specific methods --
 
   def activate(y)
-    tk_send_without_enc('activate', y)
+    tk_send('activate', y)
     self
   end
+
   def curselection
-    list(tk_send_without_enc('curselection'))
+    result = tk_send('curselection')
+    return [] if result.empty?
+    result.split.map(&:to_i)
   end
+
   def get(first, last=nil)
     if last
-      tk_split_simplelist(tk_send_without_enc('get', first, last), false, true)
+      TclTkLib._split_tklist(tk_send('get', first, last))
     else
-      tk_send_without_enc('get', first)
+      tk_send('get', first)
     end
   end
+
   def nearest(y)
-    tk_send_without_enc('nearest', y).to_i
+    tk_send('nearest', y).to_i
   end
+
   def size
-    tk_send_without_enc('size').to_i
+    tk_send('size').to_i
   end
+
   def selection_anchor(index)
-    tk_send_without_enc('selection', 'anchor', index)
+    tk_send('selection', 'anchor', index)
     self
   end
-  def selection_clear(first, last=None)
-    tk_send_without_enc('selection', 'clear', first, last)
+
+  def selection_clear(first, last=NONE)
+    tk_send('selection', 'clear', first, last)
     self
   end
+
   def selection_includes(index)
-    bool(tk_send_without_enc('selection', 'includes', index))
+    tk_send('selection', 'includes', index) == '1'
   end
-  def selection_set(first, last=None)
-    tk_send_without_enc('selection', 'set', first, last)
+
+  def selection_set(first, last=NONE)
+    tk_send('selection', 'set', first, last)
     self
   end
 
   def index(idx)
-    tk_send_without_enc('index', idx).to_i
+    tk_send('index', idx).to_i
   end
 
   def value
@@ -172,14 +189,13 @@ class Tk::Listbox
     unless vals.kind_of?(Array)
       fail ArgumentError, 'an Array is expected'
     end
-    tk_send_without_enc('delete', '0', 'end')
-    tk_send_without_enc('insert', '0',
-                        *(vals.collect{|v| _get_eval_enc_str(v)}))
+    tk_send('delete', '0', 'end')
+    tk_send('insert', '0', *vals.map { |v| value_to_tcl(v) })
     vals
   end
 
   def clear
-    tk_send_without_enc('delete', '0', 'end')
+    tk_send('delete', '0', 'end')
     self
   end
   alias erase clear
