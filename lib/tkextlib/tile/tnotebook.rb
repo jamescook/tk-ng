@@ -78,7 +78,7 @@ class Tk::Tile::TNotebook < TkWindow
     TkCommandNames = ['::tnotebook'.freeze].freeze
   end
   WidgetClassName = 'TNotebook'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   # ================================================================
   # Item options (for notebook tabs)

@@ -30,7 +30,7 @@ class Tk::Tile::TScale < Tk::Scale
     TkCommandNames = ['::tscale'.freeze].freeze
   end
   WidgetClassName = 'TScale'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')
@@ -48,7 +48,7 @@ class Tk::Tile::TProgress < Tk::Tile::TScale
     TkCommandNames = ['::tprogress'.freeze].freeze
   end
   WidgetClassName = 'TProgress'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

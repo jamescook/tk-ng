@@ -28,7 +28,7 @@ class Tk::Tile::TProgressbar
     TkCommandNames = ['::tprogressbar'.freeze].freeze
   end
   WidgetClassName = 'TProgressbar'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   # Override generated options with correct types
   option :maximum, type: :float

@@ -23,7 +23,7 @@ class Tk::Tile::SizeGrip < TkWindow
 
   TkCommandNames = ['::ttk::sizegrip'.freeze].freeze
   WidgetClassName = 'TSizegrip'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   # Widget-specific options (sizegrip has no unique options, only style)
   option :style, type: :string

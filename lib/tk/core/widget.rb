@@ -215,6 +215,7 @@ module Tk
         tk_call('grid', 'forget', @path)
         self
       end
+      alias ungrid grid_forget
 
       # Remove from place geometry management
       def place_forget

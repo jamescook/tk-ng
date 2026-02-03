@@ -117,11 +117,11 @@ module Tk
       #   button.bind('Button-1') { |e| puts "clicked at #{e.x}, #{e.y}" }
       #   button.bind('<Enter>') { puts "mouse entered" }
       #
-      def bind(event, cmd = nil, args = nil, &block)
+      def bind(event, cmd = nil, *args, &block)
         cmd ||= block
         return self unless cmd
 
-        do_bind(event, cmd, args: args, append: false)
+        do_bind(event, cmd, args: args.empty? ? nil : args.join(' '), append: false)
         self
       end
 
@@ -132,11 +132,11 @@ module Tk
       # @yield [event] Block receives BindEvent object
       # @return [self]
       #
-      def bind_append(event, cmd = nil, args = nil, &block)
+      def bind_append(event, cmd = nil, *args, &block)
         cmd ||= block
         return self unless cmd
 
-        do_bind(event, cmd, args: args, append: true)
+        do_bind(event, cmd, args: args.empty? ? nil : args.join(' '), append: true)
         self
       end
 

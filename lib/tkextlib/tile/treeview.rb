@@ -504,7 +504,7 @@ class Tk::Tile::Treeview < TkWindow
     TkCommandNames = ['::treeview'.freeze].freeze
   end
   WidgetClassName = 'Treeview'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   # Override generated options with correct types (generator defaults to :string)
   option :columns,        type: :list     # list of column identifiers

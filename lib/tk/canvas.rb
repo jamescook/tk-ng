@@ -3,6 +3,10 @@ require 'tk/canvastag'
 require 'tk/scrollable'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # @!visibility private
 module TkCanvasItemConfig
@@ -49,7 +53,11 @@ end
 # @see TkcRectangle, TkcOval, TkcLine, TkcText, etc. for item classes
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/canvas.html Tcl/Tk canvas manual
 #
-class Tk::Canvas<TkWindow
+class Tk::Canvas
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include TkCanvasItemConfig
   include Tk::Scrollable
   include Tk::Generated::Canvas
@@ -90,22 +98,15 @@ class Tk::Canvas<TkWindow
 
 
 
+  None = TkUtil::None
   TkCommandNames = ['canvas'.freeze].freeze
   WidgetClassName = 'Canvas'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
-  # @!visibility private
-  def self.new(*args, &block)
-    obj = super(*args){}
-    obj.init_instance_variable
-    obj.instance_exec(obj, &block) if block_given?
-    obj
-  end
-
-  # @!visibility private
-  def init_instance_variable
-    @items ||= {}
-    @canvas_tags ||= {}
+  def initialize(parent = nil, keys = {}, &block)
+    @items = {}
+    @canvas_tags = {}
+    super
   end
 
   # @!visibility private
@@ -135,18 +136,6 @@ class Tk::Canvas<TkWindow
     return id unless @canvas_tags
     @canvas_tags[id] || id
   end
-
-  #def create_self(keys)
-  #  if keys and keys != None
-  #    tk_call_without_enc('canvas', @path, *hash_kv(keys, true))
-  #  else
-  #    tk_call_without_enc('canvas', @path)
-  #  end
-  #end
-  #private :create_self
-
-  # NOTE: __numval_optkeys override for 'closeenough' removed - now declared via OptionDSL
-  # NOTE: __boolval_optkeys override for 'confine' removed - now declared via OptionDSL
 
   def tagid(tag)
     if tag.kind_of?(TkcItem) || tag.kind_of?(TkcTag)
@@ -192,7 +181,7 @@ class Tk::Canvas<TkWindow
     if args[0] && mode =~ /^(above|below|with(tag)?)$/
       args[0] = tagid(args[0])
     end
-    tk_send_without_enc('addtag', tagid(tag), mode, *args)
+    tk_send('addtag', tagid(tag), mode, *args)
     self
   end
 
@@ -269,8 +258,8 @@ class Tk::Canvas<TkWindow
   #   x1, y1, x2, y2 = canvas.bbox('all')
   #   x1, y1, x2, y2 = canvas.bbox(rect1, rect2, 'mygroup')
   def bbox(tagOrId, *tags)
-    list(tk_send_without_enc('bbox', tagid(tagOrId),
-                             *tags.collect{|t| tagid(t)}))
+    TclTkLib._split_tklist(tk_send('bbox', tagid(tagOrId),
+                             *tags.collect{|t| tagid(t)})).map(&:to_i)
   end
 
   # Binds an event to canvas items matching the tag.
@@ -286,14 +275,13 @@ class Tk::Canvas<TkWindow
   # @example
   #   canvas.itembind('draggable', '<Button-1>') { |e| start_drag(e) }
   #   canvas.itembind(rect, '<Enter>') { rect.configure(fill: 'red') }
-  def itembind(tag, context, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
-      cmd = args.shift
-    else
-      cmd = block
-    end
-    _bind([path, "bind", tagid(tag)], context, cmd, *args)
+  def itembind(tag, context, cmd = nil, *args, &block)
+    cmd = block if block
+    context = context.to_s
+    context = "<#{context}>" unless context.start_with?('<')
+    cb = install_cmd(cmd)
+    script = args.empty? ? cb : "#{cb} #{args.join(' ')}"
+    tk_call(path, 'bind', tagid(tag), context, script)
     self
   end
 
@@ -307,14 +295,13 @@ class Tk::Canvas<TkWindow
   # @param args [Array] Additional bind arguments
   # @yield Block to execute when event occurs
   # @return [self]
-  def itembind_append(tag, context, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
-    if TkComm._callback_entry?(args[0]) || !block
-      cmd = args.shift
-    else
-      cmd = block
-    end
-    _bind_append([path, "bind", tagid(tag)], context, cmd, *args)
+  def itembind_append(tag, context, cmd = nil, *args, &block)
+    cmd = block if block
+    context = context.to_s
+    context = "<#{context}>" unless context.start_with?('<')
+    cb = install_cmd(cmd)
+    script = args.empty? ? cb : "#{cb} #{args.join(' ')}"
+    tk_call(path, 'bind', tagid(tag), context, "+#{script}")
     self
   end
 
@@ -324,7 +311,9 @@ class Tk::Canvas<TkWindow
   # @param context [String] Event sequence to unbind
   # @return [self]
   def itembind_remove(tag, context)
-    _bind_remove([path, "bind", tagid(tag)], context)
+    context = context.to_s
+    context = "<#{context}>" unless context.start_with?('<')
+    tk_call(path, 'bind', tagid(tag), context, '')
     self
   end
 
@@ -334,7 +323,13 @@ class Tk::Canvas<TkWindow
   # @param context [String, nil] Event sequence, or nil for all sequences
   # @return [Array<String>, String] List of bound sequences, or the command for a specific sequence
   def itembindinfo(tag, context=nil)
-    _bindinfo([path, "bind", tagid(tag)], context)
+    if context
+      context = context.to_s
+      context = "<#{context}>" unless context.start_with?('<')
+      tk_call(path, 'bind', tagid(tag), context)
+    else
+      TclTkLib._split_tklist(tk_call(path, 'bind', tagid(tag)))
+    end
   end
 
   # Converts a window X coordinate to canvas coordinate.
@@ -352,8 +347,8 @@ class Tk::Canvas<TkWindow
   #     TkcOval.new(canvas, cx-5, cy-5, cx+5, cy+5, fill: 'red')
   #   end
   def canvasx(screen_x, *args)
-    #tk_tcl2ruby(tk_send_without_enc('canvasx', screen_x, *args))
-    number(tk_send_without_enc('canvasx', screen_x, *args))
+    #tk_tcl2ruby(tk_send('canvasx', screen_x, *args))
+    tk_send('canvasx', screen_x, *args).to_f
   end
 
   # Converts a window Y coordinate to canvas coordinate.
@@ -365,8 +360,8 @@ class Tk::Canvas<TkWindow
   # @return [Float] Y coordinate in canvas space
   # @see #canvasx
   def canvasy(screen_y, *args)
-    #tk_tcl2ruby(tk_send_without_enc('canvasy', screen_y, *args))
-    number(tk_send_without_enc('canvasy', screen_y, *args))
+    #tk_tcl2ruby(tk_send('canvasy', screen_y, *args))
+    tk_send('canvasy', screen_y, *args).to_f
   end
   alias canvas_x canvasx
   alias canvas_y canvasy
@@ -388,9 +383,9 @@ class Tk::Canvas<TkWindow
   #   canvas.coords(rect, 0, 0, 100, 100)  # move and resize
   def coords(tag, *args)
     if args.empty?
-      tk_split_list(tk_send_without_enc('coords', tagid(tag)))
+      TclTkLib._split_tklist(tk_send('coords', tagid(tag))).map(&:to_f)
     else
-      tk_send_without_enc('coords', tagid(tag), *(args.flatten))
+      tk_send('coords', tagid(tag), *(args.flatten))
       self
     end
   end
@@ -405,8 +400,7 @@ class Tk::Canvas<TkWindow
   # @param last [Integer, String] End index (defaults to first if omitted)
   # @return [self]
   def dchars(tag, first, last=None)
-    tk_send_without_enc('dchars', tagid(tag),
-                        _get_eval_enc_str(first), _get_eval_enc_str(last))
+    tk_send('dchars', tagid(tag), first, last)
     self
   end
 
@@ -427,7 +421,7 @@ class Tk::Canvas<TkWindow
         @items.delete(item.id) if item.respond_to?(:id)
       }
     }
-    tk_send_without_enc('delete', *args.collect{|t| tagid(t)})
+    tk_send('delete', *args.collect{|t| tagid(t)})
     self
   end
   alias remove delete
@@ -444,7 +438,7 @@ class Tk::Canvas<TkWindow
   #   canvas.dtag(rect, 'highlighted')  # remove 'highlighted' from rect
   #   canvas.dtag('temporary')  # remove 'temporary' tag from items that have it
   def dtag(tag, tag_to_del=None)
-    tk_send_without_enc('dtag', tagid(tag), tagid(tag_to_del))
+    tk_send('dtag', tagid(tag), tagid(tag_to_del))
     self
   end
   alias deltag dtag
@@ -458,8 +452,8 @@ class Tk::Canvas<TkWindow
   # @return [Array<TkcItem>] Matching items
   # @see #find_above, #find_all, etc. for convenient wrappers
   def find(mode, *args)
-    list(tk_send_without_enc('find', mode, *args)).collect!{|id|
-      TkcItem.id2obj(self, id)
+    TclTkLib._split_tklist(tk_send('find', mode, *args)).collect{|id|
+      TkcItem.id2obj(self, id.to_i)
     }
   end
 
@@ -542,10 +536,10 @@ class Tk::Canvas<TkWindow
   #   focused = canvas.itemfocus  # get currently focused item
   def itemfocus(tagOrId=nil)
     if tagOrId
-      tk_send_without_enc('focus', tagid(tagOrId))
+      tk_send('focus', tagid(tagOrId))
       self
     else
-      ret = tk_send_without_enc('focus')
+      ret = tk_send('focus')
       if ret == ""
         nil
       else
@@ -559,7 +553,7 @@ class Tk::Canvas<TkWindow
   # @param tagOrId [TkcItem, Integer, String] Item to query
   # @return [Array<TkcTag>] Tags on the item
   def gettags(tagOrId)
-    list(tk_send_without_enc('gettags', tagid(tagOrId))).collect{|tag|
+    TclTkLib._split_tklist(tk_send('gettags', tagid(tagOrId))).collect{|tag|
       TkcTag.id2obj(self, tag)
     }
   end
@@ -570,7 +564,7 @@ class Tk::Canvas<TkWindow
   # @param index [Integer, String] Position for cursor ('end', 'insert', or number)
   # @return [self]
   def icursor(tagOrId, index)
-    tk_send_without_enc('icursor', tagid(tagOrId), index)
+    tk_send('icursor', tagid(tagOrId), index)
     self
   end
 
@@ -586,7 +580,7 @@ class Tk::Canvas<TkWindow
   # @return [self]
   # @note Requires Tcl/Tk 8.6 or later
   def imove(tagOrId, idx, x, y)
-    tk_send_without_enc('imove', tagid(tagOrId), idx, x, y)
+    tk_send('imove', tagid(tagOrId), idx, x, y)
     self
   end
   alias i_move imove
@@ -600,7 +594,7 @@ class Tk::Canvas<TkWindow
   # @param idx [String, Integer] Index specification
   # @return [Integer] Numeric index
   def index(tagOrId, idx)
-    number(tk_send_without_enc('index', tagid(tagOrId), idx))
+    tk_send('index', tagid(tagOrId), idx).to_i
   end
 
   # Inserts text or coordinates into an item.
@@ -613,8 +607,7 @@ class Tk::Canvas<TkWindow
   # @param string [String] Text or coordinate values to insert
   # @return [self]
   def insert(tagOrId, index, string)
-    tk_send_without_enc('insert', tagid(tagOrId), index,
-                        _get_eval_enc_str(string))
+    tk_send('insert', tagid(tagOrId), index, string)
     self
   end
 
@@ -629,9 +622,9 @@ class Tk::Canvas<TkWindow
   # @note Has no effect on window items; they always appear on top
   def lower(tag, below=nil)
     if below
-      tk_send_without_enc('lower', tagid(tag), tagid(below))
+      tk_send('lower', tagid(tag), tagid(below))
     else
-      tk_send_without_enc('lower', tagid(tag))
+      tk_send('lower', tagid(tag))
     end
     self
   end
@@ -645,7 +638,7 @@ class Tk::Canvas<TkWindow
   # @param dy [Numeric] Amount to add to Y coordinates
   # @return [self]
   def move(tag, dx, dy)
-    tk_send_without_enc('move', tagid(tag), dx, dy)
+    tk_send('move', tagid(tag), dx, dy)
     self
   end
 
@@ -661,7 +654,7 @@ class Tk::Canvas<TkWindow
   # @note Requires Tcl/Tk 8.6 or later
   def moveto(tag, x, y)
     # Tcl/Tk 8.6 or later
-    tk_send_without_enc('moveto', tagid(tag), x, y)
+    tk_send('moveto', tagid(tag), x, y)
     self
   end
   alias move_to moveto
@@ -680,7 +673,9 @@ class Tk::Canvas<TkWindow
   # @option keys [Numeric] :pageheight Scale to this height on page
   # @return [String, nil] PostScript data, or nil if written to file
   def postscript(keys)
-    tk_send("postscript", *hash_kv(keys))
+    args = []
+    keys.each { |k, v| args << "-#{k}" << v.to_s }
+    tk_send("postscript", *args)
   end
 
   # Moves items higher in the stacking order.
@@ -694,9 +689,9 @@ class Tk::Canvas<TkWindow
   # @note Has no effect on window items; they always appear on top
   def raise(tag, above=nil)
     if above
-      tk_send_without_enc('raise', tagid(tag), tagid(above))
+      tk_send('raise', tagid(tag), tagid(above))
     else
-      tk_send_without_enc('raise', tagid(tag))
+      tk_send('raise', tagid(tag))
     end
     self
   end
@@ -715,7 +710,7 @@ class Tk::Canvas<TkWindow
   def rchars(tag, first, last, str_or_coords)
     # Tcl/Tk 8.6 or later
     str_or_coords = str_or_coords.flatten if str_or_coords.kind_of? Array
-    tk_send_without_enc('rchars', tagid(tag), first, last, str_or_coords)
+    tk_send('rchars', tagid(tag), first, last, str_or_coords)
     self
   end
   alias replace_chars rchars
@@ -733,7 +728,7 @@ class Tk::Canvas<TkWindow
   # @return [self]
   # @note Single-coordinate items (text, image, bitmap) only move; they don't change size
   def scale(tag, x, y, xs, ys)
-    tk_send_without_enc('scale', tagid(tag), x, y, xs, ys)
+    tk_send('scale', tagid(tag), x, y, xs, ys)
     self
   end
 
@@ -749,7 +744,7 @@ class Tk::Canvas<TkWindow
   #   canvas.bind('<Button-2>') { |e| canvas.scan_mark(e.x, e.y) }
   #   canvas.bind('<B2-Motion>') { |e| canvas.scan_dragto(e.x, e.y) }
   def scan_mark(x, y)
-    tk_send_without_enc('scan', 'mark', x, y)
+    tk_send('scan', 'mark', x, y)
     self
   end
 
@@ -764,7 +759,7 @@ class Tk::Canvas<TkWindow
   # @return [self]
   # @see #scan_mark
   def scan_dragto(x, y, gain=None)
-    tk_send_without_enc('scan', 'dragto', x, y, gain)
+    tk_send('scan', 'dragto', x, y, gain)
     self
   end
 
@@ -775,7 +770,7 @@ class Tk::Canvas<TkWindow
   # @return [TkcItem, self] The selected item for 'item' mode, self otherwise
   # @see #select_adjust, #select_clear, #select_from, #select_item, #select_to
   def select(mode, *args)
-    r = tk_send_without_enc('select', mode, *args)
+    r = tk_send('select', mode, *args)
     (mode == 'item')? TkcItem.id2obj(self, r): self
   end
 

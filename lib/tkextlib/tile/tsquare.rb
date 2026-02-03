@@ -23,7 +23,7 @@ class Tk::Tile::TSquare < TkWindow
     TkCommandNames = ['::tsquare'.freeze].freeze
   end
   WidgetClassName = 'TSquare'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

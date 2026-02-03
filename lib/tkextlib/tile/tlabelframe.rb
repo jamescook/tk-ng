@@ -28,7 +28,7 @@ class Tk::Tile::TLabelframe < Tk::Tile::TFrame
     TkCommandNames = ['::tlabelframe'.freeze].freeze
   end
   WidgetClassName = 'TLabelframe'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
+  Tk::Core::Widget.registry[WidgetClassName] ||= self
 
   def self.style(*args)
     [self::WidgetClassName, *(args.map!{|a| _get_eval_string(a)})].join('.')

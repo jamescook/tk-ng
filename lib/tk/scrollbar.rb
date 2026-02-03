@@ -1,5 +1,8 @@
 # frozen_string_literal: false
-require 'tk/option_dsl'
+require_relative 'core/callable'
+require_relative 'core/configurable'
+require_relative 'core/widget'
+require_relative 'callback'
 
 # A scrollbar for scrolling other widgets.
 #
@@ -28,7 +31,11 @@ require 'tk/option_dsl'
 #
 # @see https://www.tcl-lang.org/man/tcl/TkCmd/scrollbar.html Tcl/Tk scrollbar manual
 #
-class Tk::Scrollbar<TkWindow
+class Tk::Scrollbar
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Generated::Scrollbar
   # @generated:options:start
   # Available options (auto-generated from Tk introspection):
@@ -55,124 +62,102 @@ class Tk::Scrollbar<TkWindow
   #   :width
   # @generated:options:end
 
-
-
   TkCommandNames = ['scrollbar'.freeze].freeze
   WidgetClassName = 'Scrollbar'.freeze
-  WidgetClassNames[WidgetClassName] ||= self
 
-  def create_self(keys)
+  def initialize(parent = nil, keys = {}, &block)
     @assigned = []
-    @scroll_proc = proc{|*args|
-      if self.orient == 'horizontal'
-        @assigned.each{|w| w.xview(*args)}
-      else # 'vertical'
-        @assigned.each{|w| w.yview(*args)}
+    @scroll_proc = proc { |*args|
+      if orient == 'horizontal'
+        @assigned.each { |w| w.xview(*args) }
+      else
+        @assigned.each { |w| w.yview(*args) }
       end
     }
-
-    if keys and keys != None
-      tk_call_without_enc(self.class::TkCommandNames[0], @path,
-                          *hash_kv(keys, true))
-    else
-      tk_call_without_enc(self.class::TkCommandNames[0], @path)
-    end
+    super
   end
-  private :create_self
 
   def propagate_set(src_win, first, last)
-    self.set(first, last)
-    if self.orient == 'horizontal'
-      @assigned.each{|w| w.xview('moveto', first) if w != src_win}
-    else # 'vertical'
-      @assigned.each{|w| w.yview('moveto', first) if w != src_win}
+    set(first, last)
+    if orient == 'horizontal'
+      @assigned.each { |w| w.xview('moveto', first) if w != src_win }
+    else
+      @assigned.each { |w| w.yview('moveto', first) if w != src_win }
     end
   end
 
   def assign(*wins)
     begin
-      self.command(@scroll_proc) if self.cget('command').cmd != @scroll_proc
+      self.command(@scroll_proc) if cget('command').cmd != @scroll_proc
     rescue StandardError
       self.command(@scroll_proc)
     end
-    orient = self.orient
-    wins.each{|w|
+    o = orient
+    wins.each do |w|
       @assigned << w unless @assigned.index(w)
-      if orient == 'horizontal'
-        w.xscrollcommand proc{|first, last| self.propagate_set(w, first, last)}
-      else # 'vertical'
-        w.yscrollcommand proc{|first, last| self.propagate_set(w, first, last)}
+      if o == 'horizontal'
+        w.xscrollcommand proc { |first, last| propagate_set(w, first, last) }
+      else
+        w.yscrollcommand proc { |first, last| propagate_set(w, first, last) }
       end
-    }
-    Tk.update  # avoid scrollbar trouble
+    end
+    Tk.update
     self
   end
 
   def assigned_list
     begin
-      return @assigned.dup if self.cget('command').cmd == @scroll_proc
+      return @assigned.dup if cget('command').cmd == @scroll_proc
     rescue StandardError
     end
     fail RuntimeError, "not depend on the assigned_list"
   end
 
-  def configure(*args)
-    ret = super(*args)
-    # Tk.update  # avoid scrollbar trouble
-    ret
-  end
-
-  #def delta(deltax=None, deltay=None)
   def delta(deltax, deltay)
-    number(tk_send_without_enc('delta', deltax, deltay))
+    tk_send('delta', deltax, deltay).to_f
   end
 
-  #def fraction(x=None, y=None)
   def fraction(x, y)
-    number(tk_send_without_enc('fraction', x, y))
+    tk_send('fraction', x, y).to_f
   end
 
   def identify(x, y)
-    tk_send_without_enc('identify', x, y)
+    tk_send('identify', x, y)
   end
 
   def get
-    #ary1 = tk_send('get').split
-    #ary2 = []
-    #for i in ary1
-    #  ary2.push number(i)
-    #end
-    #ary2
-    list(tk_send_without_enc('get'))
+    TclTkLib._split_tklist(tk_send('get')).map(&:to_f)
   end
 
   def set(first, last)
-    tk_send_without_enc('set', first, last)
+    tk_send('set', first, last)
     self
   end
 
-  def activate(element=None)
-    tk_send_without_enc('activate', element)
+  def activate(element = nil)
+    if element
+      tk_send('activate', element)
+    else
+      tk_send('activate')
+    end
   end
 
   def moveto(fraction)
-    tk_send_without_enc('moveto', fraction)
+    tk_send('moveto', fraction)
     self
   end
 
   def scroll(*args)
-    tk_send_without_enc('scroll', *args)
+    tk_send('scroll', *args)
     self
   end
 
   def scroll_units(num)
     scroll(num, 'units')
-    self
   end
 
   def scroll_pages(num)
     scroll(num, 'pages')
-    self
   end
 end
 
@@ -182,13 +167,11 @@ Tk.__set_loaded_toplevel_aliases__('tk/scrollbar.rb', :Tk, Tk::Scrollbar,
                                    :TkScrollbar)
 
 
-class Tk::XScrollbar<Tk::Scrollbar
-  def create_self(keys)
-    keys = {} unless keys
-    keys['orient'] = 'horizontal'
-    super(keys)
+class Tk::XScrollbar < Tk::Scrollbar
+  def initialize(parent = nil, keys = {}, &block)
+    keys = parent.is_a?(Hash) ? parent.merge(orient: 'horizontal') : keys.merge(orient: 'horizontal')
+    super(parent.is_a?(Hash) ? keys : parent, parent.is_a?(Hash) ? {} : keys, &block)
   end
-  private :create_self
 end
 
 #TkXScrollbar = Tk::XScrollbar unless Object.const_defined? :TkXScrollbar
@@ -197,13 +180,11 @@ Tk.__set_loaded_toplevel_aliases__('tk/scrollbar.rb', :Tk, Tk::XScrollbar,
                                    :TkXScrollbar)
 
 
-class Tk::YScrollbar<Tk::Scrollbar
-  def create_self(keys)
-    keys = {} unless keys
-    keys['orient'] = 'vertical'
-    super(keys)
+class Tk::YScrollbar < Tk::Scrollbar
+  def initialize(parent = nil, keys = {}, &block)
+    keys = parent.is_a?(Hash) ? parent.merge(orient: 'vertical') : keys.merge(orient: 'vertical')
+    super(parent.is_a?(Hash) ? keys : parent, parent.is_a?(Hash) ? {} : keys, &block)
   end
-  private :create_self
 end
 
 #TkYScrollbar = Tk::YScrollbar unless Object.const_defined? :TkYScrollbar

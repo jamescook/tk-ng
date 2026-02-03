@@ -42,7 +42,9 @@ module Tk
           slot = opt.tcl_name if opt
 
           # Convert value to Tcl string via Option type system or fallback
-          tcl_value = if opt
+          tcl_value = if value.is_a?(Array)
+            TclTkLib._merge_tklist(*value.map(&:to_s))
+          elsif opt
             opt.to_tcl(value, widget: self)
           elsif value.respond_to?(:path)
             value.path
