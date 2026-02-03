@@ -916,10 +916,15 @@ Tk.__set_loaded_toplevel_aliases__('tk/canvas.rb', :Tk, Tk::Canvas, :TkCanvas)
 # @see TkcTag For grouping items with tags
 # @see Tk::Canvas The parent canvas widget
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm Tcl/Tk canvas manual
-class TkcItem<TkObject
-  extend Tk
+class TkcItem
   include TkcTagAccess
   include Tk::Generated::CanvasItems
+
+  def self.new(*args, &block)
+    obj = super(*args)
+    obj.instance_exec(obj, &block) if block
+    obj
+  end
 
   CItemTypeName = nil
   CItemTypeToClass = {}
@@ -1021,6 +1026,19 @@ class TkcItem<TkObject
 
   def path
     @id.to_s
+  end
+
+  def epath
+    @id.to_s
+  end
+
+  def [](option)
+    cget(option)
+  end
+
+  def []=(option, value)
+    configure(option, value)
+    value
   end
 
   def exist?

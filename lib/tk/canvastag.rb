@@ -202,27 +202,18 @@ module TkcTagAccess
   #      ltag = tag1 ^ tag2; ltag.path => "(t1)^(t2)"
   #      ltag = - tag1;      ltag.path => "!(t1)"
   def &(tag)
-    if tag.kind_of? TkObject
-      TkcTagString.new(@c, '(' + @id + ')&&(' + tag.path + ')')
-    else
-      TkcTagString.new(@c, '(' + @id + ')&&(' + tag.to_s + ')')
-    end
+    other = tag.respond_to?(:path) ? tag.path : tag.to_s
+    TkcTagString.new(@c, '(' + @id + ')&&(' + other + ')')
   end
 
   def |(tag)
-    if tag.kind_of? TkObject
-      TkcTagString.new(@c, '(' + @id + ')||(' + tag.path + ')')
-    else
-      TkcTagString.new(@c, '(' + @id + ')||(' + tag.to_s + ')')
-    end
+    other = tag.respond_to?(:path) ? tag.path : tag.to_s
+    TkcTagString.new(@c, '(' + @id + ')||(' + other + ')')
   end
 
   def ^(tag)
-    if tag.kind_of? TkObject
-      TkcTagString.new(@c, '(' + @id + ')^(' + tag.path + ')')
-    else
-      TkcTagString.new(@c, '(' + @id + ')^(' + tag.to_s + ')')
-    end
+    other = tag.respond_to?(:path) ? tag.path : tag.to_s
+    TkcTagString.new(@c, '(' + @id + ')^(' + other + ')')
   end
 
   def -@
