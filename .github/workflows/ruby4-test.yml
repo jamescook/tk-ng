@@ -38,6 +38,7 @@ jobs:
           -e TCL_VERSION=9.0 \
           -e TEST=test/test_samples.rb \
           -e TESTOPTS="--name=/test_threading_demo/" \
+          -e MINITEST_REPORTER=default \
           tk-ci-test-ruby4:latest
 
     - name: Create recordings directory

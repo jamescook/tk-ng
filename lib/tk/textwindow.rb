@@ -4,6 +4,7 @@
 #
 require 'tk/text'
 require_relative 'callback'
+require_relative 'core/callable'
 
 # A widget embedded within a Text widget.
 #
@@ -47,58 +48,42 @@ require_relative 'callback'
 #
 # @see TkTextImage For embedding images instead of widgets
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
-class TkTextWindow<TkObject
+class TkTextWindow
+  include TkUtil
+  include Tk::Core::Callable
+  include TkCallback
   include Tk::Text::IndexModMethods
 
   def initialize(parent, index, keys = {})
-    #unless parent.kind_of?(Tk::Text)
-    #  fail ArgumentError, "expect Tk::Text for 1st argument"
-    #end
     @t = parent
     if index == 'end' || index == :end
-      @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
-                                                     'end - 1 chars'))
+      @path = TkTextMark.new(@t, tk_call(@t.path, 'index', 'end - 1 chars'))
     elsif index.kind_of?(TkTextMark)
-      if tk_call_without_enc(@t.path,'index',index.path) == tk_call_without_enc(@t.path,'index','end')
-        @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
-                                                       'end - 1 chars'))
+      if tk_call(@t.path, 'index', index.path) == tk_call(@t.path, 'index', 'end')
+        @path = TkTextMark.new(@t, tk_call(@t.path, 'index', 'end - 1 chars'))
       else
-        @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
-                                                       index.path))
+        @path = TkTextMark.new(@t, tk_call(@t.path, 'index', index.path))
       end
     else
-      @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index', _get_eval_enc_str(index)))
+      @path = TkTextMark.new(@t, tk_call(@t.path, 'index', index.to_s))
     end
     @path.gravity = 'left'
     @index = @path.path
     keys = _symbolkey2str(keys)
     @id = keys['window']
-    # keys['window'] = @id.epath if @id.kind_of?(TkWindow)
-    keys['window'] = _epath(@id) if @id
+    keys['window'] = eval_path(@id) if @id
     if keys['create']
       @p_create = keys['create']
-      # if @p_create.kind_of?(Proc)
       if TkCallback._callback_entry?(@p_create)
-=begin
-        keys['create'] = install_cmd(proc{
-                                       @id = @p_create.call
-                                       if @id.kind_of?(TkWindow)
-                                         @id.epath
-                                       else
-                                         @id
-                                       end
-                                     })
-=end
-        keys['create'] = install_cmd(proc{@id = @p_create.call; _epath(@id)})
+        keys['create'] = install_cmd(proc{@id = @p_create.call; eval_path(@id)})
       end
     end
-    tk_call_without_enc(@t.path, 'window', 'create', @index,
-                        *hash_kv(keys, true))
+    tk_call(@t.path, 'window', 'create', @index, *hash_kv(keys, true))
     @path.gravity = 'right'
   end
 
   def id
-    Tk::Text::IndexString.new(_epath(@id))
+    Tk::Text::IndexString.new(eval_path(@id))
   end
   def mark
     @path
@@ -124,27 +109,24 @@ class TkTextWindow<TkObject
       slot = _symbolkey2str(slot)
       if slot['window']
         @id = slot['window']
-        # slot['window'] = @id.epath if @id.kind_of?(TkWindow)
-        slot['window'] = _epath(@id) if @id
+        slot['window'] = eval_path(@id) if @id
       end
       if slot['create']
         self.create=slot.delete('create')
       end
       if slot.size > 0
-        tk_call_without_enc(@t.path, 'window', 'configure', @index,
-                            *hash_kv(slot, true))
+        tk_call(@t.path, 'window', 'configure', @index, *hash_kv(slot, true))
       end
     else
       if slot == 'window' || slot == :window
         @id = value
-        # value = @id.epath if @id.kind_of?(TkWindow)
-        value = _epath(@id) if @id
+        value = eval_path(@id) if @id
       end
       if slot == 'create' || slot == :create
         self.create=value
       else
-        tk_call_without_enc(@t.path, 'window', 'configure', @index,
-                            "-#{slot}", _get_eval_enc_str(value))
+        tk_call(@t.path, 'window', 'configure', @index,
+                "-#{slot}", eval_val(value))
       end
     end
     self
@@ -164,10 +146,8 @@ class TkTextWindow<TkObject
 
   def window=(value)
     @id = value
-    # value = @id.epath if @id.kind_of?(TkWindow)
-    value = _epath(@id) if @id
-    tk_call_without_enc(@t.path, 'window', 'configure', @index,
-                        '-window', _get_eval_enc_str(value))
+    val = eval_path(@id) if @id
+    tk_call(@t.path, 'window', 'configure', @index, '-window', val)
     value
   end
 
@@ -177,20 +157,35 @@ class TkTextWindow<TkObject
 
   def create=(value)
     @p_create = value
-    # if @p_create.kind_of?(Proc)
     if TkCallback._callback_entry?(@p_create)
       value = install_cmd(proc{
                             @id = @p_create.call
-                            if @id.kind_of?(TkWindow)
-                              @id.epath
-                            else
-                              @id
-                            end
+                            eval_path(@id)
                           })
     end
-    tk_call_without_enc(@t.path, 'window', 'configure', @index,
-                        '-create', _get_eval_enc_str(value))
+    tk_call(@t.path, 'window', 'configure', @index, '-create', eval_val(value))
     value
+  end
+
+  private
+
+  # Get the Tk path string for a widget or object.
+  def eval_path(win)
+    if win.respond_to?(:epath)
+      win.epath
+    elsif win.respond_to?(:path)
+      win.path
+    else
+      win.to_s
+    end
+  end
+
+  # Get an eval-safe string for a value.
+  def eval_val(val)
+    if val.respond_to?(:path) then val.path
+    elsif val.respond_to?(:to_eval) then val.to_eval
+    else val.to_s
+    end
   end
 end
 

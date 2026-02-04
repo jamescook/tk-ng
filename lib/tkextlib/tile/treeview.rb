@@ -12,7 +12,12 @@ require 'tkextlib/tile.rb'
 
 module Tk
   module Tile
-    class Treeview < TkWindow
+    class Treeview
+      include TkUtil
+      include Tk::Core::Callable
+      include Tk::Core::Configurable
+      include TkCallback
+      include Tk::Core::Widget
     end
   end
 end
@@ -137,7 +142,9 @@ end
 
 ########################
 
-class Tk::Tile::Treeview::Item < TkObject
+class Tk::Tile::Treeview::Item
+  include TkUtil
+  include Tk::Core::Callable
   ItemID_TBL = TkCore::INTERP.create_table
 
   TkCore::INTERP.init_ip_env{
@@ -211,6 +218,11 @@ class Tk::Tile::Treeview::Item < TkObject
   end
   def id
     @id
+  end
+  alias path id
+
+  def to_eval
+    @id.to_s
   end
 
   def cget_tkstring(option)
@@ -364,7 +376,9 @@ end
 
 ########################
 
-class Tk::Tile::Treeview::Tag < TkObject
+class Tk::Tile::Treeview::Tag
+  include TkUtil
+  include Tk::Core::Callable
   include TkTreatTagFont
 
   TagID_TBL = TkCore::INTERP.create_table
@@ -405,11 +419,16 @@ class Tk::Tile::Treeview::Tag < TkObject
       TagID_TBL[@tpath][@id] = self
     }
     if keys && keys != None
-      tk_call_without_enc(@tpath, 'tag', 'configure', @id, *hash_kv(keys,true))
+      tk_call(@tpath, 'tag', 'configure', @id, *hash_kv(keys))
     end
   end
   def id
     @id
+  end
+  alias path id
+
+  def to_eval
+    @id.to_s
   end
 
   def tag_has?(item)
@@ -430,7 +449,7 @@ class Tk::Tile::Treeview::Tag < TkObject
   end
 
   def bind(seq, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
@@ -440,7 +459,7 @@ class Tk::Tile::Treeview::Tag < TkObject
   end
 
   def bind_append(seq, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
@@ -484,11 +503,11 @@ end
 
 ########################
 
-class Tk::Tile::Treeview < TkWindow
+class Tk::Tile::Treeview
   extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
   include Tk::Tile::TileWidget
-  include Scrollable
+  include Tk::Scrollable
   include Tk::Generated::TtkTreeview
 
   include Tk::Tile::TreeviewConfig
@@ -541,12 +560,85 @@ class Tk::Tile::Treeview < TkWindow
   item_option :background,    type: :string    # background color
   item_option :image,         type: :string    # icon image
 
+  private
+
+  # Converts an item/tag/string to its Tcl eval string
+  def eval_string(val)
+    if val.respond_to?(:to_eval)
+      val.to_eval
+    elsif val.respond_to?(:path)
+      val.path
+    else
+      val.to_s
+    end
+  end
+
+  # Convert array of items to a Tcl list string
+  def items_to_tklist(items)
+    TclTkLib._merge_tklist(*items.map { |i| eval_string(i) })
+  end
+
+  # Binding helpers for tag bind subcommand
+  include TkBindCore  # for install_bind, tk_event_sequence
+
+  def do_tag_bind(what, context, cmd, *args)
+    id = install_bind(cmd, *args) if cmd
+    begin
+      tk_call(*(what + ["<#{tk_event_sequence(context)}>", id]))
+    rescue
+      uninstall_cmd(id) if cmd
+      raise
+    end
+  end
+
+  def do_tag_bind_append(what, context, cmd, *args)
+    id = install_bind(cmd, *args) if cmd
+    begin
+      tk_call(*(what + ["<#{tk_event_sequence(context)}>", '+' + id]))
+    rescue
+      uninstall_cmd(id) if cmd
+      raise
+    end
+  end
+
+  def do_tag_bind_remove(what, context)
+    tk_call(*(what + ["<#{tk_event_sequence(context)}>", '']))
+  end
+
+  def do_tag_bindinfo(what, context=nil)
+    if context
+      tk_call(*what + ["<#{tk_event_sequence(context)}>"]).each_line.collect { |cmdline|
+        if cmdline =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+          [TkCore::INTERP.tk_cmd_tbl[$4], $5]
+        else
+          cmdline
+        end
+      }
+    else
+      TclTkLib._split_tklist(tk_call(*what)).collect! { |seq|
+        l = seq.scan(/<*[^<>]+>*/).collect! { |subseq|
+          case subseq
+          when /^<<[^<>]+>>$/
+            TkVirtualEvent.getobj(subseq[1..-2])
+          when /^<[^<>]+>$/
+            subseq[1..-2]
+          else
+            subseq.split('')
+          end
+        }.flatten
+        (l.size == 1) ? l[0] : l
+      }
+    end
+  end
+
+  public
+
   def __destroy_hook__
     Tk::Tile::Treeview::Item::ItemID_TBL.mutex.synchronize{
       Tk::Tile::Treeview::Item::ItemID_TBL.delete(@path)
     }
-    Tk::Tile::Treeview::Tag::ItemID_TBL.mutex.synchronize{
-      Tk::Tile::Treeview::Tag::ItemID_TBL.delete(@path)
+    Tk::Tile::Treeview::Tag::TagID_TBL.mutex.synchronize{
+      Tk::Tile::Treeview::Tag::TagID_TBL.delete(@path)
     }
   end
 
@@ -560,9 +652,9 @@ class Tk::Tile::Treeview < TkWindow
       id.id
     elsif id.kind_of?(Array)
       # size is 2 or 3
-      id[0..-2] << _get_eval_string(id[-1])
+      id[0..-2] << eval_string(id[-1])
     else
-      _get_eval_string(id)
+      eval_string(id)
     end
   end
 
@@ -571,32 +663,33 @@ class Tk::Tile::Treeview < TkWindow
   end
 
   def bbox(item, column=None)
-    list(tk_send('item', 'bbox', item, column))
+    result = tk_send('item', 'bbox', item, column)
+    return [] if result.empty?
+    TclTkLib._split_tklist(result).map(&:to_i)
   end
 
   def children(item)
-    simplelist(tk_send_without_enc('children', item)).collect{|id|
+    TclTkLib._split_tklist(tk_send('children', item)).collect{|id|
       Tk::Tile::Treeview::Item.id2obj(self, id)
     }
   end
   def set_children(item, *items)
-    tk_send_without_enc('children', item,
-                        array2tk_list(items.flatten, true))
+    tk_send('children', item, items_to_tklist(items.flatten))
     self
   end
 
   def delete(*items)
-    tk_send_without_enc('delete', array2tk_list(items.flatten, true))
+    tk_send('delete', items_to_tklist(items.flatten))
     self
   end
 
   def detach(*items)
-    tk_send_without_enc('detach', array2tk_list(items.flatten, true))
+    tk_send('detach', items_to_tklist(items.flatten))
     self
   end
 
   def exist?(item)
-    bool(tk_send_without_enc('exists', _get_eval_enc_str(item)))
+    bool(tk_send('exists', eval_string(item)))
   end
 
   def focus_item(item = nil)
@@ -611,7 +704,7 @@ class Tk::Tile::Treeview < TkWindow
 
   def identify(x, y)
     # tile-0.7.2 or previous
-    ret = simplelist(tk_send('identify', x, y))
+    ret = TclTkLib._split_tklist(tk_send('identify', x, y))
     case ret[0]
     when 'heading', 'separator'
       ret[-1] = num_or_str(ret[-1])
@@ -693,33 +786,33 @@ class Tk::Tile::Treeview < TkWindow
   end
 
   def selection
-    simplelist(tk_send('selection')).collect{|id|
+    TclTkLib._split_tklist(tk_send('selection')).collect{|id|
       Tk::Tile::Treeview::Item.id2obj(self, id)
     }
   end
   alias selection_get selection
 
   def selection_add(*items)
-    tk_send('selection', 'add', array2tk_list(items.flatten, true))
+    tk_send('selection', 'add', items_to_tklist(items.flatten))
     self
   end
   def selection_remove(*items)
-    tk_send('selection', 'remove', array2tk_list(items.flatten, true))
+    tk_send('selection', 'remove', items_to_tklist(items.flatten))
     self
   end
   def selection_set(*items)
-    tk_send('selection', 'set', array2tk_list(items.flatten, true))
+    tk_send('selection', 'set', items_to_tklist(items.flatten))
     self
   end
   def selection_toggle(*items)
-    tk_send('selection', 'toggle', array2tk_list(items.flatten, true))
+    tk_send('selection', 'toggle', items_to_tklist(items.flatten))
     self
   end
 
   def get_directory(item)
     # tile-0.7+
     ret = []
-    lst = simplelist(tk_send('set', item))
+    lst = TclTkLib._split_tklist(tk_send('set', item))
     until lst.empty?
       col = lst.shift
       val = lst.shift
@@ -741,58 +834,58 @@ class Tk::Tile::Treeview < TkWindow
     bool(tk_send('tag', 'has', tagid(tag), tagid(item)))
   end
   def tag_has(tag)
-    tk_split_simplelist(tk_send('tag', 'has', tagid(tag))).collect{|id|
+    TclTkLib._split_tklist(tk_send('tag', 'has', tagid(tag))).collect{|id|
       Tk::Tile::Treeview::Item.id2obj(self, id)
     }
   end
 
   def tag_bind(tag, seq, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
     end
-    _bind([@path, 'tag', 'bind', tag], seq, cmd, *args)
+    do_tag_bind([@path, 'tag', 'bind', tag], seq, cmd, *args)
     self
   end
   alias tagbind tag_bind
 
   def tag_bind_append(tag, seq, *args, &block)
-    if TkComm._callback_entry?(args[0]) || !block
+    if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
     end
-    _bind_append([@path, 'tag', 'bind', tag], seq, cmd, *args)
+    do_tag_bind_append([@path, 'tag', 'bind', tag], seq, cmd, *args)
     self
   end
   alias tagbind_append tag_bind_append
 
   def tag_bind_remove(tag, seq)
-    _bind_remove([@path, 'tag', 'bind', tag], seq)
+    do_tag_bind_remove([@path, 'tag', 'bind', tag], seq)
     self
   end
   alias tagbind_remove tag_bind_remove
 
   def tag_bindinfo(tag, context=nil)
-    _bindinfo([@path, 'tag', 'bind', tag], context)
+    do_tag_bindinfo([@path, 'tag', 'bind', tag], context)
   end
   alias tagbindinfo tag_bindinfo
 
   def tag_names
-    tk_split_simplelist(tk_send('tag', 'names')).collect{|id|
+    TclTkLib._split_tklist(tk_send('tag', 'names')).collect{|id|
       Tk::Tile::Treeview::Tag.id2obj(self, id)
     }
   end
 
   def tag_add(tag, *items)
     fail ArgumentError, "no target items" if items.empty?
-    tk_send('tag', 'add', tagid(tag), array2tk_list(items.flatten, true))
+    tk_send('tag', 'add', tagid(tag), items_to_tklist(items.flatten))
     self
   end
 
   def tag_remove(tag, *items)
-    tk_send('tag', 'remove', tagid(tag), array2tk_list(items.flatten, true))
+    tk_send('tag', 'remove', tagid(tag), items_to_tklist(items.flatten))
     self
   end
 

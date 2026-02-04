@@ -207,6 +207,62 @@ class TestTkTextTag < Minitest::Test
     raise errors.join("\n") unless errors.empty?
   end
 
+  def test_texttag_nextrange_with_limit
+    assert_tk_app("TkTextTag nextrange with limit", method(:app_texttag_nextrange_limit))
+  end
+
+  def app_texttag_nextrange_limit
+    require 'tk'
+    require 'tk/text'
+    require 'tk/texttag'
+
+    errors = []
+    text = TkText.new(root)
+    text.insert('end', "Hello World Test String")
+
+    tag = TkTextTag.new(text)
+    tag.add('1.6', '1.11')   # "World"
+    tag.add('1.12', '1.16')  # "Test"
+
+    # nextrange with last limit — search only up to 1.10 (before World ends)
+    next_r = tag.nextrange('1.0', '1.5')
+    errors << "nextrange with limit before tag should be empty, got #{next_r.inspect}" unless next_r.empty?
+
+    # nextrange with limit that includes first tag
+    next_r2 = tag.nextrange('1.0', '1.12')
+    errors << "nextrange with limit should find World" unless next_r2[0].to_s == '1.6'
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_texttag_prevrange_with_limit
+    assert_tk_app("TkTextTag prevrange with limit", method(:app_texttag_prevrange_limit))
+  end
+
+  def app_texttag_prevrange_limit
+    require 'tk'
+    require 'tk/text'
+    require 'tk/texttag'
+
+    errors = []
+    text = TkText.new(root)
+    text.insert('end', "Hello World Test String")
+
+    tag = TkTextTag.new(text)
+    tag.add('1.6', '1.11')   # "World"
+    tag.add('1.12', '1.16')  # "Test"
+
+    # prevrange from end with limit past both tags
+    prev_r = tag.prevrange('end', '1.12')
+    errors << "prevrange with limit should find Test, got #{prev_r.inspect}" unless prev_r[0].to_s == '1.12'
+
+    # prevrange with limit that excludes all tags
+    prev_r2 = tag.prevrange('1.5', '1.0')
+    errors << "prevrange before any tag should be empty, got #{prev_r2.inspect}" unless prev_r2.empty?
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
   # --- cget/configure ---
 
   def test_texttag_cget_configure

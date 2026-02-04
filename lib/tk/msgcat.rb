@@ -85,10 +85,12 @@
 #   ]
 #
 # @see https://www.tcl-lang.org/man/tcl8.6/TclCmd/msgcat.htm Tcl msgcat manual
+require_relative 'core/callable'
+
 class TkMsgCatalog < TkObject
   include TkCore
-  extend Tk
-  #extend TkMsgCatalog
+  extend Tk::Core::Callable
+  extend TkUtil
 
   TkCommandNames = [
     '::msgcat::mc'.freeze,
@@ -111,9 +113,9 @@ class TkMsgCatalog < TkObject
   end
 
   if self.const_defined? :FORCE_VERSION
-    tk_call_without_enc('package', 'require', 'msgcat', FORCE_VERSION)
+    tk_call('package', 'require', 'msgcat', FORCE_VERSION)
   else
-    tk_call_without_enc('package', 'require', 'msgcat')
+    tk_call('package', 'require', 'msgcat')
   end
 
   MSGCAT_EXT = '.msg'
@@ -239,7 +241,7 @@ class TkMsgCatalog < TkObject
   #   TkMsgCatalog['Hello %s', 'World']  # => "Hola World"
   def self.translate(*args)
     dst = args.collect{|src|
-      tk_call_without_enc('::msgcat::mc', _get_eval_string(src, true))
+      tk_call('::msgcat::mc', src.to_s)
     }
     sprintf(*dst)
   end
@@ -306,7 +308,7 @@ class TkMsgCatalog < TkObject
   #
   # @return [Array<String>] Locale codes in preference order
   def self.preferences
-    tk_split_simplelist(tk_call('::msgcat::mcpreferences'))
+    TclTkLib._split_tklist(tk_call('::msgcat::mcpreferences'))
   end
 
   # (see .preferences)
@@ -384,11 +386,9 @@ class TkMsgCatalog < TkObject
   #   TkMsgCatalog.set_translation('ja', 'Hello', 'こんにちは')
   def self.set_translation(locale, src_str, trans_str=None, enc='utf-8')
     if trans_str && trans_str != None
-      tk_call_without_enc('::msgcat::mcset', locale,
-                          _get_eval_string(src_str, true), trans_str)
+      tk_call('::msgcat::mcset', locale, src_str.to_s, trans_str)
     else
-      tk_call_without_enc('::msgcat::mcset', locale,
-                          _get_eval_string(src_str, true))
+      tk_call('::msgcat::mcset', locale, src_str.to_s)
     end
   end
 
@@ -426,30 +426,29 @@ class TkMsgCatalog < TkObject
     list = []
     trans_list.each{|src, trans|
       if trans && trans != None
-        list << _get_eval_string(src, true)
+        list << src.to_s
         list << trans.to_s
       else
-        list << _get_eval_string(src, true) << ''
+        list << src.to_s << ''
       end
     }
-    number(tk_call_without_enc('::msgcat::mcmset', locale, list))
+    number(tk_call('::msgcat::mcmset', locale, TclTkLib._merge_tklist(*list)))
   end
 
   # (see .set_translation_list)
   def set_translation_list(locale, trans_list, enc='utf-8')
     # trans_list ::= [ [src, trans], [src, trans], ... ]
-    # ScopeArgs overrides tk_call_without_enc to wrap with namespace eval
     list = []
     trans_list.each{|src, trans|
       if trans && trans != None
-        list << _get_eval_string(src, true)
+        list << src.to_s
         list << trans.to_s
       else
-        list << _get_eval_string(src, true) << ''
+        list << src.to_s << ''
       end
     }
     number(@namespace.eval{
-             tk_call_without_enc('::msgcat::mcmset', locale, list)
+             tk_call('::msgcat::mcmset', locale, TclTkLib._merge_tklist(*list))
            })
   end
 
@@ -514,7 +513,7 @@ class TkMsgCatalog < TkObject
     cb_id = UNKNOWN_CB_IDS[ip]
 
     # Create the Tcl proc that will call back to Ruby
-    tk_call_without_enc('namespace', 'eval', '::ruby_tk', '')
+    tk_call('namespace', 'eval', '::ruby_tk', '')
     TkCore::INTERP._invoke_without_enc('proc', proc_name, 'args',
       "ruby_callback #{cb_id} {#{ns_path}} {*}$args")
 

@@ -62,6 +62,7 @@ jobs:
       env:
         TCLLIBPATH: ${{ github.workspace }}/ext/trofs
         TROFS_LIBRARY: ${{ github.workspace }}/ext/trofs/library
+        MINITEST_REPORTER: default
 
     - name: Upload test results
       if: always()

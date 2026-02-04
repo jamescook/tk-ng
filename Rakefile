@@ -147,7 +147,7 @@ end
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test'
   t.test_files = FileList['test/**/test_*.rb']
-  t.verbose = true
+  t.verbose = false
 end
 
 task test: [:compile, :clean_coverage]
@@ -156,7 +156,7 @@ namespace :test do
   Rake::TestTask.new(:widget) do |t|
     t.libs << 'test'
     t.test_files = FileList['test/widget/test_*.rb']
-    t.verbose = true
+    t.verbose = false
   end
 
   task widget: [:compile, :clean_coverage]
@@ -164,7 +164,7 @@ namespace :test do
   Rake::TestTask.new(:tkimg) do |t|
     t.libs << 'test'
     t.test_files = FileList['test/tkextlib/tkimg/test_*.rb']
-    t.verbose = true
+    t.verbose = false
   end
 
   task tkimg: :compile
@@ -172,7 +172,7 @@ namespace :test do
   Rake::TestTask.new(:tile) do |t|
     t.libs << 'test'
     t.test_files = FileList['test/tkextlib/tile/test_*.rb']
-    t.verbose = true
+    t.verbose = false
   end
 
   task tile: :compile
@@ -544,7 +544,7 @@ namespace :bwidget do
   Rake::TestTask.new(:test) do |t|
     t.libs << 'test'
     t.test_files = FileList['lib/tkextlib/bwidget/test/test_*.rb']
-    t.verbose = true
+    t.verbose = false
   end
 
   task test: :compile do
@@ -631,6 +631,7 @@ namespace :docker do
     cmd += " -e TEST='#{ENV['TEST']}'" if ENV['TEST']
     # Pass TESTOPTS for minitest options (e.g., -v for verbose)
     cmd += " -e TESTOPTS=#{ENV['TESTOPTS']}" if ENV['TESTOPTS']
+    cmd += " -e MINITEST_LLM_SUITE=main"
     if ENV['COVERAGE'] == '1'
       cmd += " -e COVERAGE=1"
       cmd += " -e COVERAGE_NAME=#{ENV['COVERAGE_NAME'] || 'main'}"
@@ -658,6 +659,7 @@ namespace :docker do
       puts "Running widget tests in Docker (Ruby #{ruby_version}, Tcl #{tcl_version})..."
       cmd = "docker run --rm --init"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " -e MINITEST_LLM_SUITE=widget"
       cmd += " #{image_name}"
       cmd += " xvfb-run -a bundle exec rake test:widget"
 
@@ -677,6 +679,7 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " -e MINITEST_LLM_SUITE=bwidget"
       if ENV['COVERAGE'] == '1'
         cmd += " -e COVERAGE=1"
         cmd += " -e COVERAGE_NAME=bwidget"
@@ -700,6 +703,7 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " -e MINITEST_LLM_SUITE=tkdnd"
       if ENV['COVERAGE'] == '1'
         cmd += " -e COVERAGE=1"
         cmd += " -e COVERAGE_NAME=tkdnd"
@@ -723,6 +727,7 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " -e MINITEST_LLM_SUITE=tkimg"
       if ENV['COVERAGE'] == '1'
         cmd += " -e COVERAGE=1"
         cmd += " -e COVERAGE_NAME=tkimg"
@@ -748,6 +753,7 @@ namespace :docker do
       cmd += " -e TCL_VERSION=#{tcl_version}"
       cmd += " -e TEST=#{ENV['TEST']}" if ENV['TEST']
       cmd += " -e TESTOPTS=#{ENV['TESTOPTS']}" if ENV['TESTOPTS']
+      cmd += " -e MINITEST_LLM_SUITE=tile"
       if ENV['COVERAGE'] == '1'
         cmd += " -e COVERAGE=1"
         cmd += " -e COVERAGE_NAME=tile"
@@ -773,6 +779,7 @@ namespace :docker do
       cmd = "docker run --rm --init"
       cmd += " -v #{Dir.pwd}/coverage:/app/coverage"
       cmd += " -e TCL_VERSION=#{tcl_version}"
+      cmd += " -e MINITEST_LLM_SUITE=ruby4x"
       if ENV['COVERAGE'] == '1'
         cmd += " -e COVERAGE=1"
         cmd += " -e COVERAGE_NAME=ruby4x"
@@ -882,7 +889,16 @@ namespace :docker do
 
   desc "Remove dangling Docker images from ruby-tk builds"
   task :prune do
-    sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
+    verbose = ENV['VERBOSE'] || ENV['V']
+    if verbose
+      sh "docker image prune -f --filter label=#{DOCKER_LABEL}"
+    else
+      output = `docker image prune -f --filter label=#{DOCKER_LABEL} 2>&1`
+      unless $?.success?
+        $stderr.puts output
+        fail "docker image prune failed"
+      end
+    end
   end
 
   # Auto-prune after test tasks

@@ -34,9 +34,12 @@
 #   by the system theme despite proper specification.
 #
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/option.htm Tcl/Tk option manual
+require_relative 'core/callable'
+
 module TkOptionDB
-  include Tk
-  extend Tk
+  include Tk::Core::Callable
+  extend Tk::Core::Callable
+  extend TkUtil
 
   TkCommandNames = ['option'.freeze].freeze
 
@@ -63,7 +66,7 @@ module TkOptionDB
   # @param value [String] Option value
   # @param pri [Integer, Symbol] Priority (default: Interactive/80)
   # @return [String] Empty string
-  def add(pat, value, pri=None)
+  def add(pat, value, pri=TkUtil::None)
     tk_call('option', 'add', pat, value, pri)
   end
 
@@ -71,7 +74,7 @@ module TkOptionDB
   # @note Widget defaults will reload automatically on next add operation.
   # @return [void]
   def clear
-    tk_call_without_enc('option', 'clear')
+    tk_call('option', 'clear')
   end
 
   # Retrieves an option value for a window.
@@ -87,7 +90,7 @@ module TkOptionDB
   # @param file [String] Path to resource file (UTF-8 encoded)
   # @param pri [Integer, Symbol] Priority for all loaded options
   # @return [void]
-  def readfile(file, pri=None)
+  def readfile(file, pri=TkUtil::None)
     tk_call('option', 'readfile', file, pri)
   end
   alias read_file readfile
@@ -131,7 +134,7 @@ module TkOptionDB
   end
   module_function :read_entries
 
-  def read_with_encoding(file, f_enc=nil, pri=None)
+  def read_with_encoding(file, f_enc=nil, pri=TkUtil::None)
     # try to read the file as an OptionDB file
     read_entries(file, f_enc).each{|pat, val|
       add(pat, val, pri)

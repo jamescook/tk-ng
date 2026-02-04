@@ -3,6 +3,7 @@
 # tk/textimage.rb - treat Tk text image object
 #
 require 'tk/text'
+require_relative 'core/callable'
 
 # An image embedded within a Text widget.
 #
@@ -43,7 +44,9 @@ require 'tk/text'
 # @see TkTextWindow For embedding widgets instead of images
 # @see TkPhotoImage For creating images
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
-class TkTextImage<TkObject
+class TkTextImage
+  include TkUtil
+  include Tk::Core::Callable
   include Tk::Text::IndexModMethods
 
   def initialize(parent, index, keys)
@@ -54,20 +57,20 @@ class TkTextImage<TkObject
     if index == 'end' || index == :end
       @path = TkTextMark.new(@t, tk_call(@t.path, 'index', 'end - 1 chars'))
     elsif index.kind_of? TkTextMark
-      if tk_call_without_enc(@t.path,'index',index.path) == tk_call_without_enc(@t.path,'index','end')
-        @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
+      if tk_call(@t.path,'index',index.path) == tk_call(@t.path,'index','end')
+        @path = TkTextMark.new(@t, tk_call(@t.path, 'index',
                                                        'end - 1 chars'))
       else
-        @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
+        @path = TkTextMark.new(@t, tk_call(@t.path, 'index',
                                                        index.path))
       end
     else
-      @path = TkTextMark.new(@t, tk_call_without_enc(@t.path, 'index',
-                                                     _get_eval_enc_str(index)))
+      @path = TkTextMark.new(@t, tk_call(@t.path, 'index',
+                                                     index.to_s))
     end
     @path.gravity = 'left'
     @index = @path.path
-    @id = tk_call_without_enc(@t.path, 'image', 'create', @index,
+    @id = tk_call(@t.path, 'image', 'create', @index,
                               *hash_kv(keys, true)).freeze
     @path.gravity = 'right'
   end
@@ -112,13 +115,16 @@ class TkTextImage<TkObject
   end
 
   def image
-    img = tk_call_without_enc(@t.path, 'image', 'cget', @index, '-image')
+    img = tk_call(@t.path, 'image', 'cget', @index, '-image')
     TkImage::Tk_IMGTBL[img]? TkImage::Tk_IMGTBL[img] : img
   end
 
   def image=(value)
-    tk_call_without_enc(@t.path, 'image', 'configure', @index, '-image',
-                        _get_eval_enc_str(value))
+    val = if value.respond_to?(:path) then value.path
+          elsif value.respond_to?(:to_eval) then value.to_eval
+          else value.to_s
+          end
+    tk_call(@t.path, 'image', 'configure', @index, '-image', val)
     #self
     value
   end

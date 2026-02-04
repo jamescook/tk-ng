@@ -390,4 +390,151 @@ class TestNamespace < Minitest::Test
 
     raise errors.join("\n") unless errors.empty?
   end
+
+  def test_namespace_inscope
+    assert_tk_app("Namespace inscope", method(:namespace_inscope_app))
+  end
+
+  def namespace_inscope_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    ns = TkNamespace.new("inscope_test")
+
+    # inscope evaluates a Tcl script in the given namespace with args appended
+    result = TkNamespace.inscope(ns.path, "return", "hello")
+    errors << "inscope should return 'hello', got '#{result}'" unless result == "hello"
+
+    # Instance method
+    result2 = ns.inscope("return", "world")
+    errors << "instance inscope should return 'world', got '#{result2}'" unless result2 == "world"
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_origin
+    assert_tk_app("Namespace origin", method(:namespace_origin_app))
+  end
+
+  def namespace_origin_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    # origin returns the fully qualified name of the original command
+    result = TkNamespace.origin("::set")
+    errors << "origin of ::set should be ::set, got '#{result}'" unless result == "::set"
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_which_variable
+    assert_tk_app("Namespace which_variable", method(:namespace_which_variable_app))
+  end
+
+  def namespace_which_variable_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    # Create a variable in a namespace via Tcl
+    ns = TkNamespace.new("whichvar_test")
+    ns.eval { tk_call('set', 'myvar', '42') }
+
+    result = TkNamespace.which_variable("::whichvar_test::myvar")
+    errors << "which_variable should find var, got '#{result}'" if result.empty?
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_set_path
+    assert_tk_app("Namespace set_path", method(:namespace_set_path_app))
+  end
+
+  def namespace_set_path_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    ns1 = TkNamespace.new("pathtest1")
+    ns2 = TkNamespace.new("pathtest2")
+
+    # set_path sets the namespace search path
+    TkNamespace.set_path(ns1.path, ns2.path)
+    path = TkNamespace.get_path
+    errors << "path should include pathtest1, got '#{path}'" unless path.include?("pathtest1")
+    errors << "path should include pathtest2, got '#{path}'" unless path.include?("pathtest2")
+
+    # Reset path
+    TkNamespace.set_path
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_force_import
+    assert_tk_app("Namespace force_import", method(:namespace_force_import_app))
+  end
+
+  def namespace_force_import_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    # Create a namespace with an exported proc
+    ns = TkNamespace.new("force_imp_src")
+    ns.eval { tk_call('proc', 'myfunc', '', 'return ok') }
+    ns.eval { tk_call('namespace', 'export', 'myfunc') }
+
+    # Import it
+    TkNamespace.import("#{ns.path}::myfunc")
+
+    # force_import should not raise even though it's already imported
+    TkNamespace.force_import("#{ns.path}::myfunc")
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_nscode_call
+    assert_tk_app("NsCode call invocation", method(:nscode_call_app))
+  end
+
+  def nscode_call_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    ns = TkNamespace.new("nscode_call_test")
+    code_obj = ns.code("40 + 2")
+
+    result = code_obj.call
+    errors << "NsCode call should return 42, got '#{result}'" unless result == 42
+
+    raise errors.join("\n") unless errors.empty?
+  end
+
+  def test_namespace_eval_string
+    assert_tk_app("Namespace eval with string", method(:namespace_eval_string_app))
+  end
+
+  def namespace_eval_string_app
+    require 'tk'
+    require 'tk/namespace'
+
+    errors = []
+
+    ns = TkNamespace.new("eval_str_test")
+
+    # eval with a string (Ruby code evaluated via instance_eval)
+    result = ns.eval("40 + 2")
+    errors << "eval with string should return 42, got '#{result}'" unless result == 42
+
+    raise errors.join("\n") unless errors.empty?
+  end
 end

@@ -6,17 +6,27 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_frame.html
 #
 require 'tk'
+require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
 module Tk
   module Tile
-    class TFrame < Tk::Frame
+    class TFrame
     end
     Frame = TFrame
   end
 end
 
-class Tk::Tile::TFrame < Tk::Frame
+class Tk::Tile::TFrame
+  include TkUtil
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkFrame
 

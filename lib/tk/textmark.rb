@@ -3,6 +3,7 @@
 # tk/textmark.rb - methods for treating text marks
 #
 require 'tk/text'
+require_relative 'core/callable'
 
 # A position marker in a Text widget that floats with the text.
 #
@@ -42,8 +43,15 @@ require 'tk/text'
 # @see TkTextMarkCurrent The "current" mark (mouse position)
 # @see TkTextTag For styling and event handling on text ranges
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
-class TkTextMark<TkObject
+class TkTextMark
+  include Tk::Core::Callable
   include Tk::Text::IndexModMethods
+
+  attr_reader :path
+
+  def to_eval
+    @path
+  end
 
   (Tk_TextMark_ID = ['mark'.freeze, '00000']).instance_eval{
     @mutex = Mutex.new
@@ -67,8 +75,8 @@ class TkTextMark<TkObject
       @path = @id = Tk_TextMark_ID.join(TkCore::INTERP._ip_id_).freeze
       Tk_TextMark_ID[1].succ!
     }
-    tk_call_without_enc(@t.path, 'mark', 'set', @id,
-                        _get_eval_enc_str(index))
+    tk_call(@t.path, 'mark', 'set', @id,
+                        index.to_s)
     @t._addtag id, self
   end
 
@@ -77,12 +85,7 @@ class TkTextMark<TkObject
   end
 
   def exist?
-    #if ( tk_split_simplelist(_fromUTF8(tk_call_without_enc(@t.path, 'mark', 'names'))).find{|id| id == @id } )
-    if ( tk_split_simplelist(tk_call_without_enc(@t.path, 'mark', 'names'), false, true).find{|id| id == @id } )
-      true
-    else
-      false
-    end
+    TclTkLib._split_tklist(tk_call(@t.path, 'mark', 'names')).include?(@id)
   end
 
 =begin
@@ -121,13 +124,13 @@ class TkTextMark<TkObject
   end
 
   def set(where)
-    tk_call_without_enc(@t.path, 'mark', 'set', @id,
-                        _get_eval_enc_str(where))
+    tk_call(@t.path, 'mark', 'set', @id,
+                        where.to_s)
     self
   end
 
   def unset
-    tk_call_without_enc(@t.path, 'mark', 'unset', @id)
+    tk_call(@t.path, 'mark', 'unset', @id)
     self
   end
   alias destroy unset
@@ -135,7 +138,7 @@ class TkTextMark<TkObject
   # Returns the mark's gravity.
   # @return [String] "left" or "right"
   def gravity
-    tk_call_without_enc(@t.path, 'mark', 'gravity', @id)
+    tk_call(@t.path, 'mark', 'gravity', @id)
   end
 
   # Sets the mark's gravity.
@@ -144,24 +147,24 @@ class TkTextMark<TkObject
   # @note Left gravity: mark stays put when text inserted at position.
   #   Right gravity (default): mark moves right when text inserted.
   def gravity=(direction)
-    tk_call_without_enc(@t.path, 'mark', 'gravity', @id, direction)
+    tk_call(@t.path, 'mark', 'gravity', @id, direction)
     #self
     direction
   end
 
   def next(index = nil)
     if index
-      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'next', _get_eval_enc_str(index)))
+      @t.tagid2obj(tk_call(@t.path, 'mark', 'next', index.to_s))
     else
-      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'next', @id))
+      @t.tagid2obj(tk_call(@t.path, 'mark', 'next', @id))
     end
   end
 
   def previous(index = nil)
     if index
-      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'previous', _get_eval_enc_str(index)))
+      @t.tagid2obj(tk_call(@t.path, 'mark', 'previous', index.to_s))
     else
-      @t.tagid2obj(tk_call_without_enc(@t.path, 'mark', 'previous', @id))
+      @t.tagid2obj(tk_call(@t.path, 'mark', 'previous', @id))
     end
   end
 end
@@ -190,8 +193,8 @@ class TkTextNamedMark<TkTextMark
     @parent = @t = parent
     @tpath = parent.path
     @path = @id = name
-    tk_call_without_enc(@t.path, 'mark', 'set', @id,
-                        _get_eval_enc_str(index)) if index
+    tk_call(@t.path, 'mark', 'set', @id,
+                        index.to_s) if index
     @t._addtag @id, self
   end
 end

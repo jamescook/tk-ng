@@ -5,6 +5,7 @@
 require 'tk/text'
 require 'tk/tagfont'
 require_relative 'callback'
+require_relative 'core/callable'
 
 # A named style that can be applied to text ranges in a Text widget.
 #
@@ -56,7 +57,9 @@ require_relative 'callback'
 # @see TkTextTagSel The built-in "sel" tag for text selection
 # @see TkTextMark For position tracking
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/text.htm Tcl/Tk text manual
-class TkTextTag<TkObject
+class TkTextTag
+  include TkUtil
+  include Tk::Core::Callable
   include TkTreatTagFont
   include Tk::Text::IndexModMethods
 
@@ -66,23 +69,24 @@ class TkTextTag<TkObject
     freeze
   }
 
+  attr_reader :path
+
+  def to_eval
+    @path
+  end
+
   # Look up a tag by ID. Delegates to the text widget's tagid2obj.
   def TkTextTag.id2obj(text, id)
     text.tagid2obj(id)
   end
 
   def initialize(parent, *args)
-    #unless parent.kind_of?(TkText)
-    #  fail ArgumentError, "expect TkText for 1st argument"
-    #end
     @parent = @t = parent
     @tpath = parent.path
     Tk_TextTag_ID.mutex.synchronize{
-      # @path = @id = Tk_TextTag_ID.join('')
       @path = @id = Tk_TextTag_ID.join(TkCore::INTERP._ip_id_).freeze
       Tk_TextTag_ID[1].succ!
     }
-    #tk_call @t.path, "tag", "configure", @id, *hash_kv(keys)
     if args != []
       keys = args.pop
       if keys.kind_of?(Hash)
@@ -101,12 +105,7 @@ class TkTextTag<TkObject
   end
 
   def exist?
-    #if ( tk_split_simplelist(_fromUTF8(tk_call_without_enc(@t.path, 'tag', 'names'))).find{|id| id == @id } )
-    if ( tk_split_simplelist(tk_call_without_enc(@t.path, 'tag', 'names'), false, true).find{|id| id == @id } )
-      true
-    else
-      false
-    end
+    TclTkLib._split_tklist(tk_call(@t.path, 'tag', 'names')).include?(@id)
   end
 
   def first
@@ -118,19 +117,19 @@ class TkTextTag<TkObject
   end
 
   def add(*indices)
-    tk_call_without_enc(@t.path, 'tag', 'add', @id,
-                        *(indices.collect{|idx| _get_eval_enc_str(idx)}))
+    tk_call(@t.path, 'tag', 'add', @id,
+            *(indices.collect{|idx| idx.to_s}))
     self
   end
 
   def remove(*indices)
-    tk_call_without_enc(@t.path, 'tag', 'remove', @id,
-                        *(indices.collect{|idx| _get_eval_enc_str(idx)}))
+    tk_call(@t.path, 'tag', 'remove', @id,
+            *(indices.collect{|idx| idx.to_s}))
     self
   end
 
   def ranges
-    l = tk_split_simplelist(tk_call_without_enc(@t.path, 'tag', 'ranges', @id))
+    l = TclTkLib._split_tklist(tk_call(@t.path, 'tag', 'ranges', @id))
     r = []
     while key=l.shift
       r.push [Tk::Text::IndexString.new(key), Tk::Text::IndexString.new(l.shift)]
@@ -138,18 +137,18 @@ class TkTextTag<TkObject
     r
   end
 
-  def nextrange(first, last=None)
-    simplelist(tk_call_without_enc(@t.path, 'tag', 'nextrange', @id,
-                                   _get_eval_enc_str(first),
-                                   _get_eval_enc_str(last))).collect{|idx|
+  def nextrange(first, last=TkUtil::None)
+    args = [@t.path, 'tag', 'nextrange', @id, first.to_s]
+    args << last.to_s unless last == TkUtil::None
+    TclTkLib._split_tklist(tk_call(*args)).collect{|idx|
       Tk::Text::IndexString.new(idx)
     }
   end
 
-  def prevrange(first, last=None)
-    simplelist(tk_call_without_enc(@t.path, 'tag', 'prevrange', @id,
-                                   _get_eval_enc_str(first),
-                                   _get_eval_enc_str(last))).collect{|idx|
+  def prevrange(first, last=TkUtil::None)
+    args = [@t.path, 'tag', 'prevrange', @id, first.to_s]
+    args << last.to_s unless last == TkUtil::None
+    TclTkLib._split_tklist(tk_call(*args)).collect{|idx|
       Tk::Text::IndexString.new(idx)
     }
   end
@@ -173,24 +172,9 @@ class TkTextTag<TkObject
     @t.tag_cget_strict @id, key
   end
 
-  def configure(key, val=None)
+  def configure(key, val=TkUtil::None)
     @t.tag_configure @id, key, val
   end
-#  def configure(key, val=None)
-#    if key.kind_of?(Hash)
-#      tk_call @t.path, 'tag', 'configure', @id, *hash_kv(key)
-#    else
-#      tk_call @t.path, 'tag', 'configure', @id, "-#{key}", val
-#    end
-#  end
-#  def configure(key, value)
-#    if value == false
-#      value = "0"
-#    elsif value.kind_of?(Proc)
-#      value = install_cmd(value)
-#    end
-#    tk_call @t.path, 'tag', 'configure', @id, "-#{key}", value
-#  end
 
   def configinfo(key=nil)
     @t.tag_configinfo @id, key
@@ -200,35 +184,37 @@ class TkTextTag<TkObject
     @t.current_tag_configinfo @id, key
   end
 
+  # Tag binding helpers — same pattern as Treeview tags.
+  # Uses install_bind/uninstall_cmd/tk_event_sequence from TkCallback.
+  include TkCallback
+
   def bind(seq, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
     if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
     end
-    _bind([@t.path, 'tag', 'bind', @id], seq, cmd, *args)
+    do_tag_bind([@t.path, 'tag', 'bind', @id], seq, cmd, *args)
     self
   end
 
   def bind_append(seq, *args, &block)
-    # if args[0].kind_of?(Proc) || args[0].kind_of?(Method)
     if TkCallback._callback_entry?(args[0]) || !block
       cmd = args.shift
     else
       cmd = block
     end
-    _bind_append([@t.path, 'tag', 'bind', @id], seq, cmd, *args)
+    do_tag_bind_append([@t.path, 'tag', 'bind', @id], seq, cmd, *args)
     self
   end
 
   def bind_remove(seq)
-    _bind_remove([@t.path, 'tag', 'bind', @id], seq)
+    do_tag_bind_remove([@t.path, 'tag', 'bind', @id], seq)
     self
   end
 
   def bindinfo(context=nil)
-    _bindinfo([@t.path, 'tag', 'bind', @id], context)
+    do_tag_bindinfo([@t.path, 'tag', 'bind', @id], context)
   end
 
   # Raises this tag's priority.
@@ -238,24 +224,72 @@ class TkTextTag<TkObject
   #
   # @param above [TkTextTag, nil] Position just above this tag, or nil for highest
   # @return [self]
-  def raise(above=None)
-    tk_call_without_enc(@t.path, 'tag', 'raise', @id,
-                        _get_eval_enc_str(above))
+  def raise(above=TkUtil::None)
+    val = if above.respond_to?(:path) then above.path
+          elsif above == TkUtil::None then above
+          else above.to_s
+          end
+    tk_call(@t.path, 'tag', 'raise', @id, val)
     self
   end
 
   # Lowers this tag's priority.
   # @param below [TkTextTag, nil] Position just below this tag, or nil for lowest
   # @return [self]
-  def lower(below=None)
-    tk_call_without_enc(@t.path, 'tag', 'lower', @id,
-                        _get_eval_enc_str(below))
+  def lower(below=TkUtil::None)
+    val = if below.respond_to?(:path) then below.path
+          elsif below == TkUtil::None then below
+          else below.to_s
+          end
+    tk_call(@t.path, 'tag', 'lower', @id, val)
     self
   end
 
   def destroy
-    tk_call_without_enc(@t.path, 'tag', 'delete', @id)
+    tk_call(@t.path, 'tag', 'delete', @id)
     self
+  end
+
+  private
+
+  def do_tag_bind(what, context, cmd, *args)
+    id = install_bind(cmd, *args) if cmd
+    begin
+      tk_call(*(what + ["<#{tk_event_sequence(context)}>", id]))
+    rescue
+      uninstall_cmd(id) if cmd
+      raise
+    end
+  end
+
+  def do_tag_bind_append(what, context, cmd, *args)
+    id = install_bind(cmd, *args) if cmd
+    begin
+      tk_call(*(what + ["<#{tk_event_sequence(context)}>", '+' + id]))
+    rescue
+      uninstall_cmd(id) if cmd
+      raise
+    end
+  end
+
+  def do_tag_bind_remove(what, context)
+    tk_call(*(what + ["<#{tk_event_sequence(context)}>", '']))
+  end
+
+  def do_tag_bindinfo(what, context=nil)
+    if context
+      tk_call(*what + ["<#{tk_event_sequence(context)}>"]).each_line.collect { |cmdline|
+        if cmdline =~ /rb_out\S*(?:\s+(::\S*|[{](::.*)[}]|["](::.*)["]))? (c(_\d+_)?(\d+))/
+          [TkCore::INTERP.tk_cmd_tbl[$4], $5]
+        else
+          cmdline
+        end
+      }
+    else
+      TclTkLib._split_tklist(tk_call(*what)).collect! { |seq|
+        seq[1..-2]
+      }
+    end
   end
 end
 TktTag = TkTextTag

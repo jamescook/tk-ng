@@ -6,11 +6,16 @@
 # See: https://www.tcl-lang.org/man/tcl/TkCmd/ttk_scale.html
 #
 require 'tk'
+require 'tk/option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
 module Tk
   module Tile
-    class TScale < Tk::Scale
+    class TScale
     end
     Scale = TScale
 
@@ -20,7 +25,12 @@ module Tk
   end
 end
 
-class Tk::Tile::TScale < Tk::Scale
+class Tk::Tile::TScale
+  include TkUtil
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
   include Tk::Tile::TileWidget
   include Tk::Generated::TtkScale
 
@@ -37,10 +47,38 @@ class Tk::Tile::TScale < Tk::Scale
   end
 
   alias identify ttk_identify
+
+  def get(x = nil, y = nil)
+    if x && y
+      tk_send('get', x, y).to_f
+    else
+      tk_send('get').to_f
+    end
+  end
+
+  def set(val)
+    tk_send('set', val)
+  end
+
+  def coords(val = nil)
+    if val
+      TclTkLib._split_tklist(tk_send('coords', val))
+    else
+      TclTkLib._split_tklist(tk_send('coords'))
+    end
+  end
+
+  def value
+    get
+  end
+
+  def value=(val)
+    set(val)
+    val
+  end
 end
 
-class Tk::Tile::TProgress < Tk::Tile::TScale
-  include Tk::Tile::TileWidget
+class Tk::Tile::TProgress
 
   if Tk::Tile::USE_TTK_NAMESPACE
     TkCommandNames = ['::ttk::progress'.freeze].freeze

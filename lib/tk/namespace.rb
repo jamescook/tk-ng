@@ -50,8 +50,11 @@ require 'tk/option_dsl'
 #     ens = TkNamespace::Ensemble.new(map: {'add' => '::mymath::add'})
 #
 # @see https://www.tcl-lang.org/man/tcl8.6/TclCmd/namespace.htm Tcl namespace docs
+require_relative 'core/callable'
+
 class TkNamespace < TkObject
-  extend Tk
+  extend Tk::Core::Callable
+  extend TkUtil
 
   # @!visibility private
   TkCommandNames = [
@@ -374,7 +377,7 @@ class TkNamespace < TkObject
   def self.children(*args)
     # args ::= [<namespace>] [<pattern>]
     # <pattern> must be glob-style pattern
-    tk_split_simplelist(tk_call('namespace', 'children', *args)).collect{|ns|
+    TclTkLib._split_tklist(tk_call('namespace', 'children', *args)).collect{|ns|
       # ns is fullname
       Tk_Namespace_ID_TBL.mutex.synchronize{
         if Tk_Namespace_ID_TBL.key?(ns)
@@ -502,7 +505,7 @@ class TkNamespace < TkObject
       tk_call('namespace', 'ensemble', 'configure', cmd, '-' + slot.to_s)
     else
       inf = {}
-      Hash(*tk_split_simplelist(tk_call('namespace', 'ensemble', 'configure', cmd))).each{|k, v| inf[k[1..-1]] = v}
+      Hash(*TclTkLib._split_tklist(tk_call('namespace', 'ensemble', 'configure', cmd))).each{|k, v| inf[k[1..-1]] = v}
       inf
     end
   end
@@ -676,7 +679,7 @@ class TkNamespace < TkObject
   # @param namespace_list [Array<String>] Namespaces to search
   # @return [void]
   def self.set_path(*namespace_list)
-    tk_call('namespace', 'path', array2tk_list(namespace_list))
+    tk_call('namespace', 'path', TclTkLib._merge_tklist(*namespace_list.flatten.map(&:to_s)))
   end
 
   # Add this namespace to the search path.
@@ -729,7 +732,8 @@ class TkNamespace < TkObject
   # Get the unknown command handler.
   # @return [Object] Current handler
   def self.get_unknown_handler
-    tk_tcl2ruby(tk_call('namespace', 'unknown'))
+    id = tk_call('namespace', 'unknown')
+    TkCore::INTERP.tk_windows[id] || id
   end
   # Set the unknown command handler.
   #

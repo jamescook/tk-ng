@@ -129,6 +129,98 @@ module Tk
     TkCallback.uninstall_cmd(id, @cmdtbl)
   end
 
+  # Register a binding callback for a specific event class.
+  #
+  # Wraps the given command in a proc that handles event substitution
+  # and error reporting, then registers it via install_cmd.
+  #
+  # @param klass [Class] Event class (e.g., TkEvent::Event)
+  # @param cmd [Proc, Method, String, TkCallbackEntry] Callback
+  # @param args [Array<Symbol>] Event fields to pass to callback
+  # @return [String] Tcl command string with substitution args
+  def install_bind_for_event_class(klass, cmd, *args)
+    extra_args_tbl = klass._get_extra_args_tbl
+
+    if args.compact.size > 0
+      args.map!{|arg| klass._sym2subst(arg)}
+      args = args.join(' ')
+      keys = klass._get_subst_key(args)
+
+      if cmd.kind_of?(String)
+        id = cmd
+      elsif cmd.kind_of?(TkCallbackEntry)
+        id = install_cmd(cmd)
+      else
+        id = install_cmd(proc{|*arg|
+          ex_args = []
+          extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
+          TkUtil.eval_cmd(cmd, *(ex_args.concat(klass.scan_args(keys, arg))))
+        })
+      end
+    elsif cmd.respond_to?(:arity) && cmd.arity == 0
+      args = ''
+      if cmd.kind_of?(String)
+        id = cmd
+      elsif cmd.kind_of?(TkCallbackEntry)
+        id = install_cmd(cmd)
+      else
+        id = install_cmd(proc{ TkUtil.eval_cmd(cmd) })
+      end
+    else
+      keys, args = klass._get_all_subst_keys
+
+      if cmd.kind_of?(String)
+        id = cmd
+      elsif cmd.kind_of?(TkCallbackEntry)
+        id = install_cmd(cmd)
+      else
+        id = install_cmd(proc{|*arg|
+          ex_args = []
+          extra_args_tbl.reverse_each{|conv| ex_args << conv.call(arg.pop)}
+          TkUtil.eval_cmd(cmd, *(ex_args << klass.new(*klass.scan_args(keys, arg))))
+        })
+      end
+    end
+
+    id + ' ' + args
+  end
+
+  # Register a binding callback using the default TkEvent::Event class.
+  #
+  # @param cmd [Proc, Method, String, TkCallbackEntry] Callback
+  # @param args [Array<Symbol>] Event fields to pass to callback
+  # @return [String] Tcl command string
+  def install_bind(cmd, *args)
+    install_bind_for_event_class(TkEvent::Event, cmd, *args)
+  end
+
+  # Normalize an event sequence string, array, or TkVirtualEvent.
+  #
+  # Handles TkVirtualEvent objects, arrays of sequences, and
+  # comma-separated strings (converting commas to "><" joins).
+  #
+  # @param context [String, Array, TkVirtualEvent] Event sequence
+  # @return [String] Normalized event sequence
+  def tk_event_sequence(context)
+    if context.kind_of?(TkVirtualEvent)
+      context = context.path
+    end
+    if context.kind_of?(Array)
+      context = context.collect{|ev|
+        if ev.kind_of?(TkVirtualEvent)
+          ev.path
+        else
+          ev
+        end
+      }.join("><")
+    end
+    if /,/ =~ context
+      context = context.split(/\s*,\s*/).join("><")
+    else
+      context
+    end
+  end
+
   # Raise to signal Tk should stop event propagation
   def callback_break
     fail TkCallbackBreak, "Tk callback returns 'break' status"

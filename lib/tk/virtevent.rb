@@ -42,9 +42,11 @@
 #   TkVirtualEvent.info  #=> [<<Copy>>, <<Paste>>, <<Cut>>, ...]
 #
 require 'tk'
+require_relative 'core/callable'
 
-class TkVirtualEvent<TkObject
-  extend Tk
+class TkVirtualEvent
+  include Tk::Core::Callable
+  extend Tk::Core::Callable
 
   TkCommandNames = ['event'.freeze].freeze
 
@@ -82,7 +84,7 @@ class TkVirtualEvent<TkObject
 
     def initialize(event, *sequences)
       @path = @id = event
-      _add_sequences(sequences)
+      add_sequences(sequences)
     end
   end
 
@@ -94,7 +96,7 @@ class TkVirtualEvent<TkObject
     if obj
       obj
     else
-      if tk_call_without_enc('event', 'info').index("<#{event}>")
+      if tk_call('event', 'info').index("<#{event}>")
         PreDefVirtEvent.new(event)
       else
         fail ArgumentError, "undefined virtual event '<#{event}>'"
@@ -103,7 +105,7 @@ class TkVirtualEvent<TkObject
   end
 
   def TkVirtualEvent.info
-    tk_call_without_enc('event', 'info').split(/\s+/).collect!{|seq|
+    tk_call('event', 'info').split(/\s+/).collect!{|seq|
       TkVirtualEvent.getobj(seq[1..-2])
     }
   end
@@ -114,23 +116,52 @@ class TkVirtualEvent<TkObject
       @path = @id = '<' + TkVirtualEventID.join(TkCore::INTERP._ip_id_) + '>'
       TkVirtualEventID[1].succ!
     }
-    _add_sequences(sequences)
+    add_sequences(sequences)
   end
 
-  def _add_sequences(seq_ary)
+  attr_reader :path
+
+  def to_eval
+    @path
+  end
+
+  def add_sequences(seq_ary)
     unless seq_ary.empty?
-      tk_call_without_enc('event', 'add', "<#{@id}>",
+      tk_call('event', 'add', "<#{@id}>",
                           *(seq_ary.collect{|seq|
                               "<#{tk_event_sequence(seq)}>"
                             }) )
     end
     self
   end
-  private :_add_sequences
+  private :add_sequences
+
+  # Normalize an event sequence string or array.
+  # Handles TkVirtualEvent objects, arrays, and comma-separated strings.
+  def tk_event_sequence(context)
+    if context.kind_of? TkVirtualEvent
+      context = context.path
+    end
+    if context.kind_of? Array
+      context = context.collect{|ev|
+        if ev.kind_of? TkVirtualEvent
+          ev.path
+        else
+          ev
+        end
+      }.join("><")
+    end
+    if /,/ =~ context
+      context = context.split(/\s*,\s*/).join("><")
+    else
+      context
+    end
+  end
+  private :tk_event_sequence
 
   def add(*sequences)
     if sequences != []
-      _add_sequences(sequences)
+      add_sequences(sequences)
       TkVirtualEventTBL.mutex.synchronize{
         TkVirtualEventTBL[@id] = self
       }
@@ -140,16 +171,16 @@ class TkVirtualEvent<TkObject
 
   def delete(*sequences)
     if sequences.empty?
-      tk_call_without_enc('event', 'delete', "<#{@id}>")
+      tk_call('event', 'delete', "<#{@id}>")
       TkVirtualEventTBL.mutex.synchronize{
         TkVirtualEventTBL.delete(@id)
       }
     else
-      tk_call_without_enc('event', 'delete', "<#{@id}>",
+      tk_call('event', 'delete', "<#{@id}>",
                           *(sequences.collect{|seq|
                               "<#{tk_event_sequence(seq)}>"
                             }) )
-      if tk_call_without_enc('event','info',"<#{@id}>").empty?
+      if tk_call('event','info',"<#{@id}>").empty?
         TkVirtualEventTBL.mutex.synchronize{
           TkVirtualEventTBL.delete(@id)
         }
@@ -159,7 +190,7 @@ class TkVirtualEvent<TkObject
   end
 
   def info
-    tk_call_without_enc('event','info',"<#{@id}>").split(/\s+/).collect!{|seq|
+    tk_call('event','info',"<#{@id}>").split(/\s+/).collect!{|seq|
       lst = seq.scan(/<*[^<>]+>*/).collect!{|subseq|
         case (subseq)
         when /^<<[^<>]+>>$/

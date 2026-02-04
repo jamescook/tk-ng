@@ -9,16 +9,26 @@ require 'tk'
 require 'tk/option_dsl'
 require 'tk/item_option_dsl'
 require 'tkextlib/tile.rb'
+require_relative '../../tk/core/callable'
+require_relative '../../tk/core/configurable'
+require_relative '../../tk/core/widget'
+require_relative '../../tk/callback'
 
 module Tk
   module Tile
-    class TNotebook < TkWindow
+    class TNotebook
     end
     Notebook = TNotebook
   end
 end
 
-class Tk::Tile::TNotebook < TkWindow
+class Tk::Tile::TNotebook
+  include TkUtil
+  include Tk::Core::Callable
+  include Tk::Core::Configurable
+  include TkCallback
+  include Tk::Core::Widget
+
   extend Tk::OptionDSL
   extend Tk::ItemOptionDSL
   ################################
@@ -44,7 +54,7 @@ class Tk::Tile::TNotebook < TkWindow
       [slot, '', '', '', tabcget(tagOrId, slot)]
     else
       # All options: parse dict from 'tab tabid' command
-      dict = tk_split_simplelist(tk_call_without_enc(self.path, 'tab', tagOrId))
+      dict = TclTkLib._split_tklist(tk_call(self.path, 'tab', tagOrId))
       result = []
       dict.each_slice(2) do |opt, val|
         opt = opt[1..-1] if opt.to_s.start_with?('-')
@@ -58,7 +68,7 @@ class Tk::Tile::TNotebook < TkWindow
     if slot
       { slot.to_s => tabcget(tagOrId, slot) }
     else
-      dict = tk_split_simplelist(tk_call_without_enc(self.path, 'tab', tagOrId))
+      dict = TclTkLib._split_tklist(tk_call(self.path, 'tab', tagOrId))
       result = {}
       dict.each_slice(2) do |opt, val|
         opt = opt[1..-1] if opt.to_s.start_with?('-')
@@ -101,20 +111,21 @@ class Tk::Tile::TNotebook < TkWindow
 
   def enable_traversal()
     if Tk::Tile::TILE_SPEC_VERSION_ID < 5
-      tk_call_without_enc('::tile::enableNotebookTraversal', @path)
+      tk_call('::tile::enableNotebookTraversal', @path)
     elsif Tk::Tile::TILE_SPEC_VERSION_ID < 7
-      tk_call_without_enc('::tile::notebook::enableTraversal', @path)
+      tk_call('::tile::notebook::enableTraversal', @path)
     else
-      tk_call_without_enc('::ttk::notebook::enableTraversal', @path)
+      tk_call('::ttk::notebook::enableTraversal', @path)
     end
     self
   end
 
   def add(child, keys=nil)
+    w = child.respond_to?(:epath) ? child.epath : (child.respond_to?(:path) ? child.path : child)
     if keys && keys != None
-      tk_send('add', _epath(child), *hash_kv(keys))
+      tk_send('add', w, *hash_kv(keys))
     else
-      tk_send('add', _epath(child))
+      tk_send('add', w)
     end
     self
   end
@@ -147,11 +158,14 @@ class Tk::Tile::TNotebook < TkWindow
   end
 
   def selected
-    window(tk_send_without_enc('select'))
+    id = tk_send('select')
+    (id.empty?) ? nil : (TkCore::INTERP.tk_windows[id] || id)
   end
 
   def tabs
-    list(tk_send('tabs'))
+    TclTkLib._split_tklist(tk_send('tabs')).map { |w|
+      TkCore::INTERP.tk_windows[w] || w
+    }
   end
 end
 

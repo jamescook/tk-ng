@@ -4,9 +4,10 @@
 #                     1998/06/21 by Hidetoshi Nagai <nagai@ai.kyutech.ac.jp>
 #
 
+require_relative 'core/callable'
+
 module TkPalette
-  include Tk
-  extend Tk
+  extend Tk::Core::Callable
 
   TkCommandNames = [
     'tk_setPalette'.freeze,

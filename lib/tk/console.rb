@@ -2,10 +2,11 @@
 #
 #   tk/console.rb : control the console on system without a real console
 #
+require_relative 'core/callable'
 
 module TkConsole
-  include Tk
-  extend Tk
+  extend Tk::Core::Callable
+  extend TkUtil
 
   TkCommandNames = ['console'.freeze, 'consoleinterp'.freeze].freeze
 
@@ -17,32 +18,30 @@ module TkConsole
     tk_call 'console', 'title', str
   end
   def self.hide
-    tk_call_without_enc('console', 'hide')
+    tk_call('console', 'hide')
   end
   def self.show
-    tk_call_without_enc('console', 'show')
+    tk_call('console', 'show')
   end
   def self.eval(tcl_script)
     #
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    tk_call_without_enc('console', 'eval', _get_eval_enc_str(tcl_script))
+    tk_call('console', 'eval', tcl_script.to_s)
   end
   def self.maininterp_eval(tcl_script)
     #
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    tk_call_without_enc('consoleinterp', 'eval', _get_eval_enc_str(tcl_script))
-
+    tk_call('consoleinterp', 'eval', tcl_script.to_s)
   end
   def self.maininterp_record(tcl_script)
     #
     # supports a Tcl script only
     # I have no idea to support a Ruby script seamlessly.
     #
-    tk_call_without_enc('consoleinterp', 'record', _get_eval_enc_str(tcl_script))
-
+    tk_call('consoleinterp', 'record', tcl_script.to_s)
   end
 end

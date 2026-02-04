@@ -44,6 +44,7 @@ $LOAD_PATH.unshift(File.expand_path('../lib', __dir__))
 FIXTURES_PATH = File.expand_path('fixtures', __dir__)
 
 require 'minitest/autorun'
+require 'minitest/llm_reporter_plugin'
 
 # Stop TkWorker cleanly after all tests (allows coverage to be written)
 Minitest.after_run do

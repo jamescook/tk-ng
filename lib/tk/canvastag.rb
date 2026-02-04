@@ -4,6 +4,7 @@
 #
 require 'tk/tagfont'
 require_relative 'callback'
+require_relative 'core/callable'
 
 # Shared methods for canvas items and tags.
 #
@@ -13,7 +14,7 @@ require_relative 'callback'
 # @see TkcItem Base class for canvas items
 # @see TkcTag For grouping items with tags
 module TkcTagAccess
-  include TkComm
+  include TkUtil
   include TkTreatTagFont
 end
 
@@ -267,7 +268,8 @@ end
 # @see TkcTagCurrent The "current" tag (item under mouse)
 # @see TkcGroup For explicit item grouping
 # @see https://www.tcl-lang.org/man/tcl8.6/TkCmd/canvas.htm Tcl/Tk canvas manual
-class TkcTag<TkObject
+class TkcTag
+  include Tk::Core::Callable
   include TkcTagAccess
 
   (Tk_CanvasTag_ID = ['ctag'.freeze, '00000']).instance_eval{
@@ -275,6 +277,12 @@ class TkcTag<TkObject
     def mutex; @mutex; end
     freeze
   }
+
+  attr_reader :path
+
+  def to_eval
+    @path
+  end
 
   # Look up a tag by ID. Delegates to the canvas widget's canvastagid2obj.
   def TkcTag.id2obj(canvas, id)
@@ -294,7 +302,7 @@ class TkcTag<TkObject
     }
     @c._addtag(@id, self)
     if mode
-      tk_call_without_enc(@c.path, "addtag", @id, mode, *args)
+      tk_call(@c.path, "addtag", @id, mode, *args)
     end
   end
   def id
@@ -375,7 +383,7 @@ class TkcTagString<TkcTag
     @c._addtag(@id, self)
 
     if mode
-      tk_call_without_enc(@c.path, "addtag", @id, mode, *args)
+      tk_call(@c.path, "addtag", @id, mode, *args)
     end
   end
 end

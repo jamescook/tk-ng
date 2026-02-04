@@ -18,8 +18,7 @@ module Tk
   end
 end
 
-class Tk::Tile::TLabelframe < Tk::Tile::TFrame
-  include Tk::Tile::TileWidget
+class Tk::Tile::TLabelframe
   include Tk::Generated::TtkLabelframe
 
   if Tk::Tile::USE_TTK_NAMESPACE
