@@ -447,9 +447,53 @@ has_children: true
     CGI.escapeHTML(str.to_s)
   end
 
-  def md(text)
+  def md(text, current_path: nil)
     return '' if text.nil? || text.to_s.strip.empty?
-    Kramdown::Document.new(text.to_s).to_html
+    # Convert YARD link syntax to markdown links before Kramdown processing
+    converted = convert_yard_links(text.to_s, current_path)
+    Kramdown::Document.new(converted).to_html
+  end
+
+  # Convert YARD {#method}, {ClassName}, {Class#method} syntax to markdown links
+  def convert_yard_links(text, current_path)
+    text.gsub(/\{([^}]+)\}/) do |match|
+      ref = $1.strip
+      convert_single_yard_link(ref, current_path)
+    end
+  end
+
+  def convert_single_yard_link(ref, current_path)
+    # Kramdown attribute syntax for disabling Turbo on in-page anchors
+    turbo_off = '{: data-turbo="false"}'
+
+    case ref
+    when /^#(\w+)$/
+      # {#method_name} -> instance method on same page
+      method_name = $1
+      "[`##{method_name}`](#method-#{method_name})#{turbo_off}"
+    when /^\.(\w+)$/
+      # {.method_name} -> class method on same page
+      method_name = $1
+      "[`.#{method_name}`](#class-method-#{method_name})#{turbo_off}"
+    when /^([A-Z][\w:]+)#(\w+)$/
+      # {ClassName#method} -> instance method on another page
+      class_name, method_name = $1, $2
+      url_path = class_name.gsub('::', '/')
+      "[`#{class_name}##{method_name}`](/api/#{url_path}/#method-#{method_name})"
+    when /^([A-Z][\w:]+)\.(\w+)$/
+      # {ClassName.method} -> class method on another page
+      class_name, method_name = $1, $2
+      url_path = class_name.gsub('::', '/')
+      "[`#{class_name}.#{method_name}`](/api/#{url_path}/#class-method-#{method_name})"
+    when /^([A-Z][\w:]+)$/
+      # {ClassName} or {Module::Class} -> link to that page
+      class_name = $1
+      url_path = class_name.gsub('::', '/')
+      "[`#{class_name}`](/api/#{url_path}/)"
+    else
+      # Unknown format, leave as code
+      "`#{ref}`"
+    end
   end
 
   def method_anchor(method)

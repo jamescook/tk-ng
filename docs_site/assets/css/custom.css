@@ -202,9 +202,21 @@ main {
   border-color: transparent var(--bs-primary) transparent transparent;
 }
 
-.method-card h3 {
+.method-card > h3 {
   margin-top: 0;
   font-size: 1.1rem;
+}
+
+/* Scale down headers inside method docstrings so authors can use ## naturally */
+.method-card h1,
+.method-card h2,
+.method-card h3:not(:first-child),
+.method-card h4,
+.method-card h5,
+.method-card h6 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 1em 0 0.5em 0;
 }
 
 .method-card.method-class {
