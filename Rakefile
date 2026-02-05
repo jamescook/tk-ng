@@ -27,8 +27,18 @@ namespace :docs do
     end
   end
 
+  desc "Generate method coverage JSON from SimpleCov data"
+  task :method_coverage do
+    if Dir.exist?('coverage/results')
+      require_relative 'lib/tk/method_coverage_service'
+      Tk::MethodCoverageService.new(coverage_dir: 'coverage').call
+    else
+      puts "No coverage data found (run tests with COVERAGE=1 first)"
+    end
+  end
+
   desc "Generate API docs (YARD JSON -> HTML)"
-  task yard: :yard_json do
+  task yard: [:yard_json, :method_coverage] do
     Bundler.with_unbundled_env do
       sh 'BUNDLE_GEMFILE=docs_site/Gemfile bundle exec ruby docs_site/build_api_docs.rb'
     end
