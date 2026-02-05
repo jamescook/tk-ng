@@ -123,12 +123,22 @@ module Tk
       (0...max_len).map do |i|
         a = lines_a[i]
         b = lines_b[i]
-        # null means not relevant, "ignored" also not relevant
-        # Take max of numeric values, prefer non-null
-        if a.nil? || a == "ignored"
-          b
-        elsif b.nil? || b == "ignored"
-          a
+        # nil means not relevant (comments, blank lines), "ignored" also not relevant
+        # If EITHER run says nil, treat as not relevant - a comment can't become executable
+        # This handles cases where different test suites have slightly different coverage metadata
+        if a.nil? || a == "ignored" || b.nil? || b == "ignored"
+          # Both nil -> nil, one nil -> nil (trust the nil, it means non-executable)
+          # Unless both are numeric, in which case take max
+          if (a.nil? || a == "ignored") && (b.nil? || b == "ignored")
+            nil
+          elsif a.nil? || a == "ignored"
+            # a is nil, b is numeric - but nil means not relevant, so prefer nil
+            # unless b > 0 (was actually executed, so must be real code)
+            b.to_i > 0 ? b : nil
+          else
+            # b is nil, a is numeric
+            a.to_i > 0 ? a : nil
+          end
         else
           [a.to_i, b.to_i].max
         end
