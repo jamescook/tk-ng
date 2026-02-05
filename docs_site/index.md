@@ -19,12 +19,21 @@ Ruby bindings for Tcl/Tk 8.6+ and 9.x.
 
 ```ruby
 require 'tk'
+require 'tkextlib/tkimg/png'
 
 root = Tk.root
-Tk::Label.new(root, text: "Hello, World!").pack
-Tk::Button.new(root, text: "Quit", command: -> { exit }).pack
+root.title = "Tk Demo"
+
+teapot = TkPhotoImage.new(file: "teapot.png")
+Tk::Label.new(root, image: teapot).pack(padx: 10, pady: 10)
+
+Tk::Label.new(root, text: "Ruby/Tk", font: "Helvetica 16 bold").pack
+Tk::Button.new(root, text: "Quit", command: -> { exit }).pack(pady: 10)
+
 Tk.mainloop
 ```
+
+![Getting Started screenshot]({{ '/assets/images/getting_started.png' | relative_url }})
 
 ## Search
 

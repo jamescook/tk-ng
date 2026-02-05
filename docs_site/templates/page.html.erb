@@ -8,7 +8,7 @@ has_children: true
 nav_order: <%= nav_order %>
 ---
 
-<h1 class="page-title"><%= h doc['path'] %> <span class="type-badge type-<%= doc['type'] %>"><%= doc['type']&.capitalize %></span></h1>
+<h1 class="page-title"><%= h doc['path'] %> <button class="copy-path-btn" data-path="<%= h doc['path'] %>" title="Copy to clipboard" aria-label="Copy path to clipboard"><img src="{{ '/assets/images/copy.svg' | relative_url }}" alt="Copy" width="16" height="16"></button> <span class="type-badge type-<%= doc['type'] %>"><%= doc['type']&.capitalize %></span></h1>
 
 <% if doc['class_methods']&.any? || doc['instance_methods']&.any? || doc['attributes']&.any? %>
 <nav class="page-subnav">
@@ -16,6 +16,12 @@ nav_order: <%= nav_order %>
 <% if doc['instance_methods']&.any? %><a href="#instance-methods">Instance Methods (<%= doc['instance_methods'].size %>)</a><% end %>
 <% if doc['attributes']&.any? %><a href="#attributes">Attributes (<%= doc['attributes'].size %>)</a><% end %>
 </nav>
+<% end %>
+
+<% unless doc['docstring'].to_s.strip.empty? %>
+<div class="docstring">
+<%= md(doc['docstring']) %>
+</div>
 <% end %>
 
 <% if doc['superclass'] %>
@@ -30,20 +36,23 @@ nav_order: <%= nav_order %>
 <p><strong>Includes:</strong> <%= doc['instance_mixins'].map { |m| "<code>#{h m}</code>" }.join(', ') %></p>
 <% end %>
 
-<% unless doc['docstring'].to_s.strip.empty? %>
-<div class="docstring">
-<%= md(doc['docstring']) %>
-</div>
-<% end %>
-
 <% if children_list&.any? %>
 <div class="children-section">
-<h6><% if children_modules.any? %>Modules (<%= children_modules.size %>)<% end %><% if children_modules.any? && children_classes.any? %> · <% end %><% if children_classes.any? %>Classes (<%= children_classes.size %>)<% end %></h6>
+<h6>Members: <% if children_modules.any? %>Modules (<%= children_modules.size %>)<% end %><% if children_modules.any? && children_classes.any? %> · <% end %><% if children_classes.any? %>Classes (<%= children_classes.size %>)<% end %></h6>
+<% if children_modules.any? %>
 <ul class="children-list">
-<% children_list.each do |child| %>
-<li><span class="badge <%= child[:type] == 'module' ? 'bg-success' : 'bg-primary' %>"><%= child[:type] == 'module' ? 'M' : 'C' %></span> <a href="{{ '/api/<%= child[:url] %>/' | relative_url }}"><%= h child[:name] %></a></li>
+<% children_modules.sort_by { |c| c[:name].downcase }.each do |child| %>
+<li><span class="badge bg-success">M</span> <a href="{{ '/api/<%= child[:url] %>/' | relative_url }}"><%= h child[:name] %></a></li>
 <% end %>
 </ul>
+<% end %>
+<% if children_classes.any? %>
+<ul class="children-list<%= ' mt-3' if children_modules.any? %>">
+<% children_classes.sort_by { |c| c[:name].downcase }.each do |child| %>
+<li><span class="badge bg-primary">C</span> <a href="{{ '/api/<%= child[:url] %>/' | relative_url }}"><%= h child[:name] %></a></li>
+<% end %>
+</ul>
+<% end %>
 </div>
 <% end %>
 

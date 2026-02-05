@@ -156,12 +156,15 @@ class APIDocBuilder
     # Generate stats include
     generate_stats
 
+    # Generate stubs for namespace-only nodes (appear in nav but have no JSON)
+    stub_count = generate_namespace_stubs
+
     # Second pass: generate HTML
     json_files.each do |file|
       process_file(file)
     end
 
-    puts "Generated #{json_files.size + 1} API doc pages in #{@output_dir}"
+    puts "Generated #{json_files.size + stub_count + 1} API doc pages in #{@output_dir}"
   end
 
   def generate_index
@@ -220,6 +223,75 @@ has_children: true
     File.write(File.join(includes_dir, 'stats.html'), content.strip)
 
     puts "Generated stats: v#{version}, #{modules} modules, #{classes} classes, #{methods} methods"
+  end
+
+  def generate_namespace_stubs
+    # Find paths that are implied parents but have no JSON file
+    implied = Set.new
+    @all_paths.each_key do |path|
+      parts = path.split('::')
+      (1...parts.size).each do |i|
+        ancestor = parts[0...i].join('::')
+        implied << ancestor unless @all_paths.key?(ancestor)
+      end
+    end
+
+    implied.each do |path|
+      @all_paths[path] = { type: 'module' }
+      parts = path.split('::')
+      if parts.size > 1
+        parent = parts[0..-2].join('::')
+        @children[parent] << parts.last unless @children[parent].include?(parts.last)
+      end
+    end
+
+    # Generate stub pages
+    implied.each do |path|
+      parts = path.split('::')
+      parent = parts.size > 1 ? parts[0..-2].join('::') : nil
+      has_children = @children[path].any?
+      title = path
+
+      children_list = @children[path].sort.map do |child_name|
+        full_path = "#{path}::#{child_name}"
+        child_type = @all_paths[full_path]&.[](:type) || 'class'
+        { name: child_name, url: full_path.gsub('::', '/'), type: child_type }
+      end
+      children_modules = children_list.select { |c| c[:type] == 'module' }
+      children_classes = children_list.select { |c| c[:type] != 'module' }
+
+      doc = {
+        'path' => path,
+        'type' => 'module',
+        'docstring' => '',
+        'superclass' => nil,
+        'class_mixins' => [],
+        'instance_mixins' => [],
+        'class_methods' => [],
+        'instance_methods' => [],
+        'attributes' => [],
+        'inherited_methods' => {}
+      }
+
+      included_by = @included_by[path].sort
+      extended_by = @extended_by[path].sort
+      inherited_by = @inherited_by[path].sort
+      class_coverage = nil
+      class_coverage_total = nil
+      class_coverage_level = nil
+
+      @nav_order += 1
+      nav_order = @nav_order
+
+      content = template('page').result(binding)
+      rel_path = path.gsub('::', '/') + '.html'
+      output_path = File.join(@output_dir, rel_path)
+      FileUtils.mkdir_p(File.dirname(output_path))
+      File.write(output_path, content)
+    end
+
+    puts "Generated #{implied.size} namespace stub(s): #{implied.to_a.join(', ')}" if implied.any?
+    implied.size
   end
 
   def generate_nav

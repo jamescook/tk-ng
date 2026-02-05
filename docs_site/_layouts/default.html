@@ -14,6 +14,21 @@
       e.preventDefault();
       window.location.href = e.detail.fetchRequest.url;
     });
+    // Handle anchor links inside turbo frames
+    document.addEventListener('turbo:click', function(e) {
+      var url = new URL(e.detail.url);
+      if (!url.hash) return;
+      if (url.pathname === window.location.pathname) {
+        // Same page: just scroll
+        e.preventDefault();
+        var target = document.querySelector(url.hash);
+        if (target) target.scrollIntoView();
+      } else {
+        // Cross-page with hash: full navigation so the browser scrolls to the anchor
+        e.preventDefault();
+        window.location.href = e.detail.url;
+      }
+    });
   </script>
   <script src="{{ '/assets/vendor/bootstrap/bootstrap.bundle.min.js' | relative_url }}" defer></script>
   <script src="{{ '/assets/vendor/lunr.min.js' | relative_url }}" defer></script>
@@ -21,6 +36,8 @@
   <script src="{{ '/assets/js/search.js' | relative_url }}" defer></script>
   <script src="{{ '/assets/js/nav-breadcrumb.js' | relative_url }}" defer></script>
   <script src="{{ '/assets/js/highlight-lazy.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/nav-expand-active.js' | relative_url }}" defer></script>
+  <script src="{{ '/assets/js/copy-path.js' | relative_url }}" defer></script>
 </head>
 <body data-baseurl="{{ site.baseurl }}">
 
@@ -46,9 +63,11 @@
 
       <!-- Main content -->
       <main class="col-md-8 ms-sm-auto col-lg-9 px-md-4">
+        <turbo-frame id="main-content" data-turbo-action="advance">
         <div class="pt-3 pb-2 mb-3">
           {{ content }}
         </div>
+        </turbo-frame>
       </main>
     </div>
   </div>
